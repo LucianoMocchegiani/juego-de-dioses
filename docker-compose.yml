@@ -2,7 +2,7 @@ services:
   # Base de datos PostgreSQL
   postgres:
     image: postgres:16-alpine
-    container_name: juego-dioses-db
+    container_name: juego-de-dioses-db
     environment:
       POSTGRES_USER: ${POSTGRES_USER:-juegodioses}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-juegodioses123}
@@ -20,12 +20,12 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - juego-dioses-network
+      - juego-de-dioses-network
 
   # Redis para cache y optimización
   redis:
     image: redis:7-alpine
-    container_name: juego-dioses-redis
+    container_name: juego-de-dioses-redis
     ports:
       - "${REDIS_PORT:-6379}:6379"
     volumes:
@@ -37,14 +37,14 @@ services:
       timeout: 5s
       retries: 5
     networks:
-      - juego-dioses-network
+      - juego-de-dioses-network
 
   # Backend API (FastAPI + Python)
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: juego-dioses-backend
+    container_name: juego-de-dioses-backend
     environment:
       PYTHONUNBUFFERED: 1
       PORT: ${BACKEND_PORT:-8000}
@@ -67,13 +67,13 @@ services:
       redis:
         condition: service_healthy
     networks:
-      - juego-dioses-network
+      - juego-de-dioses-network
     restart: unless-stopped
 
   # Frontend (nginx sirve archivos estáticos)
   frontend:
     image: nginx:alpine
-    container_name: juego-dioses-frontend
+    container_name: juego-de-dioses-frontend
     ports:
       - "${FRONTEND_PORT:-8080}:80"
     volumes:
@@ -82,13 +82,13 @@ services:
     depends_on:
       - backend
     networks:
-      - juego-dioses-network
+      - juego-de-dioses-network
     restart: unless-stopped
 
   # PgAdmin (opcional, para gestión de BD)
   pgadmin:
     image: dpage/pgadmin4:latest
-    container_name: juego-dioses-pgadmin
+    container_name: juego-de-dioses-pgadmin
     environment:
       PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@juegodioses.com}
       PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
@@ -100,7 +100,7 @@ services:
     depends_on:
       - postgres
     networks:
-      - juego-dioses-network
+      - juego-de-dioses-network
     profiles:
       - tools
 
@@ -113,6 +113,6 @@ volumes:
     driver: local
 
 networks:
-  juego-dioses-network:
+  juego-de-dioses-network:
     driver: bridge
 

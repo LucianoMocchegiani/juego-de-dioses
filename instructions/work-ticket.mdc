@@ -15,7 +15,7 @@ Actúa como un **Product Manager y Technical Analyst** responsable de generar ti
    - La descripción del requerimiento o problema
    - El contexto del proyecto (sistema de partículas, dimensiones, agrupaciones)
    - Las tecnologías involucradas (FastAPI, Three.js, PostgreSQL, etc.)
-3. Con base en eso, generará un archivo listo para usar `[TICKET-ID]_work-ticket.md` con un ticket completo y estructurado.
+3. Con base en eso, generará un archivo listo para usar `[TICKET-ID]_work-ticket_[FECHA-HORA].md` con un ticket completo y estructurado.
 4. El ticket puede ser usado directamente en sistemas de gestión de proyectos (GitHub Issues, GitLab Issues, Jira, etc.).
 
 ## Estilo y Tono
@@ -29,7 +29,12 @@ Actúa como un **Product Manager y Technical Analyst** responsable de generar ti
 
 ## Formato
 
-El archivo `[TICKET-ID]_work-ticket.md` generado debe contener las siguientes secciones:
+**IMPORTANTE - Nomenclatura de archivo:**
+- Antes de crear el archivo, debes obtener la fecha y hora actual ejecutando: `Get-Date -Format "yyyy-MM-dd_HH-mm-ss"` en PowerShell
+- El formato de fecha/hora será: `yyyy-MM-dd_HH-mm-ss` (ejemplo: `2024-12-04_14-30-45`)
+- El nombre del archivo debe ser: `[TICKET-ID]_work-ticket_[FECHA-HORA].md` (ejemplo: `JDG-001_work-ticket_2024-12-04_14-30-45.md`)
+
+El archivo `[TICKET-ID]_work-ticket_[FECHA-HORA].md` generado debe contener las siguientes secciones:
 
 ```markdown
 # [TICKET-ID] - [Título del Ticket]
@@ -94,12 +99,6 @@ El archivo `[TICKET-ID]_work-ticket.md` generado debe contener las siguientes se
 
 ## Detalles de Implementación
 
-### Pasos Sugeridos (Opcional)
-<Si el ticket es complejo, sugerir pasos generales>
-1. Paso 1
-2. Paso 2
-3. Paso 3
-
 ### Consideraciones Técnicas
 <Aspectos técnicos importantes a considerar>
 - Performance: <si aplica>
@@ -140,7 +139,12 @@ El archivo `[TICKET-ID]_work-ticket.md` generado debe contener las siguientes se
 <Cualquier información adicional relevante para el desarrollador>
 ```
 
-El archivo debe guardarse como `[TICKET-ID]_work-ticket.md` en la carpeta `/instructions/tickets/`. Debe estar limpio y listo para usar.
+**Proceso para crear el archivo:**
+1. Primero, ejecuta el comando para obtener la fecha y hora: `Get-Date -Format "yyyy-MM-dd_HH-mm-ss"`
+2. Usa el resultado para construir el nombre del archivo: `[TICKET-ID]_work-ticket_[FECHA-HORA].md`
+3. Guarda el archivo en la carpeta `/instructions/tickets/`
+
+El archivo debe guardarse como `[TICKET-ID]_work-ticket_[FECHA-HORA].md` en la carpeta `/instructions/tickets/`. Debe estar limpio y listo para usar.
 
 ## Directrices Específicas de Juego de Dioses
 
@@ -226,7 +230,8 @@ Componentes: Backend, Base de Datos
 
 ## Output
 
-- Un archivo Markdown llamado `[TICKET-ID]_work-ticket.md`
+- Obtener la fecha y hora actual ejecutando: `Get-Date -Format "yyyy-MM-dd_HH-mm-ss"`
+- Un archivo Markdown llamado `[TICKET-ID]_work-ticket_[FECHA-HORA].md` donde `[FECHA-HORA]` es el resultado del comando anterior (formato: `yyyy-MM-dd_HH-mm-ss`)
 - Ubicado en `/instructions/tickets/`
 - Sigue el template de ticket del proyecto Juego de Dioses
 - Los desarrolladores pueden usar este contenido directamente en sistemas de gestión de proyectos
@@ -246,3 +251,7 @@ Ejemplo de solicitud:
 "Genera un ticket de bugfix para el problema de conectividad de núcleos"
 "Genera un ticket de performance para optimizar consultas de viewport"
 ```
+
+**Ejemplo de archivo generado:**
+- Nombre: `JDG-001_work-ticket_2024-12-04_14-30-45.md`
+- Ubicación: `/instructions/tickets/JDG-001_work-ticket_2024-12-04_14-30-45.md`

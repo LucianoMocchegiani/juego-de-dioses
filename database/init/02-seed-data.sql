@@ -64,3 +64,64 @@ BEGIN
     RAISE NOTICE 'Datos iniciales insertados correctamente';
 END $$;
 
+-- ===== Migración de Colores Hardcoded a Estilos JSONB =====
+
+-- Función helper para convertir hex a RGB
+CREATE OR REPLACE FUNCTION hex_to_rgb(hex_value INTEGER) 
+RETURNS INTEGER[] AS $$
+BEGIN
+    RETURN ARRAY[
+        (hex_value >> 16) & 255,
+        (hex_value >> 8) & 255,
+        hex_value & 255
+    ];
+END;
+$$ LANGUAGE plpgsql IMMUTABLE;
+
+-- Migrar colores hardcoded del frontend a estilos JSONB
+-- NOTA: color_hex se guarda como string hexadecimal en formato CSS (ej: "#8B4513") para compatibilidad
+-- con múltiples frontends (Web, Mobile, VR, etc.). THREE.Color acepta directamente este formato.
+UPDATE juego_dioses.tipos_particulas 
+SET estilos = jsonb_build_object(
+    'color_hex', CASE nombre
+        WHEN 'hierba' THEN '#90EE90'   -- Verde claro
+        WHEN 'madera' THEN '#8B4513'   -- Marrón
+        WHEN 'hojas' THEN '#228B22'    -- Verde bosque
+        WHEN 'tierra' THEN '#8B7355'   -- Tan
+        WHEN 'piedra' THEN '#808080'   -- Gris
+        WHEN 'agua' THEN '#4169E1'     -- Azul
+        WHEN 'aire' THEN '#FFFFFF'     -- Blanco
+        ELSE NULL
+    END,
+    'color_rgb', CASE nombre
+        WHEN 'hierba' THEN hex_to_rgb(9474192)
+        WHEN 'madera' THEN hex_to_rgb(9145235)
+        WHEN 'hojas' THEN hex_to_rgb(2263842)
+        WHEN 'tierra' THEN hex_to_rgb(9147221)
+        WHEN 'piedra' THEN hex_to_rgb(8421504)
+        WHEN 'agua' THEN hex_to_rgb(4279617)
+        WHEN 'aire' THEN hex_to_rgb(16777215)
+        ELSE NULL
+    END,
+    'material', jsonb_build_object(
+        'metalness', 0.1,
+        'roughness', 0.8,
+        'emissive', false
+    ),
+    'visual', jsonb_build_object(
+        'modelo', 'cube',
+        'escala', 1.0
+    )
+)
+WHERE nombre IN ('hierba', 'madera', 'hojas', 'tierra', 'piedra', 'agua', 'aire')
+  AND (estilos IS NULL OR estilos = '{}'::jsonb);
+
+-- Limpiar función helper (opcional, se puede mantener para futuras migraciones)
+-- DROP FUNCTION IF EXISTS hex_to_rgb(INTEGER);
+
+-- Mensaje de confirmación
+DO $$
+BEGIN
+    RAISE NOTICE 'Colores hardcoded migrados a estilos JSONB correctamente';
+END $$;
+

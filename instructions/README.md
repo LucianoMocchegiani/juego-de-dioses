@@ -40,13 +40,13 @@ Las reglas de Cursor (archivos `.mdc`) son instrucciones especiales que guían a
 **Cómo usar:**
 1. Abre Cursor y describe el ticket o requerimiento
 2. Menciona: "Necesito un action plan para [descripción del ticket]"
-3. El asistente generará un archivo en `/tasks/[TICKET-ID]-action-plan.md`
+3. El asistente generará un archivo en `/tasks/[TICKET-ID]-action-plan_[FECHA-HORA].md` (con fecha y hora en formato `yyyy-MM-dd_HH-mm-ss`)
 4. Sigue los pasos del plan uno por uno
 
 **Ejemplo:**
 ```
 Usuario: "Necesito un action plan para implementar sistema de recolección de partículas"
-Asistente: *Genera JDG-123-action-plan.md con pasos detallados*
+Asistente: *Genera JDG-123-action-plan_2024-12-04_14-30-45.md con pasos detallados*
 ```
 
 ### 2. `pr-description.mdc`
@@ -61,13 +61,13 @@ Asistente: *Genera JDG-123-action-plan.md con pasos detallados*
 **Cómo usar:**
 1. Completa tu implementación y commits
 2. Solicita: "Genera la descripción del PR para [TICKET-ID]"
-3. El asistente generará `/prs/[TICKET-ID]_pr-description.md`
+3. El asistente generará `/prs/[TICKET-ID]_pr-description_[FECHA-HORA].md` (con fecha y hora en formato `yyyy-MM-dd_HH-mm-ss`)
 4. Copia y pega el contenido en Git
 
 **Ejemplo:**
 ```
 Usuario: "Genera la descripción del PR para JDG-123"
-Asistente: *Analiza commits y genera JDG-123_pr-description.md*
+Asistente: *Analiza commits y genera JDG-123_pr-description_2024-12-04_14-30-45.md*
 ```
 
 ### 3. `work-ticket.mdc`
@@ -83,13 +83,13 @@ Asistente: *Analiza commits y genera JDG-123_pr-description.md*
 **Cómo usar:**
 1. Describe el problema, feature o mejora que necesitas
 2. Solicita: "Genera un ticket para [descripción]"
-3. El asistente generará `/tickets/[TICKET-ID]_work-ticket.md`
+3. El asistente generará `/tickets/[TICKET-ID]_work-ticket_[FECHA-HORA].md` (con fecha y hora en formato `yyyy-MM-dd_HH-mm-ss`)
 4. Usa el contenido en tu sistema de gestión de proyectos (GitHub Issues, GitLab, Jira, etc.)
 
 **Ejemplo:**
 ```
 Usuario: "Genera un ticket para implementar sistema de recolección de partículas"
-Asistente: *Genera JDG-123_work-ticket.md con ticket completo*
+Asistente: *Genera JDG-123_work-ticket_2024-12-04_14-30-45.md con ticket completo*
 ```
 
 ### 4. `code-documentation.mdc` (Always Apply)
@@ -181,7 +181,7 @@ graph TD
    ```
 
 5. **Crear PR en Git**
-   - Copia el contenido de `/prs/[TICKET-ID]_pr-description.md`
+   - Copia el contenido de `/prs/[TICKET-ID]_pr-description_[FECHA-HORA].md` (busca el archivo más reciente)
    - Pégalo en la descripción del PR
 
 ### Para Bugfixes
@@ -218,6 +218,22 @@ Para bugs menores puedes omitir el action plan y ir directo a la implementación
 - **Grafos:** NetworkX (para conectividad de núcleos)
 - **Containerización:** Docker + Docker Compose
 - **Servidor Web:** nginx (para frontend)
+
+### Nomenclatura de Archivos Generados
+
+Todos los archivos generados por las reglas incluyen fecha y hora en su nombre para facilitar el seguimiento y evitar conflictos:
+
+**Formato de fecha/hora:** `yyyy-MM-dd_HH-mm-ss` (ejemplo: `2024-12-04_14-30-45`)
+
+**Archivos afectados:**
+- **Tickets:** `[TICKET-ID]_work-ticket_[FECHA-HORA].md`
+  - Ejemplo: `JDG-001_work-ticket_2024-12-04_14-30-45.md`
+- **Action Plans:** `[TICKET-ID]-action-plan_[FECHA-HORA].md`
+  - Ejemplo: `JDG-001-action-plan_2024-12-04_14-30-45.md`
+- **PR Descriptions:** `[TICKET-ID]_pr-description_[FECHA-HORA].md`
+  - Ejemplo: `JDG-001_pr-description_2024-12-04_14-30-45.md`
+
+**Nota:** La IA ejecutará automáticamente `Get-Date -Format "yyyy-MM-dd_HH-mm-ss"` para obtener la fecha y hora actual antes de crear cada archivo. Si necesitas encontrar un archivo específico, busca por el TICKET-ID y ordena por fecha de creación.
 
 ## 💡 Tips y Mejores Prácticas
 
@@ -280,9 +296,9 @@ Las reglas con `alwaysApply: false` deben invocarse manualmente:
 "Genera la descripción del PR para JDG-456"
 
 # 5. Resultado
-- /tickets/JDG-456_work-ticket.md
-- /tasks/JDG-456-action-plan.md
-- /prs/JDG-456_pr-description.md
+- /tickets/JDG-456_work-ticket_2024-12-04_14-30-45.md
+- /tasks/JDG-456-action-plan_2024-12-04_14-30-45.md
+- /prs/JDG-456_pr-description_2024-12-04_14-30-45.md
 - Código documentado automáticamente
 ```
 
@@ -296,7 +312,7 @@ Las reglas con `alwaysApply: false` deben invocarse manualmente:
 "Genera la descripción del PR para JDG-789"
 
 # Resultado
-- /prs/JDG-789_pr-description.md
+- /prs/JDG-789_pr-description_2024-12-04_14-30-45.md
 - Código documentado
 ```
 
