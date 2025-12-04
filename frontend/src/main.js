@@ -42,7 +42,7 @@ async function loadDemo() {
         currentDimension = demoDimension;
         dimensionInfoEl.textContent = `Dimensión: ${demoDimension.nombre} (${demoDimension.ancho_metros}m x ${demoDimension.alto_metros}m)`;
         
-        // 2. Obtener partículas
+        // 2. Definir viewport
         const viewport = {
             x_min: 0,
             x_max: 20,
@@ -52,12 +52,23 @@ async function loadDemo() {
             z_max: 5
         };
         
-        const particlesData = await api.getParticles(demoDimension.id, viewport);
-        currentParticles = particlesData.particles;
+        // 3. Cargar partículas Y tipos en paralelo
+        const [particlesData, typesData] = await Promise.all([
+            api.getParticles(demoDimension.id, viewport),
+            api.getParticleTypes(demoDimension.id, viewport)
+        ]);
         
+        currentParticles = particlesData.particles;
         particlesCountEl.textContent = `Partículas: ${particlesData.total}`;
         
-        // 3. Renderizar partículas
+        // 4. Cachear tipos antes de renderizar
+        typesData.types.forEach(tipo => {
+            if (tipo.estilos) {
+                scene.cacheStyle(tipo.nombre, tipo.estilos);
+            }
+        });
+        
+        // 5. Renderizar partículas (tipos ya cacheados)
         scene.renderParticles(currentParticles, demoDimension.tamano_celda);
         
         // 4. Centrar cámara

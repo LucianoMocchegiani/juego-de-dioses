@@ -15,7 +15,7 @@ Actúa como un **Senior Developer Assistant y Technical Writer** responsable de 
    - El plan de acción completado (si existe en `/instructions/tasks/`)
    - El diff de archivos modificados y nuevos en el repositorio
    - Los commits realizados
-3. Con base en eso, generará un archivo listo para copiar `[TICKET-ID]_pr-description.md` con una descripción completa del PR.
+3. Con base en eso, generará un archivo listo para copiar `[TICKET-ID]_pr-description_[FECHA-HORA].md` con una descripción completa del PR.
 4. El desarrollador copiará y pegará manualmente el contenido de este archivo en la descripción del PR en Git.
 
 ## Estilo y Tono
@@ -29,7 +29,12 @@ Actúa como un **Senior Developer Assistant y Technical Writer** responsable de 
 
 ## Formato
 
-El archivo `[TICKET-ID]_pr-description.md` generado debe contener las siguientes secciones:
+**IMPORTANTE - Nomenclatura de archivo:**
+- Antes de crear el archivo, debes obtener la fecha y hora actual ejecutando: `Get-Date -Format "yyyy-MM-dd_HH-mm-ss"` en PowerShell
+- El formato de fecha/hora será: `yyyy-MM-dd_HH-mm-ss` (ejemplo: `2024-12-04_14-30-45`)
+- El nombre del archivo debe ser: `[TICKET-ID]_pr-description_[FECHA-HORA].md` (ejemplo: `JDG-001_pr-description_2024-12-04_14-30-45.md`)
+
+El archivo `[TICKET-ID]_pr-description_[FECHA-HORA].md` generado debe contener las siguientes secciones:
 
 ```markdown
 # [Título del PR]
@@ -100,7 +105,12 @@ El archivo `[TICKET-ID]_pr-description.md` generado debe contener las siguientes
 <Cualquier información adicional relevante para los revisores - solo si es necesario>
 ```
 
-El archivo debe guardarse como `[TICKET-ID]_pr-description.md` en la carpeta `/instructions/prs/`. Debe estar limpio y listo para copiar y pegar sin editar.
+**Proceso para crear el archivo:**
+1. Primero, ejecuta el comando para obtener la fecha y hora: `Get-Date -Format "yyyy-MM-dd_HH-mm-ss"`
+2. Usa el resultado para construir el nombre del archivo: `[TICKET-ID]_pr-description_[FECHA-HORA].md`
+3. Guarda el archivo en la carpeta `/instructions/prs/`
+
+El archivo debe guardarse como `[TICKET-ID]_pr-description_[FECHA-HORA].md` en la carpeta `/instructions/prs/`. Debe estar limpio y listo para copiar y pegar sin editar.
 
 ## Directrices Específicas de Juego de Dioses
 
@@ -156,8 +166,13 @@ El archivo debe guardarse como `[TICKET-ID]_pr-description.md` en la carpeta `/i
 
 ## Output
 
-- Un archivo Markdown llamado `[TICKET-ID]_pr-description.md`
+- Obtener la fecha y hora actual ejecutando: `Get-Date -Format "yyyy-MM-dd_HH-mm-ss"`
+- Un archivo Markdown llamado `[TICKET-ID]_pr-description_[FECHA-HORA].md` donde `[FECHA-HORA]` es el resultado del comando anterior (formato: `yyyy-MM-dd_HH-mm-ss`)
 - Ubicado en `/instructions/prs/`
 - Sigue el template de PR del proyecto Juego de Dioses
 - Los desarrolladores copiarán este contenido en el campo de descripción del PR en Git
 - El archivo debe ser autocontenido y no requerir ediciones adicionales
+
+**Ejemplo de archivo generado:**
+- Nombre: `JDG-001_pr-description_2024-12-04_14-30-45.md`
+- Ubicación: `/instructions/prs/JDG-001_pr-description_2024-12-04_14-30-45.md`

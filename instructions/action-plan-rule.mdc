@@ -24,7 +24,12 @@ Basándote en un ticket, issue o requerimiento, genera un plan de acción detall
 
 ## Formato
 
-Genera un archivo Markdown llamado `[TICKET-ID]-action-plan.md` con las siguientes secciones:
+**IMPORTANTE - Nomenclatura de archivo:**
+- Antes de crear el archivo, debes obtener la fecha y hora actual ejecutando: `Get-Date -Format "yyyy-MM-dd_HH-mm-ss"` en PowerShell
+- El formato de fecha/hora será: `yyyy-MM-dd_HH-mm-ss` (ejemplo: `2024-12-04_14-30-45`)
+- El nombre del archivo debe ser: `[TICKET-ID]-action-plan_[FECHA-HORA].md` (ejemplo: `JDG-001-action-plan_2024-12-04_14-30-45.md`)
+
+Genera un archivo Markdown llamado `[TICKET-ID]-action-plan_[FECHA-HORA].md` con las siguientes secciones:
 
 ```markdown
 # [TICKET-ID] - [Título de la Tarea]
@@ -106,7 +111,7 @@ Una vez completados todos los pasos anteriores y verificada la implementación, 
 ```
 
 **Resultado esperado:**
-- Archivo generado: `[TICKET-ID]_pr-description.md` en `/instructions/prs/`
+- Archivo generado: `[TICKET-ID]_pr-description_[FECHA-HORA].md` en `/instructions/prs/` (con fecha y hora obtenida de `Get-Date -Format "yyyy-MM-dd_HH-mm-ss"`)
 - El archivo contendrá una descripción completa del PR lista para copiar y pegar en Git
 - Incluirá: título, resumen, motivación, cambios técnicos, testing, referencias y riesgos
 
@@ -292,4 +297,13 @@ database/
 
 ## Output
 
-Un único archivo `.md` ubicado en `/instructions/tasks/` con el nombre `[TICKET-ID]-action-plan.md`.
+**Proceso para crear el archivo:**
+1. Primero, ejecuta el comando para obtener la fecha y hora: `Get-Date -Format "yyyy-MM-dd_HH-mm-ss"`
+2. Usa el resultado para construir el nombre del archivo: `[TICKET-ID]-action-plan_[FECHA-HORA].md`
+3. Guarda el archivo en la carpeta `/instructions/tasks/`
+
+Un único archivo `.md` ubicado en `/instructions/tasks/` con el nombre `[TICKET-ID]-action-plan_[FECHA-HORA].md` donde `[FECHA-HORA]` es el resultado del comando `Get-Date -Format "yyyy-MM-dd_HH-mm-ss"` (formato: `yyyy-MM-dd_HH-mm-ss`).
+
+**Ejemplo de archivo generado:**
+- Nombre: `JDG-001-action-plan_2024-12-04_14-30-45.md`
+- Ubicación: `/instructions/tasks/JDG-001-action-plan_2024-12-04_14-30-45.md`
