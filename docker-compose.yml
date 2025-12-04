@@ -1,0 +1,118 @@
+services:
+  # Base de datos PostgreSQL
+  postgres:
+    image: postgres:16-alpine
+    container_name: juego-dioses-db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-juegodioses}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-juegodioses123}
+      POSTGRES_DB: ${POSTGRES_DB:-juego_dioses}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+      - ./database/migrations:/migrations
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-juegodioses}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - juego-dioses-network
+
+  # Redis para cache y optimización
+  redis:
+    image: redis:7-alpine
+    container_name: juego-dioses-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - juego-dioses-network
+
+  # Backend API (FastAPI + Python)
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: juego-dioses-backend
+    environment:
+      PYTHONUNBUFFERED: 1
+      PORT: ${BACKEND_PORT:-8000}
+      POSTGRES_HOST: postgres
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: ${POSTGRES_USER:-juegodioses}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-juegodioses123}
+      POSTGRES_DB: ${POSTGRES_DB:-juego_dioses}
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: ${JWT_SECRET:-change-this-secret-in-production}
+      CORS_ORIGINS: ${CORS_ORIGINS:-*}
+    ports:
+      - "${BACKEND_PORT:-8000}:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - juego-dioses-network
+    restart: unless-stopped
+
+  # Frontend (nginx sirve archivos estáticos)
+  frontend:
+    image: nginx:alpine
+    container_name: juego-dioses-frontend
+    ports:
+      - "${FRONTEND_PORT:-8080}:80"
+    volumes:
+      - ./frontend:/usr/share/nginx/html:ro
+      - ./frontend/nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on:
+      - backend
+    networks:
+      - juego-dioses-network
+    restart: unless-stopped
+
+  # PgAdmin (opcional, para gestión de BD)
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: juego-dioses-pgadmin
+    environment:
+      PGADMIN_DEFAULT_EMAIL: ${PGADMIN_EMAIL:-admin@juegodioses.com}
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:-admin123}
+      PGADMIN_CONFIG_SERVER_MODE: 'False'
+    ports:
+      - "${PGADMIN_PORT:-5050}:80"
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    depends_on:
+      - postgres
+    networks:
+      - juego-dioses-network
+    profiles:
+      - tools
+
+volumes:
+  postgres_data:
+    driver: local
+  redis_data:
+    driver: local
+  pgadmin_data:
+    driver: local
+
+networks:
+  juego-dioses-network:
+    driver: bridge
+

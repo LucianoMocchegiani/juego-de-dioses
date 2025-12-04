@@ -1,0 +1,39 @@
+# Framework web
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+websockets==12.0
+
+# Base de datos
+asyncpg==0.29.0
+psycopg2-binary==2.9.9
+sqlalchemy[asyncio]==2.0.23
+alembic==1.12.1
+
+# Redis
+redis==5.0.1
+hiredis==2.2.3
+
+# Utilidades
+python-dotenv==1.0.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+
+# Cálculos científicos (para física de partículas)
+numpy==1.26.2
+scipy==1.11.4
+
+# Grafos (para algoritmos de conectividad BFS/DFS)
+networkx==3.2.1
+
+# Validación y serialización
+orjson==3.9.10
+
+# Seguridad
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+
+# Testing (opcional, para desarrollo)
+pytest==7.4.3
+pytest-asyncio==0.21.1
+httpx==0.25.2
+

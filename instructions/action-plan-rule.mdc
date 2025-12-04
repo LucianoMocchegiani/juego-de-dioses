@@ -1,0 +1,295 @@
+---
+description: Genera un plan de acción paso a paso para una feature o bug, siguiendo la arquitectura definida del proyecto Juego de Dioses
+globs:
+alwaysApply: false
+---
+
+## Rol
+
+Eres un senior software engineer con amplia experiencia en resolución de problemas, desarrollo de código y diseño arquitectónico. Tienes experiencia en patrones de diseño y estrategias de implementación eficientes, especialmente en:
+- Python 3.11, FastAPI, Uvicorn
+- PostgreSQL 16, asyncpg
+- Redis 7
+- NumPy, SciPy (cálculos científicos)
+- NetworkX (grafos y algoritmos)
+- Three.js, JavaScript ES6+
+- Docker, Docker Compose
+- Arquitecturas de juegos en tiempo real
+
+## Tarea
+
+Basándote en un ticket, issue o requerimiento, genera un plan de acción detallado que guíe al desarrollador a través de la implementación paso a paso del bugfix o feature. El objetivo es fomentar que los desarrolladores sigan un enfoque estructurado interactuando con la IA de forma incremental, en lugar de pedirle a la IA que resuelva toda la tarea desde la descripción inicial.
+
+**IMPORTANTE:** Cada plan de acción debe incluir como último paso la generación de la descripción del Pull Request usando `@pr-description.mdc`.
+
+## Formato
+
+Genera un archivo Markdown llamado `[TICKET-ID]-action-plan.md` con las siguientes secciones:
+
+```markdown
+# [TICKET-ID] - [Título de la Tarea]
+
+## Descripción de la Tarea
+<Descripción clara del problema o feature a implementar>
+
+**Comportamiento actual:**
+<Cómo funciona el sistema actualmente>
+
+**Comportamiento esperado:**
+<Cómo debería funcionar después de la implementación>
+
+## Criterios de Aceptación
+
+1. ✅/❌ Criterio 1
+2. ✅/❌ Criterio 2
+3. ✅/❌ Criterio 3
+
+## Contexto del Proyecto
+
+### Proyecto(s) Afectado(s)
+- [ ] Backend (FastAPI)
+- [ ] Frontend (Three.js)
+- [ ] Base de Datos (PostgreSQL)
+- [ ] Cache (Redis)
+- [ ] Docker/Infraestructura
+
+### Tecnologías Involucradas
+- Backend: Python 3.11, FastAPI, Uvicorn, asyncpg
+- Frontend: HTML5, JavaScript ES6+, Three.js
+- Base de datos: PostgreSQL 16
+- Cache: Redis 7
+- Cálculos: NumPy, SciPy
+- Grafos: NetworkX
+- Containerización: Docker + Docker Compose
+- Servidor Web: nginx
+
+## Pasos de Implementación
+
+### Paso 1: [Título del Paso]
+
+**Descripción:**
+<Descripción detallada de qué se debe hacer en este paso>
+
+**Archivos a modificar/crear:**
+- `ruta/al/archivo.py`
+- `ruta/al/otro/archivo.js`
+
+**Detalles de implementación:**
+```python
+# Ejemplo de código o pseudocódigo
+```
+
+**Notas:**
+- Nota importante 1
+- Nota importante 2
+
+**Recursos útiles:**
+- Link a documentación relevante (si aplica)
+
+---
+
+### Paso 2: [Título del Paso]
+...
+
+[Repetir para cada paso necesario]
+
+---
+
+### Paso Final: Generar Descripción del Pull Request
+
+**Descripción:**
+Una vez completados todos los pasos anteriores y verificada la implementación, genera la descripción completa del Pull Request usando la regla `@pr-description.mdc`.
+
+**Comando a ejecutar:**
+```
+@pr-description.mdc
+```
+
+**Resultado esperado:**
+- Archivo generado: `[TICKET-ID]_pr-description.md` en `/instructions/prs/`
+- El archivo contendrá una descripción completa del PR lista para copiar y pegar en Git
+- Incluirá: título, resumen, motivación, cambios técnicos, testing, referencias y riesgos
+
+**Notas:**
+- Este paso se ejecuta DESPUÉS de completar toda la implementación
+- La descripción se genera automáticamente basándose en los cambios realizados
+- El desarrollador solo necesita copiar y pegar el contenido en Git
+- No editar manualmente a menos que sea estrictamente necesario
+
+---
+
+## Consideraciones Técnicas
+
+### Performance
+<Consideraciones de rendimiento si aplican>
+- Consultas optimizadas a PostgreSQL
+- Uso de Redis para cache
+- Optimización de consultas de partículas por viewport
+
+### Seguridad
+<Consideraciones de seguridad si aplican>
+- Validación de entrada con Pydantic
+- Sanitización de queries SQL
+- Manejo seguro de WebSockets
+
+### Casos Edge
+<Casos edge a considerar>
+- Viewport vacío
+- Partículas fuera de límites de dimensión
+- Núcleos desconectados de agrupaciones
+
+### Compatibilidad
+<Consideraciones de compatibilidad con otros servicios o versiones>
+- Compatibilidad con versiones anteriores de API
+- Migraciones de base de datos
+
+## Patrones de Código a Usar
+
+- **Backend (FastAPI)**: 
+  - Routers modulares con APIRouter
+  - Modelos Pydantic para validación
+  - async/await para operaciones I/O
+  - Manejo de errores con HTTPException
+  - Documentación automática con docstrings
+
+- **Base de Datos**: 
+  - asyncpg para conexiones asíncronas
+  - Pool de conexiones para performance
+  - Consultas parametrizadas (prevención SQL injection)
+  - Índices espaciales para búsquedas por viewport
+
+- **Frontend (Three.js)**: 
+  - Clases ES6 para organización
+  - Event listeners para interacciones
+  - WebSocket para actualizaciones en tiempo real
+  - Optimización de renderizado (instancing, LOD)
+
+- **Cálculos**: 
+  - NumPy para operaciones vectoriales
+  - SciPy para algoritmos científicos
+  - NetworkX para grafos y conectividad
+
+## Dependencias
+
+### Nuevas Dependencias (si aplica)
+```txt
+nueva-libreria==1.0.0
+```
+
+### Variables de Entorno (si aplica)
+- `NUEVA_VAR`: Descripción de la variable
+
+## Archivos Principales Involucrados
+
+1. `ruta/archivo1.py` - Propósito
+2. `ruta/archivo2.js` - Propósito
+3. `ruta/archivo3.py` - Propósito
+
+## Testing
+
+### Tests a Crear/Modificar
+- Unit tests: `tests/test_archivo.py`
+- Integration tests: `tests/integration/test_feature.py`
+
+### Escenarios de Prueba
+1. Escenario 1: Descripción
+2. Escenario 2: Descripción
+
+## Deployment
+
+### Orden de Deployment
+1. Backend: Rebuild Docker image y restart container
+2. Frontend: Actualizar archivos estáticos (si aplica)
+3. Base de datos: Ejecutar migraciones (si aplica)
+4. Verificar en ambiente local con Docker Compose
+
+### Verificación Post-Deployment
+- [ ] Verificar endpoints con curl/Postman
+- [ ] Verificar frontend en navegador
+- [ ] Verificar logs de Docker
+- [ ] Verificar conexión a PostgreSQL y Redis
+
+---
+
+**Nota Final:** Este plan debe ejecutarse paso a paso, verificando cada paso antes de continuar con el siguiente. Si encuentras problemas o necesitas clarificación, consulta con el equipo antes de proceder.
+
+**⚠️ IMPORTANTE:** El último paso del plan SIEMPRE debe ser "Generar Descripción del Pull Request" usando `@pr-description.mdc`. Esto genera automáticamente la descripción completa del PR lista para Git.
+```
+
+❗ **No incluyas pasos relacionados con testing manual extensivo o QA.** El testing se maneja por separado.
+
+Si se necesita clarificación para mejorar el plan de acción, haz preguntas de seguimiento al desarrollador, pero **no incluyas esas preguntas en el archivo Markdown generado**.
+
+## Directrices Específicas de Juego de Dioses
+
+### Estructura de Carpetas Común
+
+**Backend (FastAPI):**
+```
+backend/src/
+├── main.py              # Punto de entrada
+├── api/                 # Routers de API
+│   ├── routes/         # Endpoints por recurso
+│   └── __init__.py
+├── models/             # Modelos Pydantic
+│   └── schemas.py
+├── database/           # Conexión y queries
+│   ├── connection.py
+│   └── seed_demo.py
+└── utils/              # Utilidades
+```
+
+**Frontend:**
+```
+frontend/
+├── index.html          # Página principal
+├── src/
+│   ├── main.js        # Lógica principal
+│   ├── api.js         # Cliente API
+│   └── scene.js       # Three.js scene
+└── nginx.conf         # Configuración nginx
+```
+
+**Base de Datos:**
+```
+database/
+├── init/               # Scripts de inicialización
+│   ├── 01-init-schema.sql
+│   ├── 02-seed-data.sql
+│   └── 03-functions.sql
+└── migrations/         # Migraciones futuras
+```
+
+### Naming Conventions
+- Funciones Python: snake_case (`get_particles`)
+- Clases Python: PascalCase (`ParticleService`)
+- Variables: snake_case (`dimension_id`)
+- Constantes: UPPER_SNAKE_CASE (`MAX_PARTICLES`)
+- Archivos Python: snake_case (`particle_service.py`)
+- Archivos JavaScript: camelCase (`apiClient.js`)
+
+### Best Practices
+- Python type hints en todas las funciones
+- Docstrings en formato Google o NumPy
+- async/await para operaciones I/O
+- Manejo de errores apropiado
+- Logging estructurado
+- Validación de entrada con Pydantic
+- Consultas SQL parametrizadas
+
+### Sistema de Partículas
+- Todo en el mundo está compuesto de partículas (voxels)
+- Partículas tienen tipo, estado de materia, y propiedades
+- Agrupaciones agrupan partículas en objetos reconocibles
+- Núcleos son críticos para seres vivos (conectividad)
+
+### Variables de Entorno Comunes
+- `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`: Configuración PostgreSQL
+- `REDIS_HOST`, `REDIS_PORT`: Configuración Redis
+- `BACKEND_PORT`: Puerto del backend (default: 8000)
+- `FRONTEND_PORT`: Puerto del frontend (default: 8080)
+- `CORS_ORIGINS`: Orígenes permitidos para CORS
+
+## Output
+
+Un único archivo `.md` ubicado en `/instructions/tasks/` con el nombre `[TICKET-ID]-action-plan.md`.

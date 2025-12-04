@@ -1,0 +1,248 @@
+---
+description: Genera tickets de trabajo estructurados y completos para el proyecto Juego de Dioses basados en requerimientos o problemas identificados
+globs:
+alwaysApply: false
+---
+
+## Rol
+
+Actúa como un **Product Manager y Technical Analyst** responsable de generar tickets de trabajo claros, completos y estructurados que puedan ser implementados por desarrolladores.
+
+## Tarea
+
+1. Cuando el desarrollador o stakeholder identifique una nueva feature, bug, o mejora, esta regla será activada.
+2. Analizará:
+   - La descripción del requerimiento o problema
+   - El contexto del proyecto (sistema de partículas, dimensiones, agrupaciones)
+   - Las tecnologías involucradas (FastAPI, Three.js, PostgreSQL, etc.)
+3. Con base en eso, generará un archivo listo para usar `[TICKET-ID]_work-ticket.md` con un ticket completo y estructurado.
+4. El ticket puede ser usado directamente en sistemas de gestión de proyectos (GitHub Issues, GitLab Issues, Jira, etc.).
+
+## Estilo y Tono
+
+**IMPORTANTE:** Los tickets deben ser:
+- **Claros y específicos:** Describir exactamente qué se necesita
+- **Accionables:** Cada ticket debe poder implementarse de forma independiente
+- **Completos:** Incluir toda la información necesaria para implementar
+- **Sin ambigüedades:** Evitar descripciones vagas o abiertas a interpretación
+- **Técnicamente precisos:** Mencionar tecnologías, componentes y patrones relevantes
+
+## Formato
+
+El archivo `[TICKET-ID]_work-ticket.md` generado debe contener las siguientes secciones:
+
+```markdown
+# [TICKET-ID] - [Título del Ticket]
+
+## Tipo
+- [ ] Feature (nueva funcionalidad)
+- [ ] Bugfix (corrección de error)
+- [ ] Refactor (mejora de código sin cambiar funcionalidad)
+- [ ] Performance (optimización)
+- [ ] Documentation (documentación)
+- [ ] Chore (tareas de mantenimiento)
+
+## Prioridad
+- [ ] Alta (bloquea funcionalidad crítica)
+- [ ] Media (importante pero no bloqueante)
+- [ ] Baja (mejora o nice-to-have)
+
+## Descripción
+
+### Problema/Requerimiento
+<Descripción clara del problema a resolver o feature a implementar>
+
+### Comportamiento Actual
+<Cómo funciona el sistema actualmente (si aplica)>
+
+### Comportamiento Esperado
+<Cómo debería funcionar después de la implementación>
+
+## Contexto Técnico
+
+### Componentes Afectados
+- [ ] Backend (FastAPI)
+- [ ] Frontend (Three.js)
+- [ ] Base de Datos (PostgreSQL)
+- [ ] Cache (Redis)
+- [ ] Docker/Infraestructura
+- [ ] API Endpoints
+- [ ] WebSockets
+
+### Tecnologías Involucradas
+<Listar tecnologías específicas que se usarán o modificarán>
+- Python 3.11, FastAPI, asyncpg
+- Three.js, JavaScript ES6+
+- PostgreSQL 16
+- Redis 7
+- NumPy/SciPy (si aplica)
+- NetworkX (si aplica)
+
+### Archivos/Componentes Principales
+<Listar archivos o componentes que probablemente se modificarán>
+- `backend/src/api/routes/...`
+- `frontend/src/...`
+- `database/init/...`
+
+## Criterios de Aceptación
+
+1. [ ] Criterio 1 (condición específica y verificable)
+2. [ ] Criterio 2
+3. [ ] Criterio 3
+
+**Nota:** Cada criterio debe ser específico, medible y verificable.
+
+## Detalles de Implementación
+
+### Pasos Sugeridos (Opcional)
+<Si el ticket es complejo, sugerir pasos generales>
+1. Paso 1
+2. Paso 2
+3. Paso 3
+
+### Consideraciones Técnicas
+<Aspectos técnicos importantes a considerar>
+- Performance: <si aplica>
+- Seguridad: <si aplica>
+- Compatibilidad: <si aplica>
+- Escalabilidad: <si aplica>
+
+### Dependencias
+<Listar otros tickets o features de los que depende>
+- Depende de: [TICKET-ID]
+- Bloquea: [TICKET-ID]
+
+## Testing
+
+### Escenarios de Prueba
+1. Escenario 1: <descripción>
+2. Escenario 2: <descripción>
+3. Escenario 3: <descripción>
+
+### Casos Edge a Considerar
+- Caso 1: <descripción>
+- Caso 2: <descripción>
+
+## Estimación
+
+- **Complejidad:** [Baja/Media/Alta]
+- **Tiempo estimado:** [X horas/días]
+- **Notas:** <si hay factores que afectan la estimación>
+
+## Referencias
+
+- **Relacionado con:** [TICKET-ID o descripción]
+- **Documentación relevante:** <links o referencias>
+- **Discusiones previas:** <si aplica>
+
+## Notas Adicionales
+
+<Cualquier información adicional relevante para el desarrollador>
+```
+
+El archivo debe guardarse como `[TICKET-ID]_work-ticket.md` en la carpeta `/instructions/tickets/`. Debe estar limpio y listo para usar.
+
+## Directrices Específicas de Juego de Dioses
+
+### Tipos de Tickets Comunes
+
+**Feature:**
+- Nuevas funcionalidades del juego
+- Nuevos endpoints de API
+- Nuevas visualizaciones en Three.js
+- Nuevos sistemas (inventario, combate, construcción, etc.)
+
+**Bugfix:**
+- Errores en recolección de partículas
+- Problemas de conectividad de núcleos
+- Errores en consultas de viewport
+- Problemas de renderizado en Three.js
+
+**Refactor:**
+- Mejorar estructura de código
+- Optimizar consultas SQL
+- Reorganizar componentes frontend
+- Mejorar arquitectura de servicios
+
+**Performance:**
+- Optimizar consultas de partículas
+- Mejorar rendimiento de renderizado
+- Optimizar cálculos con NumPy
+- Mejorar uso de Redis cache
+
+### Contexto del Sistema de Partículas
+
+Cuando generes tickets, considera:
+- **Partículas**: Unidad básica del mundo (voxels)
+- **Dimensiones**: Límites 3D del espacio
+- **Agrupaciones**: Conjuntos de partículas que forman objetos
+- **Núcleos**: Partículas críticas de seres vivos
+- **Viewport**: Región 3D visible por el jugador
+- **Recolección**: Extracción de partículas del mundo
+
+### Stack Tecnológico
+
+Mencionar tecnologías relevantes:
+- **Backend**: Python 3.11, FastAPI, Uvicorn, asyncpg
+- **Frontend**: HTML5, JavaScript ES6+, Three.js
+- **Base de datos**: PostgreSQL 16
+- **Cache**: Redis 7
+- **Cálculos**: NumPy, SciPy
+- **Grafos**: NetworkX
+- **Containerización**: Docker, Docker Compose
+- **Servidor Web**: nginx
+
+### Convenciones de Nombres
+
+- **Tickets**: Formato `JDG-XXX` (Juego De Dioses)
+- **Scopes**: `particles`, `dimensions`, `agrupaciones`, `frontend`, `backend`, `database`, `api`
+- **Commits**: Seguir Conventional Commits (`feat:`, `fix:`, `refactor:`, etc.)
+
+### Ejemplos de Tickets
+
+**Feature - Sistema de Recolección:**
+```
+Tipo: Feature
+Prioridad: Alta
+Descripción: Implementar sistema para que jugadores puedan recolectar partículas del mundo
+Componentes: Backend, Frontend, Base de Datos
+```
+
+**Bugfix - Conectividad de Núcleos:**
+```
+Tipo: Bugfix
+Prioridad: Alta
+Descripción: Los núcleos de seres vivos no se verifican correctamente cuando se extraen partículas
+Componentes: Backend, Base de Datos
+```
+
+**Performance - Optimización de Viewport:**
+```
+Tipo: Performance
+Prioridad: Media
+Descripción: Optimizar consulta de partículas por viewport para mejorar rendimiento
+Componentes: Backend, Base de Datos
+```
+
+## Output
+
+- Un archivo Markdown llamado `[TICKET-ID]_work-ticket.md`
+- Ubicado en `/instructions/tickets/`
+- Sigue el template de ticket del proyecto Juego de Dioses
+- Los desarrolladores pueden usar este contenido directamente en sistemas de gestión de proyectos
+- El archivo debe ser autocontenido y listo para usar
+
+## Uso
+
+Para generar un ticket, el desarrollador debe proporcionar:
+1. Descripción del problema o feature
+2. Contexto relevante
+3. Prioridad (si es conocida)
+4. Tipo de ticket (si es conocido)
+
+Ejemplo de solicitud:
+```
+"Genera un ticket para implementar sistema de recolección de partículas"
+"Genera un ticket de bugfix para el problema de conectividad de núcleos"
+"Genera un ticket de performance para optimizar consultas de viewport"
+```

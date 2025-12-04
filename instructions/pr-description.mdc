@@ -1,0 +1,163 @@
+---
+description: Genera descripciones de Pull Request completas y listas para usar basadas en la implementación realizada en el proyecto Juego de Dioses
+globs:
+alwaysApply: false
+---
+
+## Rol
+
+Actúa como un **Senior Developer Assistant y Technical Writer** responsable de generar descripciones de Pull Request claras y completas basadas en la implementación realizada durante la tarea.
+
+## Tarea
+
+1. Después de que el desarrollador complete todos los pasos en el plan de acción correspondiente, y antes de crear el PR, esta regla será activada.
+2. Analizará:
+   - El plan de acción completado (si existe en `/instructions/tasks/`)
+   - El diff de archivos modificados y nuevos en el repositorio
+   - Los commits realizados
+3. Con base en eso, generará un archivo listo para copiar `[TICKET-ID]_pr-description.md` con una descripción completa del PR.
+4. El desarrollador copiará y pegará manualmente el contenido de este archivo en la descripción del PR en Git.
+
+## Estilo y Tono
+
+**IMPORTANTE:** Las descripciones de PR deben ser:
+- **Resumidas y concisas:** Ir directo al punto, sin texto innecesario
+- **Sin exagerar:** Evitar lenguaje pomposo o sobre-explicaciones
+- **Solo lo implementado:** Describir únicamente los cambios realizados según el plan de acción
+- **Sin emojis:** Mantener un tono profesional sin usar emojis en ninguna sección
+- **Orientadas a revisores:** Proporcionar la información justa que necesita quien revisa el código
+
+## Formato
+
+El archivo `[TICKET-ID]_pr-description.md` generado debe contener las siguientes secciones:
+
+```markdown
+# [Título del PR]
+<Título claro y descriptivo en una línea siguiendo Conventional Commits>
+
+## Resumen
+<Qué hace este PR técnicamente y en qué partes del sistema - ser conciso>
+
+## Motivación
+<Por qué existe este PR - qué problema o requerimiento aborda - ser directo>
+
+## Criterios de Aceptación
+- [ ] Criterio 1 (puedes buscar esta información en el action plan relacionado)
+- [ ] Criterio 2
+- [ ] Criterio 3
+
+## Cambios Técnicos
+
+### Backend (si aplica)
+- Cambio 1
+- Cambio 2
+
+### Frontend (si aplica)
+- Cambio 1
+- Cambio 2
+
+### Base de Datos (si aplica)
+- Cambio 1
+- Cambio 2
+
+### Docker/Infraestructura (si aplica)
+- Cambio 1
+- Cambio 2
+
+## Testing
+<Descripción breve de cómo se probó la funcionalidad>
+- [ ] Probado localmente con Docker Compose
+- [ ] Tests unitarios agregados/actualizados (si aplica)
+- [ ] Endpoints probados con curl/Postman (si aplica)
+- [ ] Frontend probado en navegador (si aplica)
+
+## Screenshots/Demo (si aplica)
+<Para cambios de UI, incluir capturas o indicar que se deben agregar>
+
+## Referencias
+- Ticket: [TICKET-ID]
+- PRs relacionados: #xxx (formato Git)
+- Documentación relacionada: (si aplica)
+
+## Deployment
+
+### Cambios Requeridos
+- [ ] Rebuild Docker images
+- [ ] Ejecutar migraciones de base de datos (si aplica)
+- [ ] Actualizar variables de entorno (si aplica)
+- [ ] Reiniciar servicios Docker
+
+### Verificación Post-Deployment
+- [ ] Verificar endpoints con curl/Postman
+- [ ] Verificar frontend en navegador
+- [ ] Verificar logs de Docker
+- [ ] Verificar conexión a PostgreSQL y Redis
+
+## Riesgos y Plan de Rollback
+<Identificar posibles riesgos y cómo revertir si algo sale mal - ser específico>
+
+## Notas Adicionales
+<Cualquier información adicional relevante para los revisores - solo si es necesario>
+```
+
+El archivo debe guardarse como `[TICKET-ID]_pr-description.md` en la carpeta `/instructions/prs/`. Debe estar limpio y listo para copiar y pegar sin editar.
+
+## Directrices Específicas de Juego de Dioses
+
+### Convenciones de Commits
+- Usar formato: `feat(scope):`, `fix(scope):`, `docs:`, `chore:`, `refactor:`, etc.
+- Scopes comunes: `particles`, `dimensions`, `agrupaciones`, `frontend`, `backend`, `database`, `api`
+
+### Estructura del Proyecto
+- **Backend**: Python 3.11 + FastAPI + Uvicorn + asyncpg
+- **Frontend**: HTML5 + JavaScript ES6+ + Three.js
+- **Base de datos**: PostgreSQL 16
+- **Cache**: Redis 7
+- **Containerización**: Docker + Docker Compose
+- **Servidor Web**: nginx (para frontend)
+
+### Consideraciones de Seguridad
+- Nunca incluir secretos, API keys o datos sensibles en la descripción
+- Mencionar si se agregaron/modificaron variables de entorno
+- Indicar si se requieren cambios en `.env.example` o archivos de configuración
+- Mencionar si hay cambios relacionados con validación de entrada
+- Indicar si se modificaron consultas SQL (prevención de SQL injection)
+
+### Sistema de Partículas
+- Mencionar si hay cambios en el modelo de partículas
+- Especificar si se modificaron operaciones de recolección
+- Indicar si se actualizaron verificaciones de conectividad de núcleos
+- Documentar cambios en agrupaciones si aplica
+
+### Deployment
+- Mencionar si requiere rebuild de Docker images
+- Especificar si hay migraciones de base de datos
+- Indicar si se requieren cambios en docker-compose.yml
+- Mencionar si hay cambios en configuración de nginx
+- Especificar si se requieren cambios en variables de entorno
+
+### Testing
+- Mencionar si se probó con datos de demo
+- Indicar si se verificó la integración con PostgreSQL y Redis
+- Especificar si se probaron endpoints con diferentes viewports
+- Mencionar si se probó el frontend con Three.js
+
+### Base de Datos
+- Indicar si hay migraciones de base de datos
+- Especificar scripts SQL que deben ejecutarse
+- Mencionar cambios en el schema de PostgreSQL
+- Indicar si hay cambios en índices o funciones helper
+
+### Performance
+- Mencionar si se optimizaron consultas de partículas
+- Indicar si se agregó cache con Redis
+- Especificar si se mejoró el rendimiento de consultas por viewport
+- Mencionar optimizaciones en cálculos (NumPy/SciPy)
+
+## Output
+
+- Un archivo Markdown llamado `[TICKET-ID]_pr-description.md`
+- Ubicado en `/instructions/prs/`
+- Sigue el template de PR del proyecto Juego de Dioses
+- Los desarrolladores copiarán este contenido en el campo de descripción del PR en Git
+- El archivo debe ser autocontenido y no requerir ediciones adicionales
