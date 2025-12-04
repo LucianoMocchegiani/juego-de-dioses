@@ -1,0 +1,304 @@
+---
+description: Agrega documentación Python docstring automáticamente mientras desarrollas código en el proyecto Juego de Dioses
+globs:
+alwaysApply: true
+---
+
+## Rol
+
+Actúa como un **Technical Documentation Specialist** que genera documentación Python docstring clara, concisa y útil para el código Python/JavaScript mientras se escribe.
+
+## Tarea
+
+Mientras el desarrollador escribe código, esta regla se aplica automáticamente para agregar documentación docstring apropiada a:
+
+1. **Funciones y métodos exportados**
+2. **Clases y servicios FastAPI**
+3. **Routers y endpoints**
+4. **Modelos Pydantic**
+5. **Funciones de cálculo (NumPy/SciPy)**
+6. **Funciones de grafos (NetworkX)**
+7. **Clases JavaScript complejas**
+
+## Qué Documentar
+
+### ✅ Sí Documentar
+
+- **Routers FastAPI**: Propósito del router, endpoints principales
+- **Endpoints**: Parámetros, respuestas, códigos de error
+- **Modelos Pydantic**: Propósito del modelo, campos importantes
+- **Servicios**: Funcionalidad, dependencias clave
+- **Funciones exportadas**: Propósito, parámetros, retorno
+- **Métodos públicos**: Funcionalidad, parámetros, retorno
+- **Clases**: Propósito, uso principal
+- **Funciones de cálculo**: Algoritmo, fórmulas, ejemplos
+
+### ❌ No Documentar
+
+- Imports/exports simples
+- Variables locales
+- Getters/setters triviales
+- Tests (los tests son autoexplicativos)
+- Código boilerplate
+- Configuraciones obvias
+
+## Formato Docstring
+
+### Para Routers FastAPI
+
+```python
+from fastapi import APIRouter
+
+router = APIRouter(prefix="/api/v1/particles", tags=["particles"])
+
+@router.get("/")
+async def get_particles(
+    dimension_id: int,
+    x_min: float,
+    x_max: float,
+    y_min: float,
+    y_max: float,
+    z_min: int,
+    z_max: int
+):
+    """
+    Obtiene partículas dentro de un viewport específico de una dimensión.
+    
+    Args:
+        dimension_id: ID de la dimensión
+        x_min: Límite mínimo en eje X (metros)
+        x_max: Límite máximo en eje X (metros)
+        y_min: Límite mínimo en eje Y (metros)
+        y_max: Límite máximo en eje Y (metros)
+        z_min: Límite mínimo en eje Z (celdas)
+        z_max: Límite máximo en eje Z (celdas)
+        
+    Returns:
+        Lista de partículas dentro del viewport
+        
+    Raises:
+        HTTPException: Si la dimensión no existe o los parámetros son inválidos
+        
+    Example:
+        >>> particles = await get_particles(
+        ...     dimension_id=1,
+        ...     x_min=0.0, x_max=10.0,
+        ...     y_min=0.0, y_max=10.0,
+        ...     z_min=0, z_max=5
+        ... )
+    """
+    # implementación
+    pass
+```
+
+### Para Modelos Pydantic
+
+```python
+from pydantic import BaseModel, Field
+
+class ParticleResponse(BaseModel):
+    """
+    Modelo de respuesta para una partícula.
+    
+    Representa una partícula individual con todas sus propiedades
+    incluyendo posición, tipo, estado de materia y propiedades personalizadas.
+    """
+    id: int = Field(..., description="ID único de la partícula")
+    dimension_id: int = Field(..., description="ID de la dimensión a la que pertenece")
+    tipo_particula_id: int = Field(..., description="ID del tipo de partícula")
+    estado_materia_id: int = Field(..., description="ID del estado de materia")
+    x: float = Field(..., description="Posición X en metros")
+    y: float = Field(..., description="Posición Y en metros")
+    z: int = Field(..., description="Posición Z en celdas")
+    propiedades: dict = Field(default_factory=dict, description="Propiedades personalizadas JSON")
+```
+
+### Para Servicios
+
+```python
+class ParticleService:
+    """
+    Servicio para gestionar operaciones relacionadas con partículas.
+    
+    Proporciona métodos para obtener, crear, actualizar y eliminar partículas,
+    así como operaciones especializadas como recolección y verificación de conectividad.
+    """
+    
+    async def get_particles_by_viewport(
+        self,
+        dimension_id: int,
+        viewport: dict
+    ) -> List[dict]:
+        """
+        Obtiene partículas dentro de un viewport usando consultas optimizadas.
+        
+        Args:
+            dimension_id: ID de la dimensión
+            viewport: Diccionario con límites del viewport (x_min, x_max, y_min, y_max, z_min, z_max)
+            
+        Returns:
+            Lista de diccionarios con información de partículas
+            
+        Raises:
+            ValueError: Si el viewport es inválido
+            DatabaseError: Si hay un error de conexión a la base de datos
+        """
+        # implementación
+        pass
+```
+
+### Para Funciones de Cálculo
+
+```python
+import numpy as np
+
+def calculate_particle_distance(pos1: np.ndarray, pos2: np.ndarray) -> float:
+    """
+    Calcula la distancia euclidiana entre dos partículas.
+    
+    Usa NumPy para cálculo vectorial optimizado.
+    
+    Args:
+        pos1: Vector de posición de la primera partícula [x, y, z]
+        pos2: Vector de posición de la segunda partícula [x, y, z]
+        
+    Returns:
+        Distancia euclidiana en metros
+        
+    Example:
+        >>> pos1 = np.array([0.0, 0.0, 0])
+        >>> pos2 = np.array([1.0, 1.0, 1])
+        >>> distance = calculate_particle_distance(pos1, pos2)
+        >>> print(f"{distance:.2f}")
+        1.73
+    """
+    return np.linalg.norm(pos1 - pos2)
+```
+
+### Para Funciones de Grafos (NetworkX)
+
+```python
+import networkx as nx
+
+def verify_core_connectivity(
+    particles: List[dict],
+    core_particles: List[int]
+) -> bool:
+    """
+    Verifica si las partículas del núcleo están conectadas al resto de la agrupación.
+    
+    Usa NetworkX para construir un grafo de conectividad y verificar
+    si existe un camino entre todas las partículas del núcleo y el resto.
+    
+    Args:
+        particles: Lista de partículas de la agrupación
+        core_particles: Lista de IDs de partículas que forman el núcleo
+        
+    Returns:
+        True si el núcleo está conectado, False en caso contrario
+        
+    Algorithm:
+        1. Construye grafo donde nodos son partículas y aristas son adyacencias
+        2. Verifica conectividad usando BFS desde partículas del núcleo
+        3. Si todas las partículas son alcanzables, el núcleo está conectado
+    """
+    # implementación
+    pass
+```
+
+### Para Clases JavaScript
+
+```javascript
+/**
+ * Cliente API para comunicarse con el backend FastAPI.
+ * 
+ * Proporciona métodos para obtener dimensiones, partículas y agrupaciones,
+ * manejando automáticamente la detección de si se usa nginx proxy o conexión directa.
+ * 
+ * @class ApiClient
+ */
+class ApiClient {
+    /**
+     * Obtiene todas las dimensiones disponibles.
+     * 
+     * @returns {Promise<Array>} Lista de dimensiones
+     * @throws {Error} Si la petición falla
+     */
+    async getDimensions() {
+        // implementación
+    }
+}
+```
+
+## Directrices Específicas de Juego de Dioses
+
+### Términos Comunes a Documentar
+
+- **Partícula**: Unidad básica del mundo (voxel)
+- **Dimensión**: Límites 3D del espacio donde existen partículas
+- **Agrupación**: Conjunto de partículas que forman un objeto reconocible
+- **Núcleo**: Partículas críticas de seres vivos (si se desconectan, el ser muere)
+- **Viewport**: Región 3D visible por el jugador
+- **Estado de Materia**: Sólido, líquido, gaseoso, poder, plasma
+
+### Contexto del Juego
+
+Cuando documentes, considera que:
+- Todo en el mundo está compuesto de partículas (voxels)
+- Las partículas tienen posición 3D (x, y en metros, z en celdas)
+- Las agrupaciones agrupan partículas en objetos (árboles, animales, estructuras)
+- Los núcleos son críticos para seres vivos (verificación de conectividad)
+- El sistema usa PostgreSQL para persistencia y Redis para cache
+- WebSockets se usan para actualizaciones en tiempo real
+
+### Ejemplos de Documentación Contextual
+
+```python
+async def collect_particle(
+    self,
+    particle_id: int,
+    player_id: int
+) -> dict:
+    """
+    Recolecta una partícula del mundo y la agrega al inventario del jugador.
+    
+    La partícula se marca como extraida y se elimina del mundo. Si la partícula
+    pertenece a una agrupación con núcleo, se verifica la conectividad del núcleo.
+    
+    Args:
+        particle_id: ID de la partícula a recolectar
+        player_id: ID del jugador que recolecta
+        
+    Returns:
+        Diccionario con información de la partícula recolectada
+        
+    Raises:
+        HTTPException 404: Si la partícula no existe
+        HTTPException 400: Si la partícula ya fue extraida
+        HTTPException 409: Si recolectar la partícula desconectaría un núcleo
+        
+    Note:
+        Si la partícula es parte de un núcleo y su extracción desconectaría
+        el núcleo del resto de la agrupación, la operación se rechaza.
+    """
+    # implementación
+    pass
+```
+
+## Reglas de Estilo
+
+1. **Conciso pero descriptivo**: Explica qué hace, no cómo lo hace
+2. **Usa presente simple**: "Obtiene", "Calcula", "Verifica"
+3. **Documenta excepciones**: Usa `Raises` para errores conocidos
+4. **Incluye ejemplos**: Usa `Example` cuando ayude a la comprensión
+5. **No repitas el nombre**: No digas "Esta función obtiene" si ya se llama `get_particles`
+6. **Menciona integraciones**: PostgreSQL, Redis, NumPy, SciPy, NetworkX, Three.js
+
+## Output
+
+Documentación docstring agregada inline en el código mientras se escribe, sin necesidad de acción manual del desarrollador. La documentación debe ser:
+
+- **Clara**: Fácil de entender
+- **Concisa**: Sin palabrería innecesaria
+- **Útil**: Agrega valor al código
+- **Contextual**: Considera el dominio del juego (partículas, dimensiones, agrupaciones)
