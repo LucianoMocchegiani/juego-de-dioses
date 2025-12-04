@@ -6,8 +6,7 @@ import { Scene3D } from './scene.js';
 import {
     VIEWPORT_MAX_CELLS_X,
     VIEWPORT_MAX_CELLS_Y,
-    VIEWPORT_DEFAULT_Z_MIN,
-    VIEWPORT_DEFAULT_Z_MAX
+    DEMO_DIMENSION_NAME
 } from './constants.js';
 
 // Elementos del DOM
@@ -38,11 +37,13 @@ async function loadDemo() {
         // 1. Obtener dimensiones
         const dimensions = await api.getDimensions();
         
-        // Buscar dimensión demo (cualquier dimensión que contenga "Demo" en el nombre)
-        const demoDimension = dimensions.find(d => d.nombre && d.nombre.toLowerCase().includes('demo'));
+        // Buscar dimensión demo por nombre exacto (definido en constantes)
+        const demoDimension = dimensions.find(d => 
+            d.nombre && d.nombre === DEMO_DIMENSION_NAME
+        );
         
         if (!demoDimension) {
-            throw new Error('No se encontró la dimensión demo');
+            throw new Error(`No se encontró la dimensión demo: "${DEMO_DIMENSION_NAME}". Dimensiones disponibles: ${dimensions.map(d => d.nombre).join(', ')}`);
         }
         
         currentDimension = demoDimension;
@@ -53,13 +54,46 @@ async function loadDemo() {
         const celdas_x = Math.floor(demoDimension.ancho_metros / demoDimension.tamano_celda);
         const celdas_y = Math.floor(demoDimension.alto_metros / demoDimension.tamano_celda);
         
+        // Viewport optimizado: cargar área completa horizontal pero limitar profundidad
+        // Calcular dinámicamente cuántos niveles Z podemos cargar sin exceder el límite del backend
+        // IMPORTANTE: Los rangos son inclusivos, así que x_max - x_min + 1 = número de celdas
+        const xMax = Math.min(celdas_x - 1, VIEWPORT_MAX_CELLS_X - 1); // -1 porque es inclusivo
+        const yMax = Math.min(celdas_y - 1, VIEWPORT_MAX_CELLS_Y - 1);
+        const xRange = xMax - 0 + 1; // Número real de celdas en X (inclusivo)
+        const yRange = yMax - 0 + 1; // Número real de celdas en Y (inclusivo)
+        const maxCells = 500000; // Límite del backend
+        const maxZRange = Math.floor(maxCells / (xRange * yRange)); // Máximo de niveles Z
+        
+        // Centrar en superficie (z=0) y cargar hacia arriba y abajo
+        const zCenter = 0;
+        let zMin = Math.max(
+            demoDimension.profundidad_maxima || -8, 
+            zCenter - Math.floor(maxZRange / 2)
+        );
+        let zMax = Math.min(
+            demoDimension.altura_maxima || 10, 
+            zCenter + Math.ceil(maxZRange / 2) - 1 // -1 porque es inclusivo
+        );
+        
+        // Verificar que no exceda el límite (con margen de seguridad)
+        let zRange = zMax - zMin + 1;
+        let totalCells = xRange * yRange * zRange;
+        if (totalCells > maxCells) {
+            // Ajustar zMax hacia abajo si excede
+            const maxAllowedZRange = Math.floor(maxCells / (xRange * yRange));
+            zMax = zMin + maxAllowedZRange - 1;
+            zRange = zMax - zMin + 1;
+            totalCells = xRange * yRange * zRange;
+            console.warn(`Viewport ajustado para no exceder límite: ${totalCells} celdas (Z: ${zMin} a ${zMax})`);
+        }
+        
         const viewport = {
             x_min: 0,
-            x_max: Math.min(celdas_x, VIEWPORT_MAX_CELLS_X),
+            x_max: xMax,
             y_min: 0,
-            y_max: Math.min(celdas_y, VIEWPORT_MAX_CELLS_Y),
-            z_min: Math.max(demoDimension.profundidad_maxima || VIEWPORT_DEFAULT_Z_MIN, VIEWPORT_DEFAULT_Z_MIN),
-            z_max: Math.min(demoDimension.altura_maxima || VIEWPORT_DEFAULT_Z_MAX, VIEWPORT_DEFAULT_Z_MAX)
+            y_max: yMax,
+            z_min: zMin,
+            z_max: zMax
         };
         
         // 3. Cargar partículas Y tipos en paralelo
@@ -81,7 +115,10 @@ async function loadDemo() {
         // 5. Renderizar partículas (tipos ya cacheados)
         scene.renderParticles(currentParticles, demoDimension.tamano_celda);
         
-        // 4. Centrar cámara
+        // 6. Ajustar grilla y ejes al tamaño del terreno
+        scene.updateHelpers(demoDimension.ancho_metros, demoDimension.alto_metros);
+        
+        // 7. Centrar cámara
         const centerX = (viewport.x_max + viewport.x_min) / 2 * demoDimension.tamano_celda;
         const centerY = (viewport.y_max + viewport.y_min) / 2 * demoDimension.tamano_celda;
         const centerZ = (viewport.z_max + viewport.z_min) / 2 * demoDimension.tamano_celda;
