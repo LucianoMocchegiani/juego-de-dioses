@@ -2,6 +2,7 @@
 Endpoints para Partículas
 """
 import logging
+import asyncpg
 from fastapi import APIRouter, HTTPException, Query
 from uuid import UUID
 from typing import List
@@ -19,6 +20,73 @@ from src.models.schemas import (
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/dimensions", tags=["particles"])
+
+# Tipos de partículas que son indestructibles (no pueden ser extraídas o modificadas)
+INDESTRUCTIBLE_TYPES = ['límite']
+
+
+def is_indestructible(tipo_nombre: str) -> bool:
+    """
+    Verificar si un tipo de partícula es indestructible.
+    
+    Args:
+        tipo_nombre: Nombre del tipo de partícula
+        
+    Returns:
+        True si el tipo es indestructible, False en caso contrario
+    """
+    return tipo_nombre in INDESTRUCTIBLE_TYPES
+
+
+async def validate_particle_position(conn: asyncpg.Connection, dimension_id: UUID, x: int, y: int, z: int) -> bool:
+    """
+    Validar que la posición de la partícula esté dentro de los límites de la dimensión.
+    
+    Valida que las coordenadas (x, y, z) estén dentro de los límites definidos por la dimensión:
+    - x: 0 <= x < max_x (donde max_x = ancho_metros / tamano_celda)
+    - y: 0 <= y < max_y (donde max_y = alto_metros / tamano_celda)
+    - z: profundidad_maxima <= z <= altura_maxima
+    
+    Esta función se usará en:
+    - Endpoint POST para crear partículas (cuando se implemente)
+    - Validación en batch de creación de partículas
+    - Validación en funciones de construcción de terrenos
+    
+    Args:
+        conn: Conexión asyncpg a la base de datos
+        dimension_id: UUID de la dimensión
+        x: Coordenada X en celdas
+        y: Coordenada Y en celdas
+        z: Coordenada Z en celdas
+        
+    Returns:
+        True si la posición es válida, False si está fuera de límites o la dimensión no existe
+    """
+    # Obtener límites de la dimensión
+    dim = await conn.fetchrow("""
+        SELECT ancho_metros, alto_metros, profundidad_maxima, altura_maxima, tamano_celda
+        FROM juego_dioses.dimensiones
+        WHERE id = $1
+    """, dimension_id)
+    
+    if not dim:
+        return False
+    
+    # Calcular límites en celdas (X e Y)
+    max_x = int(dim['ancho_metros'] / dim['tamano_celda'])
+    max_y = int(dim['alto_metros'] / dim['tamano_celda'])
+    min_z = dim['profundidad_maxima']
+    max_z = dim['altura_maxima']
+    
+    # Validar límites
+    if x < 0 or x >= max_x:
+        return False
+    if y < 0 or y >= max_y:
+        return False
+    if z < min_z or z > max_z:
+        return False
+    
+    return True
 
 
 @router.get("/{dimension_id}/particle-types", response_model=ParticleTypesResponse)
