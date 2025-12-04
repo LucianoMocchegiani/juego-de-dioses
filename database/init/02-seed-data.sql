@@ -38,7 +38,9 @@ INSERT INTO tipos_particulas (nombre, categoria, densidad, color_base) VALUES
 ('vapor', 'gas', 0.002, 'white'),
 ('humo', 'gas', 0.001, 'gray'),
 ('gas_toxico', 'gas', 0.003, 'green'),
-('neblina_magica', 'gas', 0.001, 'purple')
+('neblina_magica', 'gas', 0.001, 'purple'),
+-- Sistema (partículas límite indestructibles)
+('límite', 'sistema', 999999.0, 'transparent')
 ON CONFLICT (nombre) DO NOTHING;
 
 -- Estados de Materia
@@ -114,6 +116,25 @@ SET estilos = jsonb_build_object(
     )
 )
 WHERE nombre IN ('hierba', 'madera', 'hojas', 'tierra', 'piedra', 'agua', 'aire')
+  AND (estilos IS NULL OR estilos = '{}'::jsonb);
+
+-- Agregar estilos para partícula límite (transparente e indestructible)
+UPDATE juego_dioses.tipos_particulas 
+SET estilos = jsonb_build_object(
+    'color_hex', '#000000',
+    'color_rgb', ARRAY[0, 0, 0],
+    'material', jsonb_build_object(
+        'metalness', 0.0,
+        'roughness', 1.0,
+        'emissive', false
+    ),
+    'visual', jsonb_build_object(
+        'modelo', 'cube',
+        'escala', 1.0,
+        'opacity', 0.0
+    )
+)
+WHERE nombre = 'límite'
   AND (estilos IS NULL OR estilos = '{}'::jsonb);
 
 -- Limpiar función helper (opcional, se puede mantener para futuras migraciones)
