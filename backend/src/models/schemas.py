@@ -1,10 +1,81 @@
 """
 Modelos Pydantic para requests y responses
 """
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, validator
 from typing import Optional, List
 from uuid import UUID
 from datetime import datetime
+import json
+
+
+# ===== Funciones Helper =====
+
+def parse_jsonb_field(value):
+    """
+    Helper para parsear campos JSONB de asyncpg.
+    
+    asyncpg puede devolver JSONB como dict o como string según la versión/configuración.
+    Esta función maneja ambos casos de forma segura.
+    """
+    if isinstance(value, str):
+        try:
+            return json.loads(value) if value else {}
+        except json.JSONDecodeError:
+            return {}
+    elif isinstance(value, dict):
+        return value
+    elif value is None:
+        return {}
+    return {}
+
+
+# ===== Estilos de Partículas =====
+
+class MaterialProperties(BaseModel):
+    """Propiedades de material para Three.js"""
+    metalness: float = Field(default=0.1, ge=0.0, le=1.0, description="Metalness del material (0-1)")
+    roughness: float = Field(default=0.8, ge=0.0, le=1.0, description="Roughness del material (0-1)")
+    emissive: bool = Field(default=False, description="Si el material es emisivo")
+
+
+class VisualProperties(BaseModel):
+    """Propiedades visuales de la partícula"""
+    modelo: str = Field(default="cube", description="Tipo de modelo 3D (cube, sphere, custom)")
+    escala: float = Field(default=1.0, ge=0.1, le=10.0, description="Escala del modelo")
+
+
+class EstilosParticula(BaseModel):
+    """Modelo completo de estilos para una partícula"""
+    color_hex: Optional[str] = Field(None, description="Color en hexadecimal como string en formato CSS (ej: '#8B4513')")
+    color_rgb: Optional[List[int]] = Field(None, min_items=3, max_items=3, description="Color en RGB [R, G, B]")
+    material: Optional[MaterialProperties] = Field(default_factory=MaterialProperties)
+    visual: Optional[VisualProperties] = Field(default_factory=VisualProperties)
+    
+    @validator('color_rgb')
+    def validate_rgb_values(cls, v):
+        """Validar que valores RGB estén en rango 0-255"""
+        if v:
+            for val in v:
+                if not (0 <= val <= 255):
+                    raise ValueError("Valores RGB deben estar entre 0 y 255")
+        return v
+    
+    class Config:
+        schema_extra = {
+            "example": {
+                "color_hex": "#90EE90",
+                "color_rgb": [144, 238, 144],
+                "material": {
+                    "metalness": 0.1,
+                    "roughness": 0.8,
+                    "emissive": False
+                },
+                "visual": {
+                    "modelo": "cube",
+                    "escala": 1.0
+                }
+            }
+        }
 
 
 # ===== Dimensiones =====
@@ -61,9 +132,46 @@ class ParticleResponse(ParticleBase):
     dimension_id: UUID
     tipo_particula_id: UUID
     estado_materia_id: UUID
+    tipo_nombre: str = Field(..., description="Nombre del tipo de partícula (viene del JOIN)")
+    estado_nombre: str = Field(..., description="Nombre del estado de materia (viene del JOIN)")
     creado_en: datetime
     modificado_en: datetime
     creado_por: Optional[UUID] = None
+
+    @classmethod
+    def from_row(cls, row) -> 'ParticleResponse':
+        """
+        Crear ParticleResponse desde fila de BD.
+        
+        Centraliza la lógica de conversión y parsing de campos JSONB.
+        NO incluye estilos (vienen en query separada).
+        """
+        # Parsear solo propiedades (no estilos)
+        propiedades = parse_jsonb_field(row.get('propiedades'))
+        
+        return cls(
+            id=row['id'],
+            dimension_id=row['dimension_id'],
+            celda_x=row['celda_x'],
+            celda_y=row['celda_y'],
+            celda_z=row['celda_z'],
+            tipo=row['tipo_nombre'],  # Mapeo: tipo_nombre -> tipo
+            estado=row['estado_nombre'],  # Mapeo: estado_nombre -> estado
+            cantidad=float(row['cantidad']),
+            temperatura=float(row['temperatura']),
+            energia=float(row['energia']),
+            extraida=row['extraida'],
+            agrupacion_id=row.get('agrupacion_id'),
+            es_nucleo=row['es_nucleo'],
+            propiedades=propiedades,
+            tipo_particula_id=row['tipo_particula_id'],
+            estado_materia_id=row['estado_materia_id'],
+            tipo_nombre=row['tipo_nombre'],
+            estado_nombre=row['estado_nombre'],
+            creado_en=row['creado_en'],
+            modificado_en=row['modificado_en'],
+            creado_por=row.get('creado_por')
+        )
 
     class Config:
         from_attributes = True
@@ -156,6 +264,21 @@ class TipoParticulaResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+class ParticleTypeResponse(BaseModel):
+    """Schema de respuesta para tipo de partícula con estilos (query separada)"""
+    id: str  # UUID como string
+    nombre: str
+    estilos: Optional[dict] = Field(
+        None,
+        description="Estilos visuales del tipo (color, material, visual)"
+    )
+
+
+class ParticleTypesResponse(BaseModel):
+    """Response con lista de tipos de partículas con estilos"""
+    types: List[ParticleTypeResponse] = Field(default_factory=list)
 
 
 # ===== Estados de Materia =====

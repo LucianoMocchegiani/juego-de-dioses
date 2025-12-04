@@ -1,17 +1,106 @@
 """
 Endpoints para Partículas
 """
+import logging
 from fastapi import APIRouter, HTTPException, Query
 from uuid import UUID
+from typing import List
 
 from src.database.connection import get_connection
 from src.models.schemas import (
     ParticleResponse,
     ParticlesResponse,
-    ParticleViewportQuery
+    ParticleViewportQuery,
+    ParticleTypeResponse,
+    ParticleTypesResponse,
+    parse_jsonb_field
 )
 
+logger = logging.getLogger(__name__)
+
 router = APIRouter(prefix="/dimensions", tags=["particles"])
+
+
+@router.get("/{dimension_id}/particle-types", response_model=ParticleTypesResponse)
+async def get_particle_types_in_viewport(
+    dimension_id: UUID,
+    x_min: int = Query(..., ge=0, description="Coordenada X mínima"),
+    x_max: int = Query(..., ge=0, description="Coordenada X máxima"),
+    y_min: int = Query(..., ge=0, description="Coordenada Y mínima"),
+    y_max: int = Query(..., ge=0, description="Coordenada Y máxima"),
+    z_min: int = Query(-10, description="Coordenada Z mínima"),
+    z_max: int = Query(10, description="Coordenada Z máxima")
+):
+    """
+    Obtener tipos de partículas únicos en un viewport con sus estilos.
+    
+    Esta query se puede cachear en backend por 5-10 minutos ya que los tipos
+    cambian menos frecuentemente que las partículas.
+    
+    Ventajas:
+    - Solo retorna tipos únicos (sin duplicación)
+    - 50% menos datos transferidos vs incluir estilos en cada partícula
+    - Cache eficiente en backend
+    """
+    # Validar viewport
+    viewport = ParticleViewportQuery(
+        x_min=x_min,
+        x_max=x_max,
+        y_min=y_min,
+        y_max=y_max,
+        z_min=z_min,
+        z_max=z_max
+    )
+    viewport.validate_ranges()
+    
+    async with get_connection() as conn:
+        # Verificar que la dimensión existe
+        dim_exists = await conn.fetchval(
+            "SELECT EXISTS(SELECT 1 FROM juego_dioses.dimensiones WHERE id = $1)",
+            dimension_id
+        )
+        if not dim_exists:
+            raise HTTPException(status_code=404, detail="Dimensión no encontrada")
+        
+        # Obtener IDs de tipos únicos en viewport
+        tipo_ids_rows = await conn.fetch("""
+            SELECT DISTINCT p.tipo_particula_id
+            FROM juego_dioses.particulas p
+            WHERE p.dimension_id = $1
+              AND p.celda_x BETWEEN $2 AND $3
+              AND p.celda_y BETWEEN $4 AND $5
+              AND p.celda_z BETWEEN $6 AND $7
+              AND p.extraida = false
+        """, dimension_id, x_min, x_max, y_min, y_max, z_min, z_max)
+        
+        tipo_ids_list = [row['tipo_particula_id'] for row in tipo_ids_rows]
+        
+        if not tipo_ids_list:
+            logger.debug(f"No particle types found in viewport for dimension {dimension_id}")
+            return ParticleTypesResponse(types=[])
+        
+        # Obtener tipos con estilos
+        tipos = await conn.fetch("""
+            SELECT 
+                id,
+                nombre,
+                estilos
+            FROM juego_dioses.tipos_particulas
+            WHERE id = ANY($1::uuid[])
+        """, tipo_ids_list)
+        
+        # Parsear estilos usando helper y crear objetos ParticleTypeResponse
+        result = []
+        for row in tipos:
+            estilos = parse_jsonb_field(row['estilos'])
+            result.append(ParticleTypeResponse(
+                id=str(row['id']),
+                nombre=row['nombre'],
+                estilos=estilos if estilos else None
+            ))
+        
+        logger.debug(f"Found {len(result)} unique particle types in viewport")
+        return ParticleTypesResponse(types=result)
 
 
 @router.get("/{dimension_id}/particles", response_model=ParticlesResponse)
@@ -50,7 +139,7 @@ async def get_particles_by_viewport(
         if not dim_exists:
             raise HTTPException(status_code=404, detail="Dimensión no encontrada")
         
-        # Obtener partículas en el viewport
+        # Obtener partículas en el viewport (SIN estilos - vienen en query separada)
         rows = await conn.fetch("""
             SELECT 
                 p.id,
@@ -94,41 +183,14 @@ async def get_particles_by_viewport(
               AND extraida = false
         """, dimension_id, x_min, x_max, y_min, y_max, z_min, z_max)
         
-        # Convertir a modelos
-        import json
-        particles = []
-        for row in rows:
-            # Parsear propiedades JSON si es string
-            propiedades = row["propiedades"]
-            if isinstance(propiedades, str):
-                try:
-                    propiedades = json.loads(propiedades) if propiedades else {}
-                except:
-                    propiedades = {}
-            elif propiedades is None:
-                propiedades = {}
-            
-            particles.append(ParticleResponse(
-                id=row["id"],
-                dimension_id=row["dimension_id"],
-                celda_x=row["celda_x"],
-                celda_y=row["celda_y"],
-                celda_z=row["celda_z"],
-                tipo=row["tipo_nombre"],
-                estado=row["estado_nombre"],
-                tipo_particula_id=row["tipo_particula_id"],
-                estado_materia_id=row["estado_materia_id"],
-                cantidad=float(row["cantidad"]),
-                temperatura=float(row["temperatura"]),
-                energia=float(row["energia"]),
-                extraida=row["extraida"],
-                agrupacion_id=row["agrupacion_id"],
-                es_nucleo=row["es_nucleo"],
-                propiedades=propiedades,
-                creado_por=row["creado_por"],
-                creado_en=row["creado_en"],
-                modificado_en=row["modificado_en"]
-            ))
+        # Logging para debugging
+        if not rows:
+            logger.warning(f"No particles found for dimension {dimension_id} in viewport")
+        else:
+            logger.debug(f"Found {len(rows)} particles in viewport")
+        
+        # Convertir a modelos usando método estático (sin estilos)
+        particles = [ParticleResponse.from_row(row) for row in rows]
         
         return ParticlesResponse(
             dimension_id=dimension_id,
@@ -174,25 +236,6 @@ async def get_particle(dimension_id: UUID, particle_id: UUID):
         if not row:
             raise HTTPException(status_code=404, detail="Partícula no encontrada")
         
-        return ParticleResponse(
-            id=row["id"],
-            dimension_id=row["dimension_id"],
-            celda_x=row["celda_x"],
-            celda_y=row["celda_y"],
-            celda_z=row["celda_z"],
-            tipo=row["tipo_nombre"],
-            estado=row["estado_nombre"],
-            tipo_particula_id=row["tipo_particula_id"],
-            estado_materia_id=row["estado_materia_id"],
-            cantidad=float(row["cantidad"]),
-            temperatura=float(row["temperatura"]),
-            energia=float(row["energia"]),
-            extraida=row["extraida"],
-            agrupacion_id=row["agrupacion_id"],
-            es_nucleo=row["es_nucleo"],
-            propiedades=row["propiedades"] if row["propiedades"] else {},
-            creado_por=row["creado_por"],
-            creado_en=row["creado_en"],
-            modificado_en=row["modificado_en"]
-        )
+        # Usar método estático para conversión (sin estilos)
+        return ParticleResponse.from_row(row)
 
