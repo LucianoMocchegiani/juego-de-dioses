@@ -47,3 +47,10 @@ export const COLOR_MAX_VALUE = 255;
 // Tamaño de celda por defecto
 export const DEFAULT_CELL_SIZE = 0.25;
 
+// Limitaciones de viewport (para evitar sobrecarga)
+// celdas en x, y, z
+export const VIEWPORT_MAX_CELLS_X = 30; // 20 celdas en x
+export const VIEWPORT_MAX_CELLS_Y = 30; // 20 celdas en y
+export const VIEWPORT_DEFAULT_Z_MIN = -6; // -2 celdas en z
+export const VIEWPORT_DEFAULT_Z_MAX = 6; // 5 celdas en z
+

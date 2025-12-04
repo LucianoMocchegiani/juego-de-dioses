@@ -3,6 +3,12 @@
  */
 import ApiClient from './api.js';
 import { Scene3D } from './scene.js';
+import {
+    VIEWPORT_MAX_CELLS_X,
+    VIEWPORT_MAX_CELLS_Y,
+    VIEWPORT_DEFAULT_Z_MIN,
+    VIEWPORT_DEFAULT_Z_MAX
+} from './constants.js';
 
 // Elementos del DOM
 const loadingEl = document.getElementById('loading');
@@ -32,8 +38,8 @@ async function loadDemo() {
         // 1. Obtener dimensiones
         const dimensions = await api.getDimensions();
         
-        // Buscar dimensión demo
-        const demoDimension = dimensions.find(d => d.nombre === 'Demo - Terreno con Arboles');
+        // Buscar dimensión demo (cualquier dimensión que contenga "Demo" en el nombre)
+        const demoDimension = dimensions.find(d => d.nombre && d.nombre.toLowerCase().includes('demo'));
         
         if (!demoDimension) {
             throw new Error('No se encontró la dimensión demo');
@@ -42,14 +48,18 @@ async function loadDemo() {
         currentDimension = demoDimension;
         dimensionInfoEl.textContent = `Dimensión: ${demoDimension.nombre} (${demoDimension.ancho_metros}m x ${demoDimension.alto_metros}m)`;
         
-        // 2. Definir viewport
+        // 2. Definir viewport basado en las dimensiones de la dimensión
+        // Convertir metros a celdas (asumiendo tamano_celda)
+        const celdas_x = Math.floor(demoDimension.ancho_metros / demoDimension.tamano_celda);
+        const celdas_y = Math.floor(demoDimension.alto_metros / demoDimension.tamano_celda);
+        
         const viewport = {
             x_min: 0,
-            x_max: 20,
+            x_max: Math.min(celdas_x, VIEWPORT_MAX_CELLS_X),
             y_min: 0,
-            y_max: 20,
-            z_min: -2,
-            z_max: 5
+            y_max: Math.min(celdas_y, VIEWPORT_MAX_CELLS_Y),
+            z_min: Math.max(demoDimension.profundidad_maxima || VIEWPORT_DEFAULT_Z_MIN, VIEWPORT_DEFAULT_Z_MIN),
+            z_max: Math.min(demoDimension.altura_maxima || VIEWPORT_DEFAULT_Z_MAX, VIEWPORT_DEFAULT_Z_MAX)
         };
         
         // 3. Cargar partículas Y tipos en paralelo

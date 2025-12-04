@@ -169,6 +169,11 @@ export class Scene3D {
                     estilo.roughness = tipoEstilos.material.roughness;
                 }
             }
+            
+            // Extraer opacidad de visual.opacity
+            if (tipoEstilos.visual && tipoEstilos.visual.opacity !== undefined) {
+                estilo.opacity = tipoEstilos.visual.opacity;
+            }
         }
         return estilo;
     }
@@ -227,12 +232,18 @@ export class Scene3D {
         // THREE.Color acepta strings en formato CSS (#RRGGBB) directamente
         const color = new THREE.Color(estilo.color);
         
+        // Determinar opacidad (default: 1.0 si no se especifica)
+        const opacity = estilo.opacity !== undefined ? estilo.opacity : 1.0;
+        
+        // Hacer transparente si opacity < 1.0 o si es un estilo de error
+        const isTransparent = estilo.isError || opacity < 1.0;
+        
         return new THREE.MeshStandardMaterial({ 
             color: color,
             metalness: estilo.metalness,
             roughness: estilo.roughness,
-            transparent: estilo.isError || false,
-            opacity: estilo.opacity !== undefined ? estilo.opacity : 1.0
+            transparent: isTransparent,
+            opacity: opacity
         });
     }
 
@@ -240,10 +251,16 @@ export class Scene3D {
      * Crear mesh para una partícula
      * @param {Particle} particle - Datos de la partícula
      * @param {number} cellSize - Tamaño de celda
-     * @returns {THREE.Mesh}
+     * @returns {THREE.Mesh|null} - Retorna null si la partícula es invisible (opacity 0.0)
      */
     createParticleMesh(particle, cellSize) {
         const estilo = this.getStyle(particle.tipo);
+        
+        // Si la opacidad es 0.0, no crear el mesh para optimizar rendimiento
+        const opacity = estilo.opacity !== undefined ? estilo.opacity : 1.0;
+        if (opacity === 0.0) {
+            return null;
+        }
         
         // HARDCODEADO: Colores directos (comentado - usar solo para debugging)
         // const colorMap = {
@@ -280,6 +297,12 @@ export class Scene3D {
 
         particles.forEach((particle) => {
             const cube = this.createParticleMesh(particle, cellSize);
+            
+            // Si el mesh es null (opacidad 0.0), no agregarlo a la escena
+            if (cube === null) {
+                return;
+            }
+            
             const key = `${particle.celda_x}_${particle.celda_y}_${particle.celda_z}`;
             this.particleMeshes.set(key, cube);
             this.scene.add(cube);

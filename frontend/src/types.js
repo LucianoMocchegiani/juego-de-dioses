@@ -22,6 +22,7 @@
  * @property {Object} [visual] - Propiedades visuales
  * @property {string} [visual.modelo] - Tipo de modelo 3D
  * @property {number} [visual.escala] - Escala del modelo
+ * @property {number} [visual.opacity] - Opacidad del material (0-1), 0.0 = completamente transparente
  */
 
 /**
