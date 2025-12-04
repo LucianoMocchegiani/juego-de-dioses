@@ -47,11 +47,17 @@ CREATE TABLE IF NOT EXISTS tipos_particulas (
     densidad DECIMAL(10,4) DEFAULT 1.0,
     color_base VARCHAR(50),
     descripcion TEXT,
+    estilos JSONB DEFAULT '{}'::jsonb,
     creado_en TIMESTAMP DEFAULT NOW()
 );
 
 CREATE INDEX IF NOT EXISTS idx_tipos_particulas_nombre ON tipos_particulas(nombre);
 CREATE INDEX IF NOT EXISTS idx_tipos_particulas_categoria ON tipos_particulas(categoria);
+CREATE INDEX IF NOT EXISTS idx_tipos_particulas_estilos ON tipos_particulas USING GIN (estilos);
+
+-- Comentario para documentar el campo estilos
+COMMENT ON COLUMN juego_dioses.tipos_particulas.estilos IS 
+'Estilos visuales de la partícula en formato JSONB. Estructura: {color_hex, color_rgb, material: {metalness, roughness, emissive}, visual: {modelo, escala}}';
 
 -- Tabla de Estados de Materia
 CREATE TABLE IF NOT EXISTS estados_materia (

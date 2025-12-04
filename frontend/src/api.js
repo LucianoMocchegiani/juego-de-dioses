@@ -48,6 +48,18 @@ class ApiClient {
         }
         return await response.json();
     }
+
+    async getParticleTypes(dimensionId, viewport) {
+        const { x_min, x_max, y_min, y_max, z_min, z_max } = viewport;
+        const url = `${this.baseUrl}/dimensions/${dimensionId}/particle-types?` +
+            `x_min=${x_min}&x_max=${x_max}&y_min=${y_min}&y_max=${y_max}&z_min=${z_min}&z_max=${z_max}`;
+        
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Error al obtener tipos: ${response.statusText}`);
+        }
+        return await response.json();
+    }
 }
 
 export default ApiClient;
