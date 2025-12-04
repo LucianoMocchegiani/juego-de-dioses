@@ -24,9 +24,6 @@ import {
     LUZ_DIRECCIONAL_POS_X,
     LUZ_DIRECCIONAL_POS_Y,
     LUZ_DIRECCIONAL_POS_Z,
-    GRID_SIZE,
-    GRID_DIVISIONS,
-    AXES_SIZE,
     MATERIAL_DEFAULT_METALNESS,
     MATERIAL_DEFAULT_ROUGHNESS,
     COLOR_MAX_VALUE,
@@ -50,6 +47,11 @@ export class Scene3D {
         this.renderer = null;
         this.controls = null;
         this.particleMeshes = new Map();
+        /**
+         * Instanced meshes agrupados por tipo/material para optimización
+         * @type {Map<string, THREE.InstancedMesh>}
+         */
+        this.instancedMeshes = new Map();
         /**
          * Cache de estilos por tipo de partícula
          * 
@@ -111,11 +113,39 @@ export class Scene3D {
     }
 
     createHelpers() {
-        const gridHelper = new THREE.GridHelper(GRID_SIZE, GRID_DIVISIONS, COLOR_GRID_PRIMARY, COLOR_GRID_SECONDARY);
-        this.scene.add(gridHelper);
+        // La grilla se ajustará dinámicamente cuando se cargue el terreno
+        this.gridHelper = null;
+        this.axesHelper = null;
+    }
 
-        const axesHelper = new THREE.AxesHelper(AXES_SIZE);
-        this.scene.add(axesHelper);
+    /**
+     * Ajustar grilla y ejes al tamaño del terreno
+     * @param {number} anchoMetros - Ancho del terreno en metros
+     * @param {number} altoMetros - Alto del terreno en metros
+     */
+    updateHelpers(anchoMetros, altoMetros) {
+        // Remover helpers antiguos si existen
+        if (this.gridHelper) {
+            this.scene.remove(this.gridHelper);
+        }
+        if (this.axesHelper) {
+            this.scene.remove(this.axesHelper);
+        }
+
+        // Calcular tamaño de grilla (un poco más grande que el terreno para contexto)
+        const gridSize = Math.max(anchoMetros, altoMetros) * 1.2;
+        const gridDivisions = Math.max(20, Math.floor(gridSize / 2)); // División cada 2 metros aproximadamente
+        
+        // Crear grilla centrada en el terreno
+        this.gridHelper = new THREE.GridHelper(gridSize, gridDivisions, COLOR_GRID_PRIMARY, COLOR_GRID_SECONDARY);
+        // Posicionar grilla en el centro del terreno (en Y=0 para que esté al nivel del suelo)
+        this.gridHelper.position.set(anchoMetros / 2, 0, altoMetros / 2);
+        this.scene.add(this.gridHelper);
+
+        // Crear ejes en el centro del terreno
+        this.axesHelper = new THREE.AxesHelper(Math.max(anchoMetros, altoMetros) * 0.3);
+        this.axesHelper.position.set(anchoMetros / 2, 0, altoMetros / 2);
+        this.scene.add(this.axesHelper);
     }
 
     setupResizeHandler() {
@@ -288,37 +318,98 @@ export class Scene3D {
     }
 
     /**
-     * Renderizar partículas (tipos ya cacheados)
+     * Renderizar partículas usando instanced rendering para optimización
      * @param {Particle[]} particles - Array de partículas
      * @param {number} cellSize - Tamaño de celda (default: 0.25)
      */
     renderParticles(particles, cellSize = DEFAULT_CELL_SIZE) {
         this.clearParticles();
 
+        // Agrupar partículas por tipo/material para instanced rendering
+        const particlesByType = new Map();
+        
         particles.forEach((particle) => {
-            const cube = this.createParticleMesh(particle, cellSize);
+            const estilo = this.getStyle(particle.tipo);
+            const opacity = estilo.opacity !== undefined ? estilo.opacity : 1.0;
             
-            // Si el mesh es null (opacidad 0.0), no agregarlo a la escena
-            if (cube === null) {
+            // Saltar partículas invisibles
+            if (opacity === 0.0) {
                 return;
             }
             
-            const key = `${particle.celda_x}_${particle.celda_y}_${particle.celda_z}`;
-            this.particleMeshes.set(key, cube);
-            this.scene.add(cube);
+            // Crear clave única para tipo+material (mismo tipo con diferentes materiales = diferentes grupos)
+            const materialKey = `${particle.tipo}_${estilo.metalness}_${estilo.roughness}_${opacity}`;
+            
+            if (!particlesByType.has(materialKey)) {
+                particlesByType.set(materialKey, {
+                    tipo: particle.tipo,
+                    estilo: estilo,
+                    particles: []
+                });
+            }
+            
+            particlesByType.get(materialKey).particles.push(particle);
         });
+        
+        // Crear instanced meshes para cada grupo
+        particlesByType.forEach((group, materialKey) => {
+            const count = group.particles.length;
+            
+            // Limitar instancias a 100,000 para evitar problemas de memoria
+            if (count > 100000) {
+                console.warn(`Demasiadas partículas del tipo ${group.tipo} (${count}). Renderizando solo las primeras 100,000.`);
+                group.particles = group.particles.slice(0, 100000);
+            }
+            
+            // Crear geometría compartida
+            const geometry = new THREE.BoxGeometry(cellSize, cellSize, cellSize);
+            
+            // Crear material
+            const material = this.createMaterial(group.estilo);
+            
+            // Crear instanced mesh
+            const instancedMesh = new THREE.InstancedMesh(geometry, material, group.particles.length);
+            
+            // Configurar posiciones de instancias
+            const matrix = new THREE.Matrix4();
+            group.particles.forEach((particle, index) => {
+                const x = particle.celda_x * cellSize + cellSize / 2;
+                const y = particle.celda_z * cellSize + cellSize / 2;
+                const z = particle.celda_y * cellSize + cellSize / 2;
+                
+                matrix.setPosition(x, y, z);
+                instancedMesh.setMatrixAt(index, matrix);
+            });
+            
+            instancedMesh.instanceMatrix.needsUpdate = true;
+            
+            // Guardar referencia
+            this.instancedMeshes.set(materialKey, instancedMesh);
+            this.scene.add(instancedMesh);
+        });
+        
+        console.log(`Renderizadas ${particles.length} partículas en ${particlesByType.size} grupos instanciados`);
     }
 
     /**
      * Limpiar todas las partículas
      */
     clearParticles() {
+        // Limpiar meshes individuales (legacy)
         this.particleMeshes.forEach(mesh => {
             this.scene.remove(mesh);
             mesh.geometry.dispose();
             mesh.material.dispose();
         });
         this.particleMeshes.clear();
+        
+        // Limpiar instanced meshes
+        this.instancedMeshes.forEach(mesh => {
+            this.scene.remove(mesh);
+            mesh.geometry.dispose();
+            mesh.material.dispose();
+        });
+        this.instancedMeshes.clear();
     }
 
     /**

@@ -201,8 +201,10 @@ class ParticleViewportQuery(BaseModel):
         z_range = self.z_max - self.z_min + 1
         total_cells = x_range * y_range * z_range
         
-        if total_cells > 100000:  # Límite de 100k celdas
-            raise ValueError(f"Viewport demasiado grande: {total_cells} celdas. Máximo: 100000")
+        # Aumentado a 500k celdas para permitir terrenos grandes (160x160x20 = 512k)
+        # Con instanced rendering en frontend, esto es manejable
+        if total_cells > 500000:  # Límite de 500k celdas
+            raise ValueError(f"Viewport demasiado grande: {total_cells} celdas. Máximo: 500000")
         
         return True
 
