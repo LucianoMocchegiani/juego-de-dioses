@@ -352,14 +352,11 @@ export class Scene3D {
         });
         
         // Crear instanced meshes para cada grupo
+        // Optimización: dividir grupos grandes en múltiples instanced meshes
+        const MAX_INSTANCES_PER_MESH = 50000; // Reducido de 100k para mejor rendimiento
+        
         particlesByType.forEach((group, materialKey) => {
             const count = group.particles.length;
-            
-            // Limitar instancias a 100,000 para evitar problemas de memoria
-            if (count > 100000) {
-                console.warn(`Demasiadas partículas del tipo ${group.tipo} (${count}). Renderizando solo las primeras 100,000.`);
-                group.particles = group.particles.slice(0, 100000);
-            }
             
             // Crear geometría compartida
             const geometry = new THREE.BoxGeometry(cellSize, cellSize, cellSize);
@@ -367,25 +364,35 @@ export class Scene3D {
             // Crear material
             const material = this.createMaterial(group.estilo);
             
-            // Crear instanced mesh
-            const instancedMesh = new THREE.InstancedMesh(geometry, material, group.particles.length);
+            // Dividir en múltiples instanced meshes si es necesario
+            const numMeshes = Math.ceil(count / MAX_INSTANCES_PER_MESH);
             
-            // Configurar posiciones de instancias
-            const matrix = new THREE.Matrix4();
-            group.particles.forEach((particle, index) => {
-                const x = particle.celda_x * cellSize + cellSize / 2;
-                const y = particle.celda_z * cellSize + cellSize / 2;
-                const z = particle.celda_y * cellSize + cellSize / 2;
+            for (let meshIndex = 0; meshIndex < numMeshes; meshIndex++) {
+                const start = meshIndex * MAX_INSTANCES_PER_MESH;
+                const end = Math.min(start + MAX_INSTANCES_PER_MESH, count);
+                const particlesChunk = group.particles.slice(start, end);
                 
-                matrix.setPosition(x, y, z);
-                instancedMesh.setMatrixAt(index, matrix);
-            });
-            
-            instancedMesh.instanceMatrix.needsUpdate = true;
-            
-            // Guardar referencia
-            this.instancedMeshes.set(materialKey, instancedMesh);
-            this.scene.add(instancedMesh);
+                // Crear instanced mesh para este chunk
+                const instancedMesh = new THREE.InstancedMesh(geometry, material, particlesChunk.length);
+                
+                // Configurar posiciones de instancias
+                const matrix = new THREE.Matrix4();
+                particlesChunk.forEach((particle, index) => {
+                    const x = particle.celda_x * cellSize + cellSize / 2;
+                    const y = particle.celda_z * cellSize + cellSize / 2;
+                    const z = particle.celda_y * cellSize + cellSize / 2;
+                    
+                    matrix.setPosition(x, y, z);
+                    instancedMesh.setMatrixAt(index, matrix);
+                });
+                
+                instancedMesh.instanceMatrix.needsUpdate = true;
+                
+                // Guardar referencia con índice único
+                const meshKey = numMeshes > 1 ? `${materialKey}_${meshIndex}` : materialKey;
+                this.instancedMeshes.set(meshKey, instancedMesh);
+                this.scene.add(instancedMesh);
+            }
         });
         
         console.log(`Renderizadas ${particles.length} partículas en ${particlesByType.size} grupos instanciados`);

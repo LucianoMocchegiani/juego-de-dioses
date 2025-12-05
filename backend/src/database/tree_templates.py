@@ -53,12 +53,19 @@ class TreeTemplate:
     def get_posiciones_copa(self, x_centro: int, y_centro: int, z_base: int) -> List[Tuple[int, int, int]]:
         """
         Obtener posiciones (x, y, z) que forman la copa
-        z_base es el nivel superior del tronco
+        z_base es el nivel superior del tronco (donde empieza la copa)
+        Optimizado: densidad reducida para mejor rendimiento
         """
         posiciones = []
         offset_tronco = self.grosor_tronco // 2
         
         for z in range(z_base, z_base + self.copa_niveles):
+            # Factor de densidad: más denso cerca del centro, más disperso en los bordes
+            # Nivel base (z_base): 100% densidad en centro, 80% en bordes
+            # Niveles superiores: densidad reducida progresivamente
+            nivel_relativo = z - z_base
+            densidad_base = 1.0 - (nivel_relativo * 0.15)  # Reduce 15% por nivel
+            
             for dx in range(-self.copa_tamano, self.copa_tamano + 1):
                 for dy in range(-self.copa_tamano, self.copa_tamano + 1):
                     # Distancia desde el centro
@@ -66,13 +73,17 @@ class TreeTemplate:
                     
                     # Solo incluir si está dentro del radio de la copa
                     if distancia <= self.copa_tamano:
-                        # Excluir posiciones del tronco (área del tronco)
-                        dentro_tronco = (
-                            abs(dx) <= offset_tronco and 
-                            abs(dy) <= offset_tronco
-                        )
+                        # Calcular densidad según distancia del centro
+                        if distancia <= 1:
+                            densidad = 1.0  # Centro: siempre lleno
+                        elif distancia <= self.copa_tamano * 0.5:
+                            densidad = 0.9 * densidad_base  # Zona media: 90%
+                        else:
+                            densidad = 0.7 * densidad_base  # Bordes: 70%
                         
-                        if not dentro_tronco:
+                        # Aplicar densidad aleatoria
+                        import random
+                        if random.random() <= densidad:
                             posiciones.append((x_centro + dx, y_centro + dy, z))
         
         return posiciones
@@ -123,14 +134,20 @@ class TreeTemplate:
 
 
 # Plantillas de árboles predefinidas
+# IMPORTANTE: Las celdas son partículas, no metros
+# - Cada celda = 0.25m × 0.25m = 0.0625 m²
+# - 4 partículas en línea = 1 metro (4 × 0.25m = 1m)
+# - 16 partículas (4×4) = 1 metro cuadrado (1m × 1m)
+# - Mínimo para árboles: 4 partículas (2×2) = 0.5m × 0.5m
+# - Para plantas pequeñas puede ser menos de 4 partículas
 TREE_TEMPLATES = {
     'arbol_pequeno': TreeTemplate(
         nombre='Árbol Pequeño',
-        grosor_tronco=1,  # 1x1
-        altura_min=2,
-        altura_max=3,
-        copa_tamano=2,  # Radio de 2 celdas
-        copa_niveles=2,
+        grosor_tronco=2,  # 2x2 = 4 partículas (mínimo para árboles) = 0.5m × 0.5m
+        altura_min=10,  # 2 × 5 = 10 niveles
+        altura_max=15,  # 3 × 5 = 15 niveles
+        copa_tamano=3,  # Radio de 3 celdas (aumentado de 2)
+        copa_niveles=3,  # Aumentado de 2 a 3 niveles
         raiz_tamano=2,  # Raíces se extienden 2 celdas
         raiz_profundidad=2,  # 2 niveles bajo tierra
         densidad=0.20
@@ -138,11 +155,11 @@ TREE_TEMPLATES = {
     
     'arbol_mediano': TreeTemplate(
         nombre='Árbol Mediano',
-        grosor_tronco=2,  # 2x2
-        altura_min=3,
-        altura_max=4,
-        copa_tamano=3,  # Radio de 3 celdas
-        copa_niveles=2,
+        grosor_tronco=2,  # 2x2 = 4 partículas = 0.5m × 0.5m
+        altura_min=15,  # 3 × 5 = 15 niveles
+        altura_max=20,  # 4 × 5 = 20 niveles
+        copa_tamano=4,  # Radio de 4 celdas (aumentado de 3)
+        copa_niveles=3,  # Aumentado de 2 a 3 niveles
         raiz_tamano=3,  # Raíces se extienden 3 celdas
         raiz_profundidad=3,  # 3 niveles bajo tierra
         densidad=0.15
@@ -150,11 +167,11 @@ TREE_TEMPLATES = {
     
     'arbol_grande': TreeTemplate(
         nombre='Árbol Grande',
-        grosor_tronco=2,  # 2x2
-        altura_min=4,
-        altura_max=5,
-        copa_tamano=4,  # Radio de 4 celdas
-        copa_niveles=3,
+        grosor_tronco=3,  # 3x3 = 9 partículas = 0.75m × 0.75m
+        altura_min=20,  # 4 × 5 = 20 niveles
+        altura_max=25,  # 5 × 5 = 25 niveles
+        copa_tamano=5,  # Radio de 5 celdas (aumentado de 4)
+        copa_niveles=4,  # Aumentado de 3 a 4 niveles
         raiz_tamano=4,  # Raíces se extienden 4 celdas
         raiz_profundidad=4,  # 4 niveles bajo tierra
         densidad=0.10
@@ -162,11 +179,11 @@ TREE_TEMPLATES = {
     
     'arbol_muy_grande': TreeTemplate(
         nombre='Árbol Muy Grande',
-        grosor_tronco=3,  # 3x3
-        altura_min=5,
-        altura_max=6,
-        copa_tamano=5,  # Radio de 5 celdas
-        copa_niveles=3,
+        grosor_tronco=4,  # 4x4 = 16 partículas = 1m × 1m (1 metro cuadrado)
+        altura_min=25,  # 5 × 5 = 25 niveles
+        altura_max=30,  # 6 × 5 = 30 niveles
+        copa_tamano=6,  # Radio de 6 celdas (aumentado de 5)
+        copa_niveles=4,  # Aumentado de 3 a 4 niveles
         raiz_tamano=5,  # Raíces se extienden 5 celdas
         raiz_profundidad=5,  # 5 niveles bajo tierra
         densidad=0.05
