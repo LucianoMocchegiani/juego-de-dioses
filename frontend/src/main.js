@@ -61,27 +61,42 @@ async function loadDemo() {
         const yMax = Math.min(celdas_y - 1, VIEWPORT_MAX_CELLS_Y - 1);
         const xRange = xMax - 0 + 1; // Número real de celdas en X (inclusivo)
         const yRange = yMax - 0 + 1; // Número real de celdas en Y (inclusivo)
-        const maxCells = 500000; // Límite del backend
+        const maxCells = 1000000; // Límite del backend (1M celdas)
         const maxZRange = Math.floor(maxCells / (xRange * yRange)); // Máximo de niveles Z
         
         // Centrar en superficie (z=0) y cargar hacia arriba y abajo
+        // Los árboles más grandes pueden llegar hasta z=30 (tronco) + 3 (copa) = z=33
         const zCenter = 0;
+        const alturaMaximaNecesaria = 35; // Suficiente para árboles muy grandes con copa
+        
+        // Calcular zMin y zMax priorizando altura (árboles) sobre profundidad
+        // Usar 1/4 del rango hacia abajo y 3/4 hacia arriba para ver los árboles
+        const espacioHaciaAbajo = Math.floor(maxZRange / 4);
+        const espacioHaciaArriba = maxZRange - espacioHaciaAbajo;
+        
         let zMin = Math.max(
             demoDimension.profundidad_maxima || -8, 
-            zCenter - Math.floor(maxZRange / 2)
+            zCenter - espacioHaciaAbajo
         );
         let zMax = Math.min(
-            demoDimension.altura_maxima || 10, 
-            zCenter + Math.ceil(maxZRange / 2) - 1 // -1 porque es inclusivo
+            Math.max(demoDimension.altura_maxima || alturaMaximaNecesaria, alturaMaximaNecesaria),
+            zCenter + espacioHaciaArriba - 1 // -1 porque es inclusivo
         );
         
         // Verificar que no exceda el límite (con margen de seguridad)
         let zRange = zMax - zMin + 1;
         let totalCells = xRange * yRange * zRange;
         if (totalCells > maxCells) {
-            // Ajustar zMax hacia abajo si excede
+            // Ajustar zMax hacia abajo si excede, pero asegurar mínimo z=35 para ver copas
             const maxAllowedZRange = Math.floor(maxCells / (xRange * yRange));
-            zMax = zMin + maxAllowedZRange - 1;
+            const zMaxCalculado = zMin + maxAllowedZRange - 1;
+            // Priorizar ver las copas: si el cálculo da menos de 35, ajustar zMin hacia arriba
+            if (zMaxCalculado < alturaMaximaNecesaria) {
+                zMin = Math.max(zMin, alturaMaximaNecesaria - maxAllowedZRange + 1);
+                zMax = alturaMaximaNecesaria;
+            } else {
+                zMax = zMaxCalculado;
+            }
             zRange = zMax - zMin + 1;
             totalCells = xRange * yRange * zRange;
             console.warn(`Viewport ajustado para no exceder límite: ${totalCells} celdas (Z: ${zMin} a ${zMax})`);
