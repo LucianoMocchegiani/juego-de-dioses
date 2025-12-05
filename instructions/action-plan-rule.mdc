@@ -78,6 +78,7 @@ Genera un archivo Markdown llamado `[TICKET-ID]-action-plan_[FECHA-HORA].md` con
 **Archivos a modificar/crear:**
 - `ruta/al/archivo.py`
 - `ruta/al/otro/archivo.js`
+- `ruta/carpeta/README.md` (si se crea/modifica una carpeta o módulo)
 
 **Detalles de implementación:**
 ```python
@@ -87,6 +88,7 @@ Genera un archivo Markdown llamado `[TICKET-ID]-action-plan_[FECHA-HORA].md` con
 **Notas:**
 - Nota importante 1
 - Nota importante 2
+- **⚠️ READMEs:** Si se crea o modifica una carpeta/módulo, crear o actualizar su `README.md` explicando qué contiene y cómo funciona. Verificar también si los READMEs padres necesitan actualización.
 
 **Recursos útiles:**
 - Link a documentación relevante (si aplica)
@@ -287,6 +289,19 @@ database/
 - Partículas tienen tipo, estado de materia, y propiedades
 - Agrupaciones agrupan partículas en objetos reconocibles
 - Núcleos son críticos para seres vivos (conectividad)
+
+### Documentación con READMEs
+- **Cada carpeta/módulo debe tener su `README.md`** explicando:
+  - Qué es y qué contiene
+  - Estructura de archivos
+  - Componentes principales y responsabilidades
+  - Cómo usar el módulo
+  - Referencias a READMEs hijos
+- **Cuando se modifica un módulo:**
+  1. Actualizar el README del módulo/carpeta modificado
+  2. Verificar y actualizar READMEs padres si es necesario
+  3. Mantener documentación sincronizada con el código
+- **En los planes de acción:** Incluir pasos para crear/actualizar READMEs cuando se crean o modifican carpetas/módulos
 
 ### Variables de Entorno Comunes
 - `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`: Configuración PostgreSQL
