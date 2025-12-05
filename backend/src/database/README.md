@@ -158,6 +158,38 @@ particulas_creadas = await creator.create_entity(template, x=10, y=20, z=0)
   - Actualizar `templates/README.md`
   - Verificar si `database/README.md` necesita actualización
 
+## Estructura de Base de Datos
+
+### Tabla `agrupaciones`
+
+La tabla `agrupaciones` incluye el campo `geometria_agrupacion` (JSONB) para definir formas geométricas especializadas por agrupación.
+
+**Estructura de `geometria_agrupacion`:**
+```json
+{
+  "tipo": "arbol|animal|construccion|...",
+  "partes": {
+    "parte_nombre": {
+      "geometria": {
+        "tipo": "box|sphere|cylinder|cone|torus|custom",
+        "parametros": {
+          // Parámetros relativos a tamano_celda según tipo
+        }
+      },
+      "offset": {"x": 0, "y": 0, "z": 0},
+      "rotacion": {"x": 0, "y": 0, "z": 0}
+    }
+  }
+}
+```
+
+**Nota importante:** Los parámetros son relativos a `tamano_celda` de la dimensión. Tamaño absoluto = `parámetro × tamano_celda × escala`.
+
+**Prioridad de resolución de formas:**
+1. Agrupación (si existe `geometria_agrupacion` y la partícula tiene `parte_entidad`)
+2. Tipo de partícula (si existe `estilos.visual.geometria`)
+3. Default (box)
+
 ## Dependencias
 
 - `asyncpg`: Cliente PostgreSQL asíncrono
@@ -170,6 +202,40 @@ particulas_creadas = await creator.create_entity(template, x=10, y=20, z=0)
 - El archivo `tree_templates.py` está **deprecado** y se mantiene solo por compatibilidad temporal
 - Usar el nuevo sistema de `templates/trees/` en su lugar
 - Todos los nuevos desarrollos deben usar el sistema modular
+
+## Actualizar Formas Geométricas en Tipos de Partículas
+
+Para actualizar las formas geométricas de tipos de partículas existentes, usar `jsonb_set`:
+
+```sql
+-- Ejemplo: Actualizar tipo "madera" con forma cilíndrica
+UPDATE juego_dioses.tipos_particulas 
+SET estilos = jsonb_set(
+    COALESCE(estilos, '{}'::jsonb),
+    '{visual,geometria}',
+    '{
+        "tipo": "cylinder",
+        "parametros": {
+            "radiusTop": 0.4,
+            "radiusBottom": 0.5,
+            "height": 1.0,
+            "segments": 8
+        }
+    }'::jsonb
+)
+WHERE nombre = 'madera';
+```
+
+**Tipos de geometría soportados:**
+- `box`: Caja (width, height, depth)
+- `sphere`: Esfera (radius, segments)
+- `cylinder`: Cilindro (radiusTop, radiusBottom, height, segments)
+- `cone`: Cono (radius, height, segments)
+- `torus`: Toro (radius, tube, segments)
+
+**Nota importante:** Los parámetros son relativos a `tamano_celda` de la dimensión.
+- Tamaño absoluto = `parámetro × tamano_celda × escala`
+- Ejemplo: `tamano_celda = 0.25m`, `radius = 0.5` → radio absoluto = `0.125m`
 
 ## Referencias
 

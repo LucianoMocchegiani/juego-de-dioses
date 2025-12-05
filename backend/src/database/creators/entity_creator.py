@@ -87,7 +87,8 @@ class EntityCreator:
         template: BaseTemplate,
         x: int,
         y: int,
-        z: int
+        z: int,
+        create_agrupacion: bool = True
     ) -> int:
         """
         Crear una entidad usando un template
@@ -95,6 +96,7 @@ class EntityCreator:
         Args:
             template: Template de la entidad a crear
             x, y, z: Posición donde crear la entidad
+            create_agrupacion: Si True, crear agrupación para la entidad (default: True)
         
         Returns:
             Número de partículas creadas
@@ -103,6 +105,15 @@ class EntityCreator:
             ValueError: Si faltan tipos de partículas o estados de materia
         """
         builder = self._get_builder(template)
+        
+        # Crear agrupación si está habilitado y el builder lo soporta
+        agrupacion_id = None
+        if create_agrupacion:
+            agrupacion_id = await builder.create_agrupacion(
+                self.conn,
+                self.dimension_id,
+                x, y, z
+            )
         
         # Obtener nombres de tipos de partículas necesarios
         particle_types = builder.get_particle_type_ids()
@@ -115,12 +126,13 @@ class EntityCreator:
         estado_materia_id = await self._get_state_id(matter_state_name)
         
         # Crear partículas usando el builder
-        # El builder recibe los IDs de tipos de partículas y el ID del estado de materia
+        # El builder recibe los IDs de tipos de partículas, el ID del estado de materia y el agrupacion_id
         particles = await builder.create_at_position(
             self.conn,
             self.dimension_id,
             x, y, z,
             solido_id=estado_materia_id,  # Nombre del parámetro para compatibilidad con TreeBuilder
+            agrupacion_id=agrupacion_id,  # ID de agrupación (None si no se creó)
             **particle_type_ids
         )
         
@@ -134,7 +146,8 @@ class EntityCreator:
                 ON CONFLICT (dimension_id, celda_x, celda_y, celda_z) DO UPDATE
                 SET tipo_particula_id = EXCLUDED.tipo_particula_id,
                     temperatura = EXCLUDED.temperatura,
-                    propiedades = EXCLUDED.propiedades
+                    propiedades = EXCLUDED.propiedades,
+                    agrupacion_id = EXCLUDED.agrupacion_id
             """, particles)
         
         return len(particles)

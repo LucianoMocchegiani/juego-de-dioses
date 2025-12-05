@@ -1,64 +1,44 @@
 /**
  * Cliente API para comunicarse con el backend
  * 
- * Si se sirve desde nginx (Docker), usa rutas relativas (/api/)
- * Si se sirve localmente, usa la URL completa del backend
+ * NOTA: Este archivo mantiene compatibilidad temporal con el código existente.
+ * El nuevo código debe usar los módulos modulares en api/.
+ * 
+ * @deprecated Usar { ApiClient, DimensionsApi, ParticlesApi, AgrupacionesApi } from './api/index.js' en su lugar
  */
-const API_BASE_URL = window.location.hostname === 'localhost' && window.location.port === '8080'
-    ? '/api/v1'  // Nginx proxy (Docker)
-    : 'http://localhost:8000/api/v1';  // Desarrollo local directo
+import { ApiClient as BaseApiClient, DimensionsApi, ParticlesApi, AgrupacionesApi } from './api/index.js';
 
+/**
+ * Cliente API con compatibilidad hacia atrás
+ * Expone los métodos del cliente antiguo usando los nuevos módulos modulares
+ */
 class ApiClient {
-    constructor(baseUrl = API_BASE_URL) {
-        this.baseUrl = baseUrl;
+    constructor(baseUrl) {
+        // Crear cliente base y APIs específicos
+        this.baseClient = new BaseApiClient(baseUrl);
+        this.dimensionsApi = new DimensionsApi(this.baseClient);
+        this.particlesApi = new ParticlesApi(this.baseClient);
+        this.agrupacionesApi = new AgrupacionesApi(this.baseClient);
     }
 
     async getDimensions() {
-        const response = await fetch(`${this.baseUrl}/dimensions`);
-        if (!response.ok) {
-            throw new Error(`Error al obtener dimensiones: ${response.statusText}`);
-        }
-        return await response.json();
+        return this.dimensionsApi.getDimensions();
     }
 
     async getDimension(dimensionId) {
-        const response = await fetch(`${this.baseUrl}/dimensions/${dimensionId}`);
-        if (!response.ok) {
-            throw new Error(`Error al obtener dimensión: ${response.statusText}`);
-        }
-        return await response.json();
+        return this.dimensionsApi.getDimension(dimensionId);
     }
 
     async getParticles(dimensionId, viewport) {
-        const { x_min, x_max, y_min, y_max, z_min, z_max } = viewport;
-        const url = `${this.baseUrl}/dimensions/${dimensionId}/particles?` +
-            `x_min=${x_min}&x_max=${x_max}&y_min=${y_min}&y_max=${y_max}&z_min=${z_min}&z_max=${z_max}`;
-        
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`Error al obtener partículas: ${response.statusText}`);
-        }
-        return await response.json();
+        return this.particlesApi.getParticles(dimensionId, viewport);
     }
 
     async getAgrupaciones(dimensionId) {
-        const response = await fetch(`${this.baseUrl}/dimensions/${dimensionId}/agrupaciones`);
-        if (!response.ok) {
-            throw new Error(`Error al obtener agrupaciones: ${response.statusText}`);
-        }
-        return await response.json();
+        return this.agrupacionesApi.getAgrupaciones(dimensionId);
     }
 
     async getParticleTypes(dimensionId, viewport) {
-        const { x_min, x_max, y_min, y_max, z_min, z_max } = viewport;
-        const url = `${this.baseUrl}/dimensions/${dimensionId}/particle-types?` +
-            `x_min=${x_min}&x_max=${x_max}&y_min=${y_min}&y_max=${y_max}&z_min=${z_min}&z_max=${z_max}`;
-        
-        const response = await fetch(url);
-        if (!response.ok) {
-            throw new Error(`Error al obtener tipos: ${response.statusText}`);
-        }
-        return await response.json();
+        return this.particlesApi.getParticleTypes(dimensionId, viewport);
     }
 }
 

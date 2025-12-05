@@ -30,39 +30,47 @@ Template → Creator → Builder → Partículas → Base de Datos
 ### Flujo General: Crear una Entidad
 
 ```
-1. Usuario llama: creator.create_entity(template, x, y, z)
+1. Usuario llama: creator.create_entity(template, x, y, z, create_agrupacion=True)
    ↓
 2. Creator llama a _get_builder(template)
    │   └─ Retorna TreeBuilder(template) si categoria == 'tree'
    ↓
-3. Creator llama a builder.get_particle_type_ids()
-   │   └─ Retorna: {'madera': 'madera', 'hojas': 'hojas'}
+3. Creator crea agrupación (si create_agrupacion=True):
+   │   ├─ 3.1. Llama a builder.create_agrupacion(conn, dimension_id, x, y, z)
+   │   ├─ 3.2. Builder obtiene metadata: builder.get_agrupacion_metadata()
+   │   │   └─ Retorna: {'nombre': 'Roble #1234', 'tipo': 'arbol', 'especie': 'roble'}
+   │   ├─ 3.3. Builder inserta en BD: INSERT INTO agrupaciones (...)
+   │   └─ 3.4. Builder retorna: agrupacion_id (UUID o None)
    ↓
-4. Creator obtiene IDs de tipos de partículas:
+4. Creator llama a builder.get_particle_type_ids()
+   │   └─ Retorna: {'madera_id': 'madera', 'hojas_id': 'hojas'}
+   ↓
+5. Creator obtiene IDs de tipos de partículas:
    │   Para cada nombre en get_particle_type_ids():
-   │   ├─ 4.1. Verifica cache: ¿existe en _particle_type_cache?
-   │   ├─ 4.2. Si NO existe:
+   │   ├─ 5.1. Verifica cache: ¿existe en _particle_type_cache?
+   │   ├─ 5.2. Si NO existe:
    │   │   └─ Consulta BD: SELECT id FROM tipos_particulas WHERE nombre = 'madera'
    │   │   └─ Guarda en cache: _particle_type_cache['madera'] = uuid
-   │   └─ 4.3. Retorna ID del cache
+   │   └─ 5.3. Retorna ID del cache
    ↓
-5. Creator llama a builder.get_matter_state_name()
+6. Creator llama a builder.get_matter_state_name()
    │   └─ Retorna: 'solido'
    ↓
-6. Creator obtiene ID del estado de materia:
-   │   ├─ 6.1. Verifica cache: ¿existe en _state_cache?
-   │   ├─ 6.2. Si NO existe:
+7. Creator obtiene ID del estado de materia:
+   │   ├─ 7.1. Verifica cache: ¿existe en _state_cache?
+   │   ├─ 7.2. Si NO existe:
    │   │   └─ Consulta BD: SELECT id FROM estados_materia WHERE nombre = 'solido'
    │   │   └─ Guarda en cache: _state_cache['solido'] = uuid
-   │   └─ 6.3. Retorna ID del cache
+   │   └─ 7.3. Retorna ID del cache
    ↓
-7. Creator llama a builder.create_at_position(..., madera_id, hojas_id, solido_id)
-   │   └─ Builder retorna lista de tuplas
+8. Creator llama a builder.create_at_position(..., agrupacion_id, madera_id, hojas_id, solido_id)
+   │   └─ Builder retorna lista de tuplas (todas con agrupacion_id asignado)
    ↓
-8. Creator inserta partículas en batch:
+9. Creator inserta partículas en batch:
    │   └─ conn.executemany("INSERT INTO particulas ...", particles)
+   │   └─ Todas las partículas tienen agrupacion_id asignado
    ↓
-9. Creator retorna número de partículas creadas
+10. Creator retorna número de partículas creadas
 ```
 
 ### Flujo Detallado: create_entity()
@@ -401,16 +409,22 @@ No necesitas modificar código existente.
 2. Retornar builder correspondiente
 3. Lanzar error si no hay builder para esa categoría
 
-### `create_entity(template, x, y, z)`
+### `create_entity(template, x, y, z, create_agrupacion=True)`
 
 **Responsabilidad:** Orquestar todo el proceso de creación.
 
+**Parámetros:**
+- `template`: Template de la entidad a crear
+- `x, y, z`: Posición donde crear la entidad
+- `create_agrupacion`: Si True, crear agrupación antes de crear partículas (default: True)
+
 **Flujo:**
 1. Obtener builder
-2. Obtener IDs necesarios (con cache)
-3. Crear partículas (usando builder)
-4. Insertar en BD (batch)
-5. Retornar número de partículas
+2. Crear agrupación (si `create_agrupacion=True` y el builder lo soporta)
+3. Obtener IDs necesarios (con cache)
+4. Crear partículas (usando builder, pasando `agrupacion_id`)
+5. Insertar en BD (batch)
+6. Retornar número de partículas
 
 ## Extender el Sistema
 
