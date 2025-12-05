@@ -1,7 +1,8 @@
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Optional, Any
 from uuid import UUID
 import asyncpg
 import json
+import random
 from src.database.builders.base import BaseBuilder
 from src.database.templates.trees.base import TreeTemplate
 
@@ -25,6 +26,7 @@ class TreeBuilder(BaseBuilder):
         madera_id: str = None,
         hojas_id: str = None,
         solido_id: str = None,
+        agrupacion_id: Optional[UUID] = None,
         **kwargs
     ) -> List[Tuple]:
         """
@@ -37,6 +39,7 @@ class TreeBuilder(BaseBuilder):
             madera_id: ID del tipo de partícula 'madera'
             hojas_id: ID del tipo de partícula 'hojas'
             solido_id: ID del estado de materia 'solido'
+            agrupacion_id: ID de la agrupación (opcional, se asigna a todas las partículas)
         
         Returns:
             Lista de tuplas (dimension_id, x, y, z, tipo_id, estado_id, cantidad, temp, energia, extraida, agrupacion_id, es_nucleo, propiedades)
@@ -53,7 +56,7 @@ class TreeBuilder(BaseBuilder):
             particles.append((
                 dimension_id, rx, ry, rz,
                 madera_id, solido_id, 1.0, 18.0, 0.0, False,
-                None, False, json.dumps(self.template.get_propiedades_particula('raiz'))
+                agrupacion_id, False, json.dumps(self.template.get_propiedades_particula('raiz'))
             ))
         
         # 2. Crear tronco
@@ -63,7 +66,7 @@ class TreeBuilder(BaseBuilder):
                 particles.append((
                     dimension_id, tx, ty, z_level,
                     madera_id, solido_id, 1.0, 20.0, 0.0, False,
-                    None, False, json.dumps(self.template.get_propiedades_particula('tronco'))
+                    agrupacion_id, False, json.dumps(self.template.get_propiedades_particula('tronco'))
                 ))
         
         # 3. Crear copa
@@ -73,7 +76,7 @@ class TreeBuilder(BaseBuilder):
             particles.append((
                 dimension_id, cx, cy, cz,
                 hojas_id, solido_id, 1.0, 22.0, 0.0, False,
-                None, False, json.dumps(self.template.get_propiedades_particula('hojas'))
+                agrupacion_id, False, json.dumps(self.template.get_propiedades_particula('hojas'))
             ))
         
         return particles
@@ -101,4 +104,46 @@ class TreeBuilder(BaseBuilder):
             Nombre del estado de materia (todos los árboles son sólidos)
         """
         return 'solido'
+    
+    async def create_agrupacion(
+        self,
+        conn: asyncpg.Connection,
+        dimension_id: UUID,
+        x: int,
+        y: int,
+        z: int
+    ) -> Optional[UUID]:
+        """
+        Crear agrupación para este árbol
+        
+        Args:
+            conn: Conexión a la base de datos
+            dimension_id: ID de la dimensión
+            x, y, z: Posición donde crear el árbol
+        
+        Returns:
+            UUID de la agrupación creada
+        """
+        metadata = self.get_agrupacion_metadata()
+        agrupacion_id = await conn.fetchval("""
+            INSERT INTO juego_dioses.agrupaciones
+            (dimension_id, nombre, tipo, especie, posicion_x, posicion_y, posicion_z)
+            VALUES ($1, $2, $3, $4, $5, $6, $7)
+            RETURNING id
+        """, dimension_id, metadata['nombre'], metadata['tipo'], 
+            metadata.get('especie'), x, y, z)
+        return agrupacion_id
+    
+    def get_agrupacion_metadata(self) -> Dict[str, Any]:
+        """
+        Obtener metadata para crear agrupación de árbol
+        
+        Returns:
+            Diccionario con metadata de la agrupación
+        """
+        return {
+            'nombre': f"{self.template.nombre} #{random.randint(1000, 9999)}",
+            'tipo': 'arbol',
+            'especie': self.template.nombre.lower()
+        }
 

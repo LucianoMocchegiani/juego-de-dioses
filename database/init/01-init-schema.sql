@@ -144,6 +144,9 @@ CREATE TABLE IF NOT EXISTS agrupaciones (
     nucleo_conectado BOOLEAN DEFAULT true,
     ultima_verificacion_nucleo TIMESTAMP,
     
+    -- Geometría especializada de la agrupación
+    geometria_agrupacion JSONB DEFAULT '{}'::jsonb,
+    
     -- Metadatos
     creado_por UUID,
     creado_en TIMESTAMP DEFAULT NOW(),
@@ -155,11 +158,38 @@ CREATE INDEX IF NOT EXISTS idx_agrupaciones_tipo ON agrupaciones(tipo);
 CREATE INDEX IF NOT EXISTS idx_agrupaciones_dimension_tipo ON agrupaciones(dimension_id, tipo);
 CREATE INDEX IF NOT EXISTS idx_agrupaciones_nombre ON agrupaciones(nombre);
 CREATE INDEX IF NOT EXISTS idx_agrupaciones_especie ON agrupaciones(especie);
+CREATE INDEX IF NOT EXISTS idx_agrupaciones_geometria ON agrupaciones USING GIN (geometria_agrupacion);
 
 -- Agregar foreign key de agrupacion_id en particulas
 ALTER TABLE particulas 
 ADD CONSTRAINT fk_particulas_agrupacion 
 FOREIGN KEY (agrupacion_id) REFERENCES agrupaciones(id) ON DELETE SET NULL;
+
+-- Comentario para documentar el campo geometria_agrupacion
+COMMENT ON COLUMN juego_dioses.agrupaciones.geometria_agrupacion IS 
+'Definición de geometría para la agrupación completa en formato JSONB. Estructura:
+{
+  "tipo": "arbol|animal|construccion|...",
+  "partes": {
+    "parte_nombre": {
+      "geometria": {
+        "tipo": "box|sphere|cylinder|cone|torus|custom",
+        "parametros": {
+          // Parámetros relativos a tamano_celda según tipo de geometría
+          // box: {width, height, depth}
+          // sphere: {radius, segments}
+          // cylinder: {radiusTop, radiusBottom, height, segments}
+          // cone: {radius, height, segments}
+          // torus: {radius, tube, segments}
+        }
+      },
+      "offset": {"x": 0, "y": 0, "z": 0},
+      "rotacion": {"x": 0, "y": 0, "z": 0}
+    }
+  }
+}
+Los parámetros son RELATIVOS a tamano_celda de la dimensión.
+Tamaño absoluto = parametro × tamano_celda × escala';
 
 -- Mensaje de confirmación
 DO $$
