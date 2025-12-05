@@ -208,3 +208,93 @@ El archivo debe guardarse como `[TICKET-ID]_pr-description_[FECHA-HORA].md` en l
 **Ejemplo de archivo generado:**
 - Nombre: `JDG-001_pr-description_2024-12-04_14-30-45.md`
 - Ubicación: `/instructions/prs/JDG-001_pr-description_2024-12-04_14-30-45.md`
+
+## Flujo de Git Automático (Opcional)
+
+**IMPORTANTE:** Después de generar la descripción del PR, debes preguntar al usuario si desea ejecutar el flujo de Git automático.
+
+**Proceso del flujo de Git:**
+
+1. **Preguntar al usuario:** "¿Deseas ejecutar el flujo de Git automático? (crear rama, commit, push y PR)"
+
+2. **Si el usuario responde afirmativamente (sí, si, yes, y, etc.):**
+   
+   a. **Extraer número del ticket:**
+      - Del `[TICKET-ID]` (ej: `JDG-006`), extraer el número: `006`
+      - El nombre de la rama será: `JDG-006` (usar el ticket ID completo)
+   
+   b. **Verificar estado actual:**
+      - Ejecutar `git status` para verificar que hay cambios
+      - Verificar que no estás ya en una rama con ese nombre
+   
+   c. **Crear nueva rama:**
+      - Ejecutar: `git checkout -b JDG-{{numero}}` (ej: `git checkout -b JDG-006`)
+      - Si la rama ya existe, preguntar si desea continuar en esa rama o usar otro nombre
+   
+   d. **Agregar todos los archivos al stage:**
+      - Ejecutar: `git add .`
+      - Verificar con `git status` que los archivos están en stage
+   
+   e. **Crear commit:**
+      - Usar el título del PR como mensaje del commit
+      - Ejecutar: `git commit -m "[Título del PR]"` (ej: `git commit -m "refactor(frontend): Componentización del Frontend y Sistema de Formas Geométricas"`)
+   
+   f. **Push de la rama:**
+      - Ejecutar: `git push -u origin JDG-{{numero}}` (ej: `git push -u origin JDG-006`)
+      - Esto creará la rama en el remoto y configurará el tracking
+   
+   g. **Crear Pull Request (si es posible):**
+      - Intentar crear el PR usando GitHub CLI si está disponible:
+        - Verificar si `gh` está instalado: `gh --version`
+        - Si está disponible, ejecutar:
+          ```
+          gh pr create --title "[Título del PR]" --body-file "instructions/prs/[TICKET-ID]_pr-description_[FECHA-HORA].md" --base master
+          ```
+      - Si GitHub CLI no está disponible, informar al usuario que debe crear el PR manualmente desde la interfaz web
+      - Proporcionar el enlace directo si es posible (ej: `https://github.com/[usuario]/[repo]/compare/master...JDG-006`)
+   
+   h. **Cambiar a rama master:**
+      - Ejecutar: `git checkout master`
+      - Verificar que el cambio fue exitoso con `git status`
+   
+   i. **Resumen final:**
+      - Informar al usuario que:
+        - La rama fue creada y pusheada
+        - El commit fue realizado
+        - El PR fue creado (si fue posible) o debe crearse manualmente
+        - Se cambió de vuelta a master
+
+3. **Si el usuario responde negativamente (no, n, etc.):**
+   - Informar que el archivo de descripción del PR está listo en `/instructions/prs/`
+   - Recordar que puede ejecutar el flujo de Git manualmente cuando lo desee
+
+**Notas importantes:**
+- Si hay cambios sin commitear en la rama actual, preguntar si desea hacer commit de esos cambios primero o descartarlos
+- Si hay conflictos durante el push, informar al usuario y detener el proceso
+- Si la creación del PR falla, continuar con el resto del flujo (rama creada, commit hecho, push realizado)
+- Siempre verificar el estado de Git antes de cada operación crítica
+- Si el usuario está en una rama diferente a master, preguntar si desea crear la nueva rama desde master o desde la rama actual
+
+**Comandos de ejemplo para el flujo completo:**
+```bash
+# 1. Verificar estado
+git status
+
+# 2. Crear rama
+git checkout -b JDG-006
+
+# 3. Agregar archivos
+git add .
+
+# 4. Commit
+git commit -m "refactor(frontend): Componentización del Frontend y Sistema de Formas Geométricas"
+
+# 5. Push
+git push -u origin JDG-006
+
+# 6. Crear PR (si gh está disponible)
+gh pr create --title "refactor(frontend): Componentización del Frontend y Sistema de Formas Geométricas" --body-file "instructions/prs/JDG-006_pr-description_2025-12-05_16-34-00.md" --base master
+
+# 7. Volver a master
+git checkout master
+```
