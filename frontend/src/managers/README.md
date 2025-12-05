@@ -6,9 +6,11 @@ Este módulo contiene gestores de alto nivel que coordinan múltiples sistemas.
 
 ```
 managers/
-├── viewport-manager.js  # Gestión de viewport y carga de datos
-├── style-manager.js     # Gestión de cache de estilos
-└── entity-manager.js    # Gestión de entidades y renderizadores
+├── viewport-manager.js      # Gestión de viewport y carga de datos
+├── style-manager.js         # Gestión de cache de estilos
+├── entity-manager.js        # Gestión de entidades y renderizadores
+├── geometry-cache.js        # Cache de geometrías LOD
+└── performance-manager.js   # Gestión de métricas de rendimiento
 ```
 
 ## Componentes
@@ -39,12 +41,32 @@ Gestiona entidades y selección de renderizadores.
 - Coordinar renderizado de múltiples tipos de entidades
 - Gestionar renderizadores especializados
 
+### GeometryCache (`geometry-cache.js`)
+Cache de geometrías LOD para reutilización.
+
+**Responsabilidades:**
+- Cachear geometrías con diferentes niveles LOD
+- Reutilizar geometrías existentes en lugar de recrearlas
+- Disposar geometrías al limpiar cache
+- Proporcionar estadísticas del cache
+
+### PerformanceManager (`performance-manager.js`)
+Gestor de métricas de rendimiento.
+
+**Responsabilidades:**
+- Medir FPS en tiempo real
+- Contar draw calls aproximado
+- Notificar métricas a suscriptores
+- Proporcionar métricas para debugging y optimización
+
 ## Uso
 
 ```javascript
 import { ViewportManager } from './viewport-manager.js';
 import { StyleManager } from './style-manager.js';
 import { EntityManager } from './entity-manager.js';
+import { GeometryCache } from './geometry-cache.js';
+import { LODManager } from '../renderers/optimizations/lod-manager.js';
 
 // ViewportManager
 const viewportManager = new ViewportManager(dimension, maxCells);
@@ -58,6 +80,21 @@ const estilo = styleManager.getStyle('madera');
 // EntityManager
 const entityManager = new EntityManager(rendererRegistry);
 const renderer = entityManager.selectRenderer(particle, tipoEstilos);
+
+// GeometryCache
+const lodManager = new LODManager(geometryRegistry);
+const geometryCache = new GeometryCache(geometryRegistry, lodManager);
+const geometry = geometryCache.getGeometry('sphere', { radius: 1.0, segments: 16 }, 'medium', cellSize);
+
+// PerformanceManager
+const performanceManager = new PerformanceManager();
+performanceManager.subscribe((metrics) => {
+    console.log(`FPS: ${metrics.fps}, Draw Calls: ${metrics.drawCalls}`);
+});
+performanceManager.startProfiling();
+// En cada frame:
+performanceManager.measureFPS();
+performanceManager.countDrawCalls(instancedMeshes);
 ```
 
 ## Referencias

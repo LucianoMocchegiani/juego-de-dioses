@@ -30,6 +30,13 @@ Gestión de cámara PerspectiveCamera.
 - Crear y configurar cámara
 - Actualizar aspect ratio en resize
 - Posicionar y orientar cámara
+- Exponer frustum para frustum culling
+- Tracking de movimiento de cámara
+
+**Métodos principales:**
+- `getFrustum()`: Obtener frustum de la cámara para frustum culling
+- `hasCameraMoved(lastMatrix)`: Verificar si la cámara se movió
+- `getMatrixWorldInverse()`: Obtener matriz world inverse actual
 
 ### Controls (`controls.js`)
 Wrapper para OrbitControls.

@@ -3,6 +3,11 @@
  */
 import * as THREE from 'three';
 import { BaseRenderer } from './base-renderer.js';
+import { FrustumCache } from '../utils/culling.js';
+import { sortParticlesByDepth } from '../utils/sorting.js';
+import { LODManager } from './optimizations/lod-manager.js';
+import { ParticleLimiter } from './optimizations/particle-limiter.js';
+import { GeometryCache } from '../managers/geometry-cache.js';
 
 /**
  * @typedef {import('../types.js').Particle} Particle
@@ -17,18 +22,55 @@ export class ParticleRenderer extends BaseRenderer {
     constructor(geometryRegistry) {
         super(geometryRegistry);
         this.geometryCache = new Map();
+        this.frustumCache = new FrustumCache();
+        this.lodManager = new LODManager(geometryRegistry);
+        this.particleLimiter = new ParticleLimiter(150000); // Límite máximo de partículas
+        this.geometryCacheLOD = new GeometryCache(geometryRegistry, this.lodManager);
+        this.materialPool = new Map(); // Pool de materiales para reutilización
+        this.enableFrustumCulling = true; // Configurable
+        this.enableLOD = true; // Configurable
+        this.enableParticleLimiting = true; // Configurable
     }
     
     /**
-     * Crear clave única para geometría+material
+     * Crear clave única para geometría+material+LOD
      * @param {string} geometryType - Tipo de geometría
      * @param {Object} geometryParams - Parámetros de geometría (serializados)
      * @param {ParticleStyle} estilo - Estilo de la partícula
+     * @param {string} [lodLevel] - Nivel LOD (opcional)
      * @returns {string} - Clave única
      */
-    getGeometryKey(geometryType, geometryParams, estilo) {
+    getGeometryKey(geometryType, geometryParams, estilo, lodLevel = 'high') {
         const paramsStr = JSON.stringify(geometryParams || {});
-        return `${geometryType}_${paramsStr}_${estilo.metalness}_${estilo.roughness}_${estilo.opacity || 1.0}`;
+        return `${geometryType}_${lodLevel}_${paramsStr}_${estilo.metalness}_${estilo.roughness}_${estilo.opacity || 1.0}`;
+    }
+    
+    /**
+     * Obtener clave única para material
+     * @param {ParticleStyle} estilo - Estilo de la partícula
+     * @returns {string} - Clave única
+     */
+    getMaterialKey(estilo) {
+        const opacity = estilo.opacity !== undefined ? estilo.opacity : 1.0;
+        return `${estilo.color}_${estilo.metalness}_${estilo.roughness}_${opacity}_${estilo.isError || false}`;
+    }
+    
+    /**
+     * Obtener o crear material desde pool
+     * @param {ParticleStyle} estilo - Estilo de la partícula
+     * @returns {THREE.MeshStandardMaterial}
+     */
+    getMaterial(estilo) {
+        const key = this.getMaterialKey(estilo);
+        
+        if (this.materialPool.has(key)) {
+            return this.materialPool.get(key);
+        }
+        
+        // Crear nuevo material
+        const material = this.createMaterial(estilo);
+        this.materialPool.set(key, material);
+        return material;
     }
     
     /**
@@ -68,16 +110,58 @@ export class ParticleRenderer extends BaseRenderer {
      * @param {Map<string, Object>} agrupacionesGeometria - Map de geometrías por agrupación (opcional)
      * @param {number} cellSize - Tamaño de celda en metros
      * @param {THREE.Scene} scene - Escena Three.js
+     * @param {THREE.Camera} [camera] - Cámara Three.js (opcional, para frustum culling)
      * @returns {Map<string, THREE.InstancedMesh>} - Map de instanced meshes creados
      */
-    renderParticles(particles, tiposEstilos, agrupacionesGeometria, cellSize, scene) {
-        // Ordenar partículas por profundidad (celda_z) de mayor a menor
+    renderParticles(particles, tiposEstilos, agrupacionesGeometria, cellSize, scene, camera = null) {
+        // 1. Aplicar frustum culling si está habilitado y se proporciona cámara
+        let particlesToRender = particles;
+        if (this.enableFrustumCulling && camera) {
+            particlesToRender = this.frustumCache.getVisible(
+                particles,
+                camera,
+                cellSize
+            );
+            
+            // Log para debugging (remover en producción o hacer configurable)
+            if (particles.length !== particlesToRender.length) {
+                const reduction = ((1 - particlesToRender.length / particles.length) * 100).toFixed(1);
+                console.log(`Frustum culling: ${particles.length} -> ${particlesToRender.length} partículas (reducción: ${reduction}%)`);
+            }
+        }
+        
+        // 2. Aplicar LOD si está habilitado y se proporciona cámara
+        if (this.enableLOD && camera) {
+            const cameraPosition = camera.position;
+            particlesToRender = this.lodManager.applyLOD(
+                particlesToRender,
+                cameraPosition,
+                cellSize
+            );
+        }
+        
+        // 2.5. Aplicar limitación agresiva de partículas si está habilitado y se proporciona cámara
+        if (this.enableParticleLimiting && camera) {
+            const cameraPosition = camera.position;
+            const beforeLimit = particlesToRender.length;
+            particlesToRender = this.particleLimiter.limitParticles(
+                particlesToRender,
+                cameraPosition,
+                cellSize
+            );
+            
+            // Log para debugging
+            if (beforeLimit !== particlesToRender.length) {
+                const reduction = ((1 - particlesToRender.length / beforeLimit) * 100).toFixed(1);
+                console.log(`Particle limiting: ${beforeLimit} -> ${particlesToRender.length} partículas (reducción: ${reduction}%)`);
+            }
+        }
+        
+        // 3. Ordenar partículas por profundidad (celda_z) de mayor a menor
         // Esto asegura que las partículas más profundas se rendericen primero
         // y las más superficiales se rendericen encima
-        const sortedParticles = [...particles].sort((a, b) => {
-            // Ordenar por celda_z descendente (mayor z primero = más profundo primero)
-            return b.celda_z - a.celda_z;
-        });
+        // OPTIMIZACIÓN: Usar función de ordenamiento optimizada (una sola vez)
+        const sortedParticles = sortParticlesByDepth(particlesToRender);
         
         // Agrupar partículas por geometría+material para instanced rendering
         const particlesByGeometry = new Map();
@@ -85,9 +169,6 @@ export class ParticleRenderer extends BaseRenderer {
         sortedParticles.forEach((particle) => {
             const tipoEstilos = tiposEstilos.get(particle.tipo);
             const agrupacionGeom = agrupacionesGeometria?.get(particle.agrupacion_id);
-            
-            // Obtener geometría según prioridad
-            const geometry = this.getGeometry(particle, tipoEstilos, agrupacionGeom, cellSize);
             
             // Obtener estilo
             const estilo = this.getStyle(particle, tipoEstilos);
@@ -116,8 +197,19 @@ export class ParticleRenderer extends BaseRenderer {
                 geometryParams = tipoEstilos.visual.geometria.parametros || {};
             }
             
-            // Crear clave única para geometría+material
-            const geometryKey = this.getGeometryKey(geometryType, geometryParams, estilo);
+            // Obtener nivel LOD de la partícula (si fue aplicado)
+            const lodLevel = particle._lodLevel || 'high';
+            
+            // Obtener geometría con LOD desde cache
+            const geometry = this.geometryCacheLOD.getGeometry(
+                geometryType,
+                geometryParams,
+                lodLevel,
+                cellSize
+            );
+            
+            // Crear clave única para geometría+material+LOD
+            const geometryKey = this.getGeometryKey(geometryType, geometryParams, estilo, lodLevel);
             
             if (!particlesByGeometry.has(geometryKey)) {
                 particlesByGeometry.set(geometryKey, {
@@ -130,10 +222,8 @@ export class ParticleRenderer extends BaseRenderer {
             particlesByGeometry.get(geometryKey).particles.push(particle);
         });
         
-        // Ordenar partículas dentro de cada grupo por profundidad
-        particlesByGeometry.forEach((group) => {
-            group.particles.sort((a, b) => b.celda_z - a.celda_z);
-        });
+        // OPTIMIZACIÓN: No ordenar dentro de cada grupo - ya están ordenadas desde sortedParticles
+        // Las partículas se agregaron en orden, así que cada grupo ya está ordenado
         
         // Separar grupos opacos de transparentes
         const opaqueGroups = [];
@@ -162,7 +252,8 @@ export class ParticleRenderer extends BaseRenderer {
         transparentGroups.sort((a, b) => b.avgDepth - a.avgDepth);
         
         // Crear instanced meshes para cada grupo
-        const MAX_INSTANCES_PER_MESH = 50000; // Reducido de 100k para mejor rendimiento
+        // OPTIMIZACIÓN: Aumentado a 100k para reducir draw calls (probar si es seguro)
+        const MAX_INSTANCES_PER_MESH = 100000;
         const instancedMeshes = new Map();
         
         // Renderizar primero grupos opacos, luego transparentes
@@ -171,8 +262,8 @@ export class ParticleRenderer extends BaseRenderer {
         groupsToRender.forEach(({ group, geometryKey }) => {
             const count = group.particles.length;
             
-            // Crear material
-            const material = this.createMaterial(group.estilo);
+            // OPTIMIZACIÓN: Obtener material desde pool (reutilizar materiales)
+            const material = this.getMaterial(group.estilo);
             
             // Dividir en múltiples instanced meshes si es necesario
             const numMeshes = Math.ceil(count / MAX_INSTANCES_PER_MESH);
@@ -190,11 +281,9 @@ export class ParticleRenderer extends BaseRenderer {
                 );
                 
                 // Configurar posiciones de instancias
-                // Ordenar partículas del chunk por celda_z para mejor orden de renderizado
-                const sortedChunk = [...particlesChunk].sort((a, b) => b.celda_z - a.celda_z);
-                
+                // OPTIMIZACIÓN: No ordenar chunk - partículas ya están ordenadas desde sortedParticles
                 const matrix = new THREE.Matrix4();
-                sortedChunk.forEach((particle, index) => {
+                particlesChunk.forEach((particle, index) => {
                     const x = particle.celda_x * cellSize + cellSize / 2;
                     const y = particle.celda_z * cellSize + cellSize / 2;
                     const z = particle.celda_y * cellSize + cellSize / 2;
@@ -212,7 +301,7 @@ export class ParticleRenderer extends BaseRenderer {
             }
         });
         
-        console.log(`Renderizadas ${particles.length} partículas en ${particlesByGeometry.size} grupos instanciados`);
+        console.log(`Renderizadas ${particlesToRender.length} partículas (de ${particles.length} totales) en ${particlesByGeometry.size} grupos instanciados`);
         return instancedMeshes;
     }
     
@@ -255,9 +344,21 @@ export class ParticleRenderer extends BaseRenderer {
         instancedMeshes.forEach(mesh => {
             scene.remove(mesh);
             mesh.geometry.dispose();
-            mesh.material.dispose();
+            // NO disposar material - se reutiliza desde pool
+            // mesh.material.dispose();
         });
         instancedMeshes.clear();
+    }
+    
+    /**
+     * Limpiar pool de materiales
+     * Llamar cuando se limpia completamente la escena
+     */
+    clearMaterialPool() {
+        this.materialPool.forEach(material => {
+            material.dispose();
+        });
+        this.materialPool.clear();
     }
 }
 

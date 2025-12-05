@@ -11,6 +11,9 @@ renderers/
 ├── tree-renderer.js          # Renderizador especializado para árboles (futuro)
 ├── geometries/               # Registry de geometrías
 │   └── registry.js          # Registry de geometrías (box, sphere, cylinder, etc.)
+├── optimizations/            # Optimizaciones de renderizado
+│   ├── lod-manager.js       # Gestión de Level of Detail
+│   └── __init__.js          # Exportaciones del módulo
 └── registry.js              # Registry de renderizadores
 ```
 
@@ -32,6 +35,16 @@ Renderizador genérico de partículas con soporte de formas geométricas.
 - Agrupar partículas por geometría+material para optimización
 - Cachear geometrías para mejor performance
 - Aplicar formas geométricas desde BD
+- Aplicar frustum culling para optimizar rendimiento (filtra partículas fuera del campo de visión)
+
+**Optimizaciones:**
+- **Frustum Culling**: Filtra partículas fuera del frustum de la cámara antes de renderizar
+- **Cache de Frustum**: Cachea resultados cuando la cámara no se mueve
+- **Level of Detail (LOD)**: Reduce detalle de partículas lejanas según distancia a la cámara
+- **Cache de Geometrías LOD**: Cachea geometrías con diferentes niveles LOD para reutilización
+- **Material Pooling**: Reutiliza materiales en lugar de crearlos cada vez
+- **Instancias Optimizadas**: Hasta 100k instancias por mesh para reducir draw calls
+- Configurable mediante `enableFrustumCulling` y `enableLOD` (default: `true` ambos)
 
 ### GeometryRegistry (`geometries/registry.js`)
 Registry de geometrías que mapea tipos abstractos a implementaciones Three.js.
@@ -54,6 +67,14 @@ Registry de renderizadores para selección dinámica.
 **Responsabilidades:**
 - Registrar renderizadores por tipo de entidad
 - Seleccionar renderizador apropiado según partícula/entidad
+
+### Optimizaciones (`optimizations/`)
+Módulo de optimizaciones de renderizado.
+
+**Componentes:**
+- `LODManager`: Gestión de Level of Detail para reducir detalle de partículas lejanas
+
+**Ver:** `optimizations/README.md` para más detalles
 
 ## Conceptos Importantes
 
@@ -89,14 +110,22 @@ tiposEstilos.set('madera', { color_hex: '#8B4513', material: { metalness: 0.1, r
 
 const agrupacionesGeometria = new Map(); // Map<string, GeometriaAgrupacion> (opcional)
 
-// Renderizar partículas
+// Renderizar partículas (con cámara para frustum culling y LOD)
 const instancedMeshes = renderer.renderParticles(
     particles,              // Array de partículas
     tiposEstilos,          // Map de estilos por tipo
     agrupacionesGeometria, // Map de geometrías por agrupación (opcional)
     cellSize,              // Tamaño de celda en metros
-    scene                  // Escena Three.js
+    scene,                 // Escena Three.js
+    camera                 // Cámara Three.js (opcional, para frustum culling y LOD)
 );
+
+// Configurar optimizaciones
+renderer.enableFrustumCulling = true; // Habilitar/deshabilitar frustum culling
+renderer.enableLOD = true; // Habilitar/deshabilitar LOD
+
+// Configurar umbrales LOD
+renderer.lodManager.setDistanceThresholds(15, 40, 120); // high, medium, low (metros)
 
 // Limpiar cuando sea necesario
 renderer.clearParticles(instancedMeshes, scene);

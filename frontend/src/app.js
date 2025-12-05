@@ -7,6 +7,7 @@ import { selectors } from './state/selectors.js';
 import { ViewportManager } from './managers/viewport-manager.js';
 import { StyleManager } from './managers/style-manager.js';
 import { EntityManager } from './managers/entity-manager.js';
+import { PerformanceManager } from './managers/performance-manager.js';
 import { ApiClient } from './api/client.js';
 import { DimensionsApi, ParticlesApi } from './api/endpoints/__init__.js';
 import { Scene3D } from './core/scene.js';
@@ -31,6 +32,14 @@ export class App {
         // Inicializar Managers
         this.viewportManager = new ViewportManager();
         this.styleManager = new StyleManager();
+        this.performanceManager = new PerformanceManager();
+        
+        // Suscribirse a métricas de performance
+        this.performanceManager.subscribe((metrics) => {
+            // Log en consola (opcional: mostrar en UI)
+            // El notify ya verifica isProfiling, así que siempre loguear aquí
+            console.log(`Performance: FPS: ${metrics.fps}, Draw Calls: ${metrics.drawCalls || 0}`);
+        });
         
         // Inicializar Registry de Geometrías
         this.geometryRegistry = new GeometryRegistry();
@@ -119,29 +128,47 @@ export class App {
                 this.entityManager.clearParticles(this.currentInstancedMeshes, this.scene.scene);
             }
             
-            // 10. Renderizar partículas
-            this.currentInstancedMeshes = this.entityManager.renderParticles(
-                particlesData.particles,
-                tiposEstilos,
-                null, // agrupacionesGeometria (opcional, por ahora null)
-                demoDimension.tamano_celda,
-                this.scene.scene
-            );
-            
-            // 11. Ajustar grilla y ejes al tamaño del terreno
+            // 10. Ajustar grilla y ejes al tamaño del terreno
             this.scene.updateHelpers(demoDimension.ancho_metros, demoDimension.alto_metros);
             
-            // 12. Centrar cámara
+            // 11. Centrar cámara PRIMERO (antes de renderizar para que frustum culling funcione correctamente)
             const centerX = (viewport.x_max + viewport.x_min) / 2 * demoDimension.tamano_celda;
             const centerY = (viewport.y_max + viewport.y_min) / 2 * demoDimension.tamano_celda;
             const centerZ = (viewport.z_max + viewport.z_min) / 2 * demoDimension.tamano_celda;
             this.scene.centerCamera(centerX, centerY, centerZ);
             
+            // 12. Actualizar matrices de la cámara para que frustum culling funcione correctamente
+            this.scene.camera.camera.updateMatrixWorld();
+            
+            // 13. Renderizar partículas (con cámara ya centrada para frustum culling correcto)
+            // Deshabilitar frustum culling en renderizado inicial para ver todo el terreno
+            const originalFrustumCulling = this.entityManager.particleRenderer.enableFrustumCulling;
+            this.entityManager.particleRenderer.enableFrustumCulling = false;
+            
+            this.currentInstancedMeshes = this.entityManager.renderParticles(
+                particlesData.particles,
+                tiposEstilos,
+                null, // agrupacionesGeometria (opcional, por ahora null)
+                demoDimension.tamano_celda,
+                this.scene.scene,
+                this.scene.camera.camera // Pasar cámara (aunque frustum culling está deshabilitado inicialmente)
+            );
+            
+            // Restaurar frustum culling para animación
+            this.entityManager.particleRenderer.enableFrustumCulling = originalFrustumCulling;
+            
+            // Contar draw calls después de renderizar
+            this.performanceManager.countDrawCalls(this.currentInstancedMeshes);
+            
             // 13. Finalizar carga
             actions.setLoading(this.store, false);
             
-            // 14. Iniciar animación
-            this.scene.animate();
+            // 14. Iniciar profiling de performance
+            this.performanceManager.startProfiling();
+            console.log('Performance profiling iniciado. Las métricas aparecerán cada segundo en consola.');
+            
+            // 15. Iniciar animación (con medición de FPS)
+            this.scene.animate(this.performanceManager);
             
             // Retornar datos para actualizar UI externa
             return {

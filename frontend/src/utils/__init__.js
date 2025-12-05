@@ -43,3 +43,15 @@ export {
     defaultValue
 } from './helpers.js';
 
+// Culling
+export {
+    frustumCull,
+    FrustumCache
+} from './culling.js';
+
+// Sorting
+export {
+    sortParticlesByDepth,
+    SortingCache
+} from './sorting.js';
+
