@@ -43,9 +43,10 @@ export class EntityManager {
      * @param {Map<string, Object>} agrupacionesGeometria - Map de geometrías por agrupación (opcional)
      * @param {number} cellSize - Tamaño de celda en metros
      * @param {THREE.Scene} scene - Escena Three.js
+     * @param {THREE.Camera} [camera] - Cámara Three.js (opcional, para frustum culling)
      * @returns {Map<string, THREE.InstancedMesh>} - Map de instanced meshes creados
      */
-    renderParticles(particles, tiposEstilos, agrupacionesGeometria, cellSize, scene) {
+    renderParticles(particles, tiposEstilos, agrupacionesGeometria, cellSize, scene, camera = null) {
         // Por ahora, usar ParticleRenderer para todo
         // Futuro: agrupar por tipo de entidad y usar renderizadores especializados
         return this.particleRenderer.renderParticles(
@@ -53,7 +54,8 @@ export class EntityManager {
             tiposEstilos,
             agrupacionesGeometria,
             cellSize,
-            scene
+            scene,
+            camera
         );
     }
     

@@ -69,11 +69,17 @@ export class Scene3D {
     
     /**
      * Animar escena
+     * @param {PerformanceManager} [performanceManager] - Performance Manager opcional para medir FPS
      */
-    animate() {
-        requestAnimationFrame(() => this.animate());
+    animate(performanceManager = null) {
+        requestAnimationFrame(() => this.animate(performanceManager));
         this.controls.update();
         this.renderer.render(this.scene, this.camera.camera);
+        
+        // Medir FPS si se proporciona Performance Manager
+        if (performanceManager) {
+            performanceManager.measureFPS();
+        }
     }
 }
 
