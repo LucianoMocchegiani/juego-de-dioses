@@ -58,5 +58,44 @@ export class Camera {
         );
         this.camera.lookAt(centerX, centerZ, centerY);
     }
+    
+    /**
+     * Obtener frustum de la cámara
+     * Útil para frustum culling de partículas
+     * @returns {THREE.Frustum} - Frustum de la cámara
+     */
+    getFrustum() {
+        const frustum = new THREE.Frustum();
+        const matrix = new THREE.Matrix4().multiplyMatrices(
+            this.camera.projectionMatrix,
+            this.camera.matrixWorldInverse
+        );
+        frustum.setFromProjectionMatrix(matrix);
+        return frustum;
+    }
+    
+    /**
+     * Verificar si la cámara se movió comparando la matriz actual con la última conocida
+     * Útil para invalidar caches de frustum culling
+     * @param {THREE.Matrix4} lastMatrix - Última matriz conocida (opcional)
+     * @returns {boolean} - True si la cámara se movió, False si no cambió
+     */
+    hasCameraMoved(lastMatrix = null) {
+        if (!lastMatrix) {
+            return true; // Si no hay matriz previa, asumir que se movió
+        }
+        
+        const currentMatrix = this.camera.matrixWorldInverse.clone();
+        return !currentMatrix.equals(lastMatrix);
+    }
+    
+    /**
+     * Obtener la matriz world inverse actual de la cámara
+     * Útil para tracking de movimiento de cámara
+     * @returns {THREE.Matrix4} - Matriz world inverse actual
+     */
+    getMatrixWorldInverse() {
+        return this.camera.matrixWorldInverse.clone();
+    }
 }
 
