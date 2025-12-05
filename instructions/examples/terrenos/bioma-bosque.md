@@ -57,7 +57,12 @@ Un bioma bosque es un ecosistema terrestre caracterizado por una alta densidad d
   - Temperatura: 20°C
   - Energía: 0.0
   - Estado de materia: `solido`
-- **Notas**: Los troncos se extienden desde z=0 (base) hasta z=2 o z=3 (altura del árbol). Cada árbol ocupa 1 celda en x,y.
+- **Notas**: 
+  - Los troncos se extienden desde z=0 (base) hasta z=2 o z=3 (altura del árbol)
+  - **IMPORTANTE**: Los árboles NO pueden ser del grosor de una sola partícula
+  - **Mínimo**: 4 partículas (2×2) = 0.5m × 0.5m para árboles pequeños
+  - **Grandes**: 9-16 partículas (3×3 o 4×4) = 0.75m-1m para árboles grandes
+  - Ver `instructions/RELACION-PARTICULAS-METROS.md` para más detalles
 
 ### Nivel Z = 2 a Z = 4 (Árboles - Hojas)
 - **Tipo de partícula**: `hojas`
