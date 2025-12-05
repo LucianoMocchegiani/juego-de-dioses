@@ -10,7 +10,8 @@ import json
 from dotenv import load_dotenv
 from uuid import UUID
 from src.database.terrain_builder import create_boundary_layer
-from src.database.tree_templates import get_random_tree_template, TreeTemplate
+from src.database.templates.trees.registry import get_random_tree_template
+from src.database.creators.entity_creator import EntityCreator
 
 load_dotenv()
 
@@ -75,12 +76,6 @@ async def seed_demo():
         agua_id = await conn.fetchval(
             "SELECT id FROM juego_dioses.tipos_particulas WHERE nombre = 'agua'"
         )
-        madera_id = await conn.fetchval(
-            "SELECT id FROM juego_dioses.tipos_particulas WHERE nombre = 'madera'"
-        )
-        hojas_id = await conn.fetchval(
-            "SELECT id FROM juego_dioses.tipos_particulas WHERE nombre = 'hojas'"
-        )
         solido_id = await conn.fetchval(
             "SELECT id FROM juego_dioses.estados_materia WHERE nombre = 'solido'"
         )
@@ -88,7 +83,8 @@ async def seed_demo():
             "SELECT id FROM juego_dioses.estados_materia WHERE nombre = 'liquido'"
         )
         
-        if not all([hierba_id, tierra_id, piedra_id, agua_id, madera_id, hojas_id, solido_id, liquido_id]):
+        # Nota: madera_id y hojas_id ahora se obtienen automáticamente por EntityCreator
+        if not all([hierba_id, tierra_id, piedra_id, agua_id, solido_id, liquido_id]):
             print("Error: Faltan tipos de partículas o estados de materia en la BD")
             print("Ejecuta primero los scripts de inicialización de la BD")
             return
@@ -368,11 +364,13 @@ async def seed_demo():
         
         print(f"Posiciones de árboles generadas: {len(posiciones_arboles)} árboles")
         
-        # Paso 3: Crear árboles usando plantillas (con inserción en batches)
-        print("Creando árboles con troncos de grosor variable y raíces...")
-        particulas_arboles = []
+        # Paso 3: Crear árboles usando nuevo sistema (EntityCreator + TreeBuilder)
+        print("Creando árboles con nuevo sistema (templates + builders)...")
+        
+        # Crear EntityCreator para simplificar la creación
+        creator = EntityCreator(conn, dimension_id)
+        
         stats_templates = {}  # Estadísticas por tipo de árbol
-        batch_size = 10000  # Insertar en batches de 10k
         total_particulas_arboles = 0
         
         for idx, ((arbol_x, arbol_y), template) in enumerate(zip(posiciones_arboles, templates_arboles), 1):
@@ -381,74 +379,19 @@ async def seed_demo():
                 stats_templates[template.nombre] = 0
             stats_templates[template.nombre] += 1
             
-            # Altura del tronco según plantilla
-            altura_tronco = template.get_altura_aleatoria()
-            
-            # 1. Crear raíces (bajo tierra)
-            posiciones_raices = template.get_posiciones_raices(arbol_x, arbol_y, 0)
-            for rx, ry, rz in posiciones_raices:
-                if 0 <= rx < max_x and 0 <= ry < max_y:
-                    particulas_arboles.append((
-                        dimension_id, rx, ry, rz,
-                        madera_id, solido_id, 1.0, 18.0, 0.0, False,
-                        None, False, json.dumps({"parte": "raiz", "tipo": template.nombre})
-                    ))
-            
-            # 2. Crear tronco (con grosor variable)
-            posiciones_tronco = template.get_posiciones_tronco(arbol_x, arbol_y)
             # Debug: verificar que se generen las posiciones correctas
             if idx <= 3:  # Solo para los primeros 3 árboles
+                altura_tronco = template.get_altura_aleatoria()
+                posiciones_tronco = template.get_posiciones_tronco(arbol_x, arbol_y)
                 print(f"  Árbol {idx} ({template.nombre}) en ({arbol_x}, {arbol_y}): grosor={template.grosor_tronco}, altura={altura_tronco}, posiciones={len(posiciones_tronco)}")
-            for z in range(0, altura_tronco):
-                for tx, ty in posiciones_tronco:
-                    if 0 <= tx < max_x and 0 <= ty < max_y:
-                        particulas_arboles.append((
-                            dimension_id, tx, ty, z,
-                            madera_id, solido_id, 1.0, 20.0, 0.0, False,
-                            None, False, json.dumps({"parte": "tronco", "altura": z, "tipo": template.nombre})
-                        ))
             
-            # 3. Crear copa de hojas
-            # Las hojas empiezan justo donde termina el tronco (sin gap)
-            z_copa_base = altura_tronco
-            posiciones_copa = template.get_posiciones_copa(arbol_x, arbol_y, z_copa_base)
-            for cx, cy, cz in posiciones_copa:
-                if 0 <= cx < max_x and 0 <= cy < max_y:
-                    particulas_arboles.append((
-                        dimension_id, cx, cy, cz,
-                        hojas_id, solido_id, 1.0, 22.0, 0.0, False,
-                        None, False, json.dumps({"parte": "hojas", "tipo": template.nombre})
-                    ))
+            # Crear árbol usando EntityCreator (simplifica todo el proceso)
+            particulas_creadas = await creator.create_entity(template, arbol_x, arbol_y, 0)
+            total_particulas_arboles += particulas_creadas
             
-            # Insertar en batches para no llenar memoria
-            if len(particulas_arboles) >= batch_size:
-                await conn.executemany("""
-                    INSERT INTO juego_dioses.particulas 
-                    (dimension_id, celda_x, celda_y, celda_z, tipo_particula_id, estado_materia_id,
-                     cantidad, temperatura, energia, extraida, agrupacion_id, es_nucleo, propiedades)
-                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb)
-                    ON CONFLICT (dimension_id, celda_x, celda_y, celda_z) DO UPDATE
-                    SET tipo_particula_id = EXCLUDED.tipo_particula_id,
-                        temperatura = EXCLUDED.temperatura,
-                        propiedades = EXCLUDED.propiedades
-                """, particulas_arboles)
-                total_particulas_arboles += len(particulas_arboles)
-                print(f"  Insertadas {len(particulas_arboles)} partículas de árboles... (Total: {total_particulas_arboles}, Árboles procesados: {idx}/{len(posiciones_arboles)})")
-                particulas_arboles = []
-        
-        # Insertar resto
-        if particulas_arboles:
-            await conn.executemany("""
-                INSERT INTO juego_dioses.particulas 
-                (dimension_id, celda_x, celda_y, celda_z, tipo_particula_id, estado_materia_id,
-                 cantidad, temperatura, energia, extraida, agrupacion_id, es_nucleo, propiedades)
-                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb)
-                ON CONFLICT (dimension_id, celda_x, celda_y, celda_z) DO UPDATE
-                SET tipo_particula_id = EXCLUDED.tipo_particula_id,
-                    temperatura = EXCLUDED.temperatura,
-                    propiedades = EXCLUDED.propiedades
-            """, particulas_arboles)
-            total_particulas_arboles += len(particulas_arboles)
+            # Mostrar progreso cada 10 árboles
+            if idx % 10 == 0:
+                print(f"  Procesados {idx}/{len(posiciones_arboles)} árboles... (Total partículas: {total_particulas_arboles})")
         
         print(f"Árboles creados: {len(posiciones_arboles)} árboles, {total_particulas_arboles} partículas")
         print("\nDistribución por tipo de árbol:")

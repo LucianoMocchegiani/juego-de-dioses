@@ -1,0 +1,191 @@
+---
+description: Regla para mantener READMEs actualizados en cada carpeta/módulo del proyecto. Proporciona contexto sobre la práctica de documentación establecida.
+globs:
+alwaysApply: true
+---
+
+## Práctica de Documentación con READMEs
+
+### Regla Fundamental
+
+**Cada carpeta/módulo del proyecto debe tener su `README.md`** que explique qué contiene, cómo funciona y cómo usarlo.
+
+### Propósito
+
+Los READMEs proporcionan contexto esencial para:
+- Nuevos desarrolladores que se unen al proyecto
+- Nuevas sesiones de chat con IA (contexto automático)
+- Mantenimiento y evolución del código
+- Onboarding rápido de nuevas funcionalidades
+
+### Estructura de READMEs
+
+```
+proyecto/
+├── README.md                    # README principal del proyecto
+├── backend/
+│   ├── README.md                # Explica módulo backend
+│   └── src/
+│       ├── database/
+│       │   ├── README.md        # Explica módulo database
+│       │   ├── templates/
+│       │   │   ├── README.md    # Explica sistema de templates
+│       │   │   └── trees/
+│       │   │       └── README.md # (Opcional) Explica templates de árboles
+│       │   ├── builders/
+│       │   │   └── README.md    # Explica sistema de builders
+│       │   └── creators/
+│       │       └── README.md    # Explica sistema de creators
+│       └── api/
+│           └── README.md        # Explica módulo API
+└── frontend/
+    └── README.md                # Explica módulo frontend
+```
+
+### Contenido Mínimo de un README
+
+Cada `README.md` debe incluir:
+
+1. **Título y Descripción**
+   - Qué es el módulo/carpeta
+   - Propósito principal
+
+2. **Estructura**
+   - Lista de archivos/carpetas principales
+   - Organización del código
+
+3. **Componentes Principales**
+   - Qué hace cada componente
+   - Responsabilidades de cada parte
+
+4. **Cómo Usar**
+   - Ejemplos de código prácticos
+   - Flujo de ejecución si aplica
+
+5. **Referencias**
+   - Links a READMEs hijos (subcarpetas)
+   - Links a READMEs relacionados
+   - Links a documentación externa si aplica
+
+6. **Mantenimiento** (Opcional pero recomendado)
+   - Notas sobre cuándo actualizar este README
+   - Dependencias con otros módulos
+
+### Cuándo Actualizar READMEs
+
+**Actualizar el README cuando:**
+- Se crea una nueva carpeta/módulo
+- Se agregan nuevos archivos importantes
+- Se cambia la estructura del módulo
+- Se agregan nuevas funcionalidades
+- Se modifican responsabilidades de componentes
+- Se cambian APIs o interfaces públicas
+
+**Verificar READMEs padres cuando:**
+- Se actualiza un README hijo
+- Se agregan nuevas subcarpetas
+- Se cambia la estructura de subcarpetas
+
+### Flujo de Actualización
+
+```
+1. Modificar código del módulo
+   ↓
+2. Actualizar README del módulo modificado
+   ↓
+3. Verificar si README padre necesita actualización
+   ↓
+4. Actualizar README padre si es necesario
+   ↓
+5. Verificar referencias cruzadas
+```
+
+### Ejemplo de README
+
+```markdown
+# Módulo Database
+
+Este módulo contiene toda la lógica relacionada con la base de datos.
+
+## Estructura
+
+```
+database/
+├── connection.py        # Gestión de conexiones
+├── seed_demo.py         # Script de seed
+├── templates/           # Sistema de templates
+├── builders/            # Sistema de builders
+└── creators/            # Sistema de creators
+```
+
+## Componentes Principales
+
+### 1. Connection
+**Responsabilidad:** Gestión de conexiones a PostgreSQL
+
+### 2. Templates
+**Responsabilidad:** Definir estructura de entidades
+
+**Ver:** [templates/README.md](templates/README.md)
+
+## Cómo Usar
+
+```python
+from src.database.creators.entity_creator import EntityCreator
+from src.database.templates.trees.registry import get_tree_template
+
+template = get_tree_template('roble')
+creator = EntityCreator(conn, dimension_id)
+particulas = await creator.create_entity(template, x=10, y=20, z=0)
+```
+
+## Referencias
+
+- [Templates README](templates/README.md)
+- [Builders README](builders/README.md)
+- [Creators README](creators/README.md)
+```
+
+### En Planes de Acción
+
+**Cuando se crea o modifica un módulo/carpeta:**
+- Incluir paso para crear/actualizar `README.md`
+- Verificar si READMEs padres necesitan actualización
+- Mantener documentación sincronizada con código
+
+### En Análisis de Arquitectura
+
+**Mencionar:**
+- Práctica de READMEs en cada módulo
+- Mantenimiento de documentación
+- Ejemplos de cuándo actualizar
+
+### Beneficios
+
+1. **Contexto Automático**: La IA tiene información sobre cada módulo sin necesidad de explorar código
+2. **Onboarding Rápido**: Nuevos desarrolladores entienden la estructura rápidamente
+3. **Mantenibilidad**: Documentación siempre actualizada facilita mantenimiento
+4. **Trazabilidad**: Cambios en código se reflejan en documentación
+5. **Referencias Cruzadas**: Fácil navegación entre módulos relacionados
+
+### Verificación
+
+**Checklist para nuevos módulos:**
+- [ ] README.md creado en la carpeta del módulo
+- [ ] README explica qué es y qué contiene
+- [ ] README lista componentes principales
+- [ ] README incluye ejemplos de uso
+- [ ] README tiene referencias a READMEs hijos
+- [ ] README padre actualizado si aplica
+
+### Notas Importantes
+
+- **Los READMEs son código**: Deben mantenerse actualizados como el código
+- **No duplicar información**: Referenciar en lugar de copiar
+- **Ejemplos prácticos**: Incluir código de ejemplo siempre que sea posible
+- **Estructura clara**: Usar secciones bien definidas
+- **Referencias cruzadas**: Facilitar navegación entre módulos
+
+---
+
+**Esta práctica es obligatoria para todos los módulos del proyecto.**
