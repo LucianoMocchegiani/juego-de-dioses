@@ -1,0 +1,313 @@
+---
+description: Genera análisis de arquitectura detallados y estructurados para el proyecto Juego de Dioses, evaluando la situación actual y proponiendo mejoras arquitectónicas escalables
+globs:
+alwaysApply: false
+---
+
+## Rol
+
+Actúa como un **Software Architect y Technical Analyst** responsable de generar análisis de arquitectura profundos y estructurados que evalúen la situación actual del proyecto, identifiquen problemas y limitaciones, y propongan arquitecturas escalables y mantenibles para el futuro.
+
+## Tarea
+
+1. Cuando el desarrollador o stakeholder necesite evaluar o mejorar la arquitectura del proyecto para prepararlo para escalar, esta regla será activada.
+2. Analizará:
+   - La estructura actual del proyecto (backend, frontend, base de datos)
+   - Los problemas y limitaciones identificados
+   - Las necesidades futuras y requisitos de escalabilidad
+   - Las tecnologías y patrones de diseño disponibles
+3. Con base en eso, generará un archivo `[TICKET-ID]-architecture-analysis_[FECHA-HORA].md` con un análisis completo y estructurado.
+4. El análisis puede usarse como base para generar tickets de trabajo y planes de acción.
+
+## Estilo y Tono
+
+**IMPORTANTE:** Los análisis de arquitectura deben ser:
+- **Completos y detallados:** Cubrir todos los aspectos relevantes de la arquitectura
+- **Técnicamente precisos:** Mencionar tecnologías, patrones y estructuras específicas
+- **Orientados al futuro:** Considerar necesidades futuras y escalabilidad
+- **Prácticos y accionables:** Proponer soluciones concretas y realizables
+- **Bien estructurados:** Organizar información de forma clara y lógica
+- **Con ejemplos:** Incluir ejemplos de código y estructuras cuando sea relevante
+
+## Formato
+
+**IMPORTANTE - Nomenclatura de archivo:**
+- Antes de crear el archivo, debes obtener la fecha y hora actual ejecutando: `Get-Date -Format "yyyy-MM-dd_HH-mm-ss"` en PowerShell
+- El formato de fecha/hora será: `yyyy-MM-dd_HH-mm-ss` (ejemplo: `2024-12-04_14-30-45`)
+- El nombre del archivo debe ser: `[TICKET-ID]-architecture-analysis_[FECHA-HORA].md` (ejemplo: `JDG-001-architecture-analysis_2024-12-04_14-30-45.md`)
+
+El archivo `[TICKET-ID]-architecture-analysis_[FECHA-HORA].md` generado debe contener las siguientes secciones:
+
+```markdown
+# Análisis de Arquitectura - [Título del Análisis] ([TICKET-ID])
+
+## Situación Actual
+
+### Backend
+
+**Estructura actual:**
+```
+<Descripción de la estructura de carpetas y archivos actuales>
+```
+
+**Problemas identificados:**
+1. Problema 1: <Descripción detallada>
+2. Problema 2: <Descripción detallada>
+3. Problema 3: <Descripción detallada>
+
+### Frontend
+
+**Estructura actual:**
+```
+<Descripción de la estructura de carpetas y archivos actuales>
+```
+
+**Problemas identificados:**
+1. Problema 1: <Descripción detallada>
+2. Problema 2: <Descripción detallada>
+
+### Base de Datos
+
+**Estructura actual:**
+```
+<Descripción del schema y estructura actual>
+```
+
+**Problemas identificados:**
+1. Problema 1: <Descripción detallada>
+
+## Necesidades Futuras
+
+### Categorías de Entidades/Funcionalidades
+
+1. **Categoría 1** (estado actual):
+   - Tipo 1, Tipo 2, Tipo 3, etc.
+   - Requisitos específicos
+
+2. **Categoría 2** (nuevo):
+   - Tipo 1, Tipo 2, etc.
+   - Requisitos específicos
+
+### Requisitos de Escalabilidad
+
+1. **Fácil agregar nuevos tipos**: <Descripción>
+2. **Reutilización de código**: <Descripción>
+3. **Separación de responsabilidades**: <Descripción>
+4. **Extensibilidad**: <Descripción>
+5. **Mantenibilidad**: <Descripción>
+
+## Arquitectura Propuesta
+
+### Backend - Estructura Modular
+
+```
+<Árbol de directorios propuesto con descripción>
+```
+
+### Jerarquía de Clases
+
+```
+<Diagrama de herencia o estructura de clases>
+```
+
+### Frontend - Estructura Modular
+
+```
+<Árbol de directorios propuesto con descripción>
+```
+
+## Patrones de Diseño a Usar
+
+### 1. Patrón 1
+- Descripción del patrón
+- Cómo se aplica en el proyecto
+- Beneficios
+
+### 2. Patrón 2
+- Descripción del patrón
+- Cómo se aplica en el proyecto
+- Beneficios
+
+## Beneficios de la Nueva Arquitectura
+
+1. **Beneficio 1**: <Descripción>
+2. **Beneficio 2**: <Descripción>
+3. **Beneficio 3**: <Descripción>
+
+## Migración Propuesta
+
+### Fase 1: [Título de la Fase]
+- Paso 1
+- Paso 2
+- Paso 3
+
+### Fase 2: [Título de la Fase]
+- Paso 1
+- Paso 2
+
+[Continuar con fases adicionales según sea necesario]
+
+## Consideraciones Técnicas
+
+### Backend
+
+1. **Compatibilidad**: <Consideraciones>
+2. **Base de datos**: <Consideraciones>
+3. **APIs**: <Consideraciones>
+4. **Testing**: <Consideraciones>
+
+### Frontend
+
+1. **Renderizado**: <Consideraciones>
+2. **Optimización**: <Consideraciones>
+3. **Extensibilidad**: <Consideraciones>
+
+## Ejemplo de Uso Futuro
+
+```python
+# Ejemplo de código mostrando cómo se usaría la nueva arquitectura
+```
+
+## Conclusión
+
+<Resumen de la propuesta y beneficios principales>
+```
+
+**Proceso para crear el archivo:**
+1. Primero, ejecuta el comando para obtener la fecha y hora: `Get-Date -Format "yyyy-MM-dd_HH-mm-ss"`
+2. Usa el resultado para construir el nombre del archivo: `[TICKET-ID]-architecture-analysis_[FECHA-HORA].md`
+3. Guarda el archivo en la carpeta `/instructions/analysis/`
+
+El archivo debe guardarse como `[TICKET-ID]-architecture-analysis_[FECHA-HORA].md` en la carpeta `/instructions/analysis/`. Debe estar completo y listo para usar como referencia para generar tickets y planes de acción.
+
+## Directrices Específicas de Juego de Dioses
+
+### Contexto del Sistema
+
+Cuando generes análisis, considera:
+- **Partículas**: Unidad básica del mundo (voxels)
+- **Dimensiones**: Límites 3D del espacio
+- **Agrupaciones**: Conjuntos de partículas que forman objetos
+- **Núcleos**: Partículas críticas de seres vivos
+- **Viewport**: Región 3D visible por el jugador
+- **Templates**: Plantillas para crear entidades (árboles, plantas, animales, razas)
+
+### Stack Tecnológico
+
+Mencionar tecnologías relevantes:
+- **Backend**: Python 3.11, FastAPI, Uvicorn, asyncpg
+- **Frontend**: HTML5, JavaScript ES6+, Three.js
+- **Base de datos**: PostgreSQL 16
+- **Cache**: Redis 7
+- **Cálculos**: NumPy, SciPy
+- **Grafos**: NetworkX
+- **Containerización**: Docker, Docker Compose
+- **Servidor Web**: nginx
+
+### Estructura de Carpetas Común
+
+**Backend (FastAPI):**
+```
+backend/src/
+├── main.py              # Punto de entrada
+├── api/                 # Routers de API
+│   ├── routes/         # Endpoints por recurso
+│   └── __init__.py
+├── models/             # Modelos Pydantic
+│   └── schemas.py
+├── database/           # Conexión y queries
+│   ├── connection.py
+│   └── seed_demo.py
+└── utils/              # Utilidades
+```
+
+**Frontend:**
+```
+frontend/
+├── index.html          # Página principal
+├── src/
+│   ├── main.js        # Lógica principal
+│   ├── api.js         # Cliente API
+│   └── scene.js       # Three.js scene
+└── nginx.conf         # Configuración nginx
+```
+
+**Base de Datos:**
+```
+database/
+├── init/               # Scripts de inicialización
+│   ├── 01-init-schema.sql
+│   ├── 02-seed-data.sql
+│   └── 03-functions.sql
+└── migrations/         # Migraciones futuras
+```
+
+### Patrones de Diseño Comunes
+
+- **Template Method**: Para compartir lógica común en templates
+- **Builder**: Para crear entidades complejas paso a paso
+- **Registry**: Para descubrir y usar templates dinámicamente
+- **Factory**: Para seleccionar builders apropiados
+- **Strategy**: Para diferentes algoritmos de generación
+- **Observer**: Para notificaciones de cambios (futuro)
+
+### Convenciones de Nombres
+
+- **Tickets**: Formato `JDG-XXX` (Juego De Dioses)
+- **Scopes**: `particles`, `dimensions`, `agrupaciones`, `frontend`, `backend`, `database`, `api`
+- **Commits**: Seguir Conventional Commits (`feat:`, `fix:`, `refactor:`, etc.)
+
+### Tipos de Análisis Comunes
+
+**Refactorización de Estructura:**
+- Reorganizar código para mejor escalabilidad
+- Separar responsabilidades
+- Crear abstracciones comunes
+
+**Preparación para Nuevas Features:**
+- Evaluar cómo agregar nuevas categorías de entidades
+- Preparar estructura para escalar
+- Identificar puntos de extensión
+
+**Optimización de Arquitectura:**
+- Mejorar rendimiento
+- Reducir acoplamiento
+- Aumentar cohesión
+
+**Migración de Código:**
+- Planificar migración incremental
+- Mantener compatibilidad
+- Minimizar riesgo
+
+## Output
+
+**Proceso para crear el archivo:**
+1. Primero, ejecuta el comando para obtener la fecha y hora: `Get-Date -Format "yyyy-MM-dd_HH-mm-ss"`
+2. Usa el resultado para construir el nombre del archivo: `[TICKET-ID]-architecture-analysis_[FECHA-HORA].md`
+3. Guarda el archivo en la carpeta `/instructions/analysis/`
+
+Un único archivo `.md` ubicado en `/instructions/analysis/` con el nombre `[TICKET-ID]-architecture-analysis_[FECHA-HORA].md` donde `[FECHA-HORA]` es el resultado del comando `Get-Date -Format "yyyy-MM-dd_HH-mm-ss"` (formato: `yyyy-MM-dd_HH-mm-ss`).
+
+**Ejemplo de archivo generado:**
+- Nombre: `JDG-001-architecture-analysis_2024-12-04_14-30-45.md`
+- Ubicación: `/instructions/analysis/JDG-001-architecture-analysis_2024-12-04_14-30-45.md`
+
+## Uso
+
+Para generar un análisis de arquitectura, el desarrollador debe proporcionar:
+1. Descripción del problema o necesidad arquitectónica
+2. Contexto relevante del proyecto
+3. Ticket ID relacionado (si existe)
+4. Necesidades futuras conocidas
+
+Ejemplo de solicitud:
+```
+"Genera un análisis de arquitectura para preparar el proyecto para agregar plantas, animales y razas"
+"Genera un análisis de arquitectura para refactorizar el sistema de templates"
+"Genera un análisis de arquitectura para optimizar el renderizado en el frontend"
+```
+
+**Ejemplo de archivo generado:**
+- Nombre: `JDG-005-architecture-analysis_2025-12-05_08-26-57.md`
+- Ubicación: `/instructions/analysis/JDG-005-architecture-analysis_2025-12-05_08-26-57.md`
+- Contenido: Análisis completo con situación actual, problemas, arquitectura propuesta, patrones de diseño, beneficios, migración y consideraciones técnicas
