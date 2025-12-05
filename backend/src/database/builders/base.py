@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Tuple, Dict, Any
+from typing import List, Tuple, Dict, Any, Optional
 from uuid import UUID
 import asyncpg
 from src.database.templates.base import BaseTemplate
@@ -70,4 +70,43 @@ class BaseBuilder(ABC):
             True si la posición es válida, False en caso contrario
         """
         return 0 <= x < max_x and 0 <= y < max_y
+    
+    async def create_agrupacion(
+        self,
+        conn: asyncpg.Connection,
+        dimension_id: UUID,
+        x: int,
+        y: int,
+        z: int
+    ) -> Optional[UUID]:
+        """
+        Crear agrupación para esta entidad (opcional, puede retornar None si no se implementa)
+        
+        Args:
+            conn: Conexión a la base de datos
+            dimension_id: ID de la dimensión
+            x, y, z: Posición donde crear la entidad
+        
+        Returns:
+            UUID de la agrupación creada, o None si no se crea agrupación
+        """
+        # Por defecto, no crear agrupación (puede ser sobrescrito por builders específicos)
+        return None
+    
+    def get_agrupacion_metadata(self) -> Dict[str, Any]:
+        """
+        Obtener metadata para crear agrupación (nombre, tipo, especie, etc.)
+        
+        Returns:
+            Diccionario con metadata de la agrupación:
+            - nombre: Nombre de la agrupación
+            - tipo: Tipo de agrupación (ej: 'arbol', 'animal', 'construccion')
+            - especie: Especie de la entidad (opcional)
+        """
+        # Por defecto, retornar metadata básica (puede ser sobrescrito)
+        return {
+            'nombre': f"{self.template.nombre}",
+            'tipo': self.template.categoria,
+            'especie': self.template.nombre.lower()
+        }
 

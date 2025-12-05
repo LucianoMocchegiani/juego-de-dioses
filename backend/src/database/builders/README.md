@@ -24,9 +24,10 @@ Template → Builder → Lista de Tuplas → Base de Datos
 ### Responsabilidades
 
 1. **Validar el template**: Asegurar que el template es del tipo correcto
-2. **Generar partículas**: Convertir posiciones del template en tuplas para la BD
-3. **Asignar propiedades**: Asignar tipos de partículas, estados de materia, temperaturas, etc.
-4. **Retornar datos**: Retornar lista de tuplas listas para insertar
+2. **Crear agrupación** (opcional): Crear registro de agrupación en la BD para agrupar partículas
+3. **Generar partículas**: Convertir posiciones del template en tuplas para la BD
+4. **Asignar propiedades**: Asignar tipos de partículas, estados de materia, temperaturas, agrupacion_id, etc.
+5. **Retornar datos**: Retornar lista de tuplas listas para insertar
 
 ## Flujo de Ejecución
 
@@ -39,26 +40,34 @@ Template → Builder → Lista de Tuplas → Base de Datos
    ↓
 3. Se crea un TreeBuilder(template)
    ↓
-4. EntityCreator obtiene IDs necesarios (madera_id, hojas_id, solido_id)
+4. EntityCreator crea agrupación (opcional):
+   ├─ 4.1. Llama a builder.create_agrupacion(conn, dimension_id, x, y, z)
+   ├─ 4.2. TreeBuilder.create_agrupacion() ejecuta:
+   │   ├─ Obtiene metadata: builder.get_agrupacion_metadata()
+   │   │   └─ Retorna: {'nombre': 'Roble #1234', 'tipo': 'arbol', 'especie': 'roble'}
+   │   └─ Inserta en BD: INSERT INTO agrupaciones (...)
+   │       └─ Retorna: agrupacion_id (UUID)
    ↓
-5. EntityCreator llama a builder.create_at_position(..., madera_id, hojas_id, solido_id)
+5. EntityCreator obtiene IDs necesarios (madera_id, hojas_id, solido_id)
    ↓
-6. TreeBuilder.create_at_position() ejecuta:
-   ├─ 6.1. Valida que tiene todos los IDs necesarios
-   ├─ 6.2. Obtiene altura aleatoria del tronco: template.get_altura_aleatoria()
-   ├─ 6.3. Genera raíces: template.get_posiciones_raices(x, y, z)
+6. EntityCreator llama a builder.create_at_position(..., agrupacion_id, madera_id, hojas_id, solido_id)
+   ↓
+7. TreeBuilder.create_at_position() ejecuta:
+   ├─ 7.1. Valida que tiene todos los IDs necesarios
+   ├─ 7.2. Obtiene altura aleatoria del tronco: template.get_altura_aleatoria()
+   ├─ 7.3. Genera raíces: template.get_posiciones_raices(x, y, z)
    │   └─ Para cada posición de raíz:
-   │       └─ Crea tupla: (dimension_id, x, y, z, madera_id, solido_id, ...)
-   ├─ 6.4. Genera tronco: template.get_posiciones_tronco(x, y)
+   │       └─ Crea tupla: (..., agrupacion_id, ...)  # ← agrupacion_id asignado
+   ├─ 7.4. Genera tronco: template.get_posiciones_tronco(x, y)
    │   └─ Para cada nivel z y cada posición del tronco:
-   │       └─ Crea tupla: (dimension_id, x, y, z, madera_id, solido_id, ...)
-   └─ 6.5. Genera copa: template.get_posiciones_copa(x, y, z_copa_base)
+   │       └─ Crea tupla: (..., agrupacion_id, ...)  # ← agrupacion_id asignado
+   └─ 7.5. Genera copa: template.get_posiciones_copa(x, y, z_copa_base)
        └─ Para cada posición de hoja:
-           └─ Crea tupla: (dimension_id, x, y, z, hojas_id, solido_id, ...)
+           └─ Crea tupla: (..., agrupacion_id, ...)  # ← agrupacion_id asignado
    ↓
-7. TreeBuilder retorna lista de tuplas
+8. TreeBuilder retorna lista de tuplas (todas con agrupacion_id)
    ↓
-8. EntityCreator inserta todas las tuplas en batch en la BD
+9. EntityCreator inserta todas las tuplas en batch en la BD
 ```
 
 ### Flujo Detallado: TreeBuilder.create_at_position()
@@ -178,7 +187,7 @@ return particles
     temperatura,      # 18.0, 20.0, o 22.0
     energia,          # 0.0
     extraida,         # False
-    agrupacion_id,    # None
+    agrupacion_id,    # UUID de agrupación (o None si no se creó)
     es_nucleo,        # False
     propiedades       # JSON string con metadata
 )
@@ -220,6 +229,58 @@ def get_matter_state_name(self) -> str:
 2. Obtiene el nombre: `'solido'`
 3. Busca el ID en la BD: `SELECT id FROM estados_materia WHERE nombre = 'solido'`
 4. Pasa el ID al builder: `solido_id=uuid3`
+
+### `create_agrupacion(conn, dimension_id, x, y, z)`
+
+```python
+async def create_agrupacion(
+    self,
+    conn: asyncpg.Connection,
+    dimension_id: UUID,
+    x: int,
+    y: int,
+    z: int
+) -> Optional[UUID]:
+    metadata = self.get_agrupacion_metadata()
+    agrupacion_id = await conn.fetchval("""
+        INSERT INTO juego_dioses.agrupaciones
+        (dimension_id, nombre, tipo, especie, posicion_x, posicion_y, posicion_z)
+        VALUES ($1, $2, $3, $4, $5, $6, $7)
+        RETURNING id
+    """, dimension_id, metadata['nombre'], metadata['tipo'], 
+        metadata.get('especie'), x, y, z)
+    return agrupacion_id
+```
+
+**¿Qué hace?** Crea un registro de agrupación en la BD para agrupar todas las partículas de esta entidad.
+
+**Flujo:**
+1. `EntityCreator` llama a este método antes de crear partículas
+2. El builder obtiene metadata: `get_agrupacion_metadata()`
+3. Inserta registro en tabla `agrupaciones` con nombre, tipo, especie, posición
+4. Retorna el UUID de la agrupación creada
+5. Este UUID se pasa a `create_at_position()` para asignarlo a todas las partículas
+
+**Ejemplo para TreeBuilder:**
+- `nombre`: "Roble #5678" (nombre del template + número aleatorio)
+- `tipo`: "arbol"
+- `especie`: "roble" (nombre del template en minúsculas)
+- `posicion_x, posicion_y, posicion_z`: Posición base del árbol
+
+### `get_agrupacion_metadata()`
+
+```python
+def get_agrupacion_metadata(self) -> Dict[str, Any]:
+    return {
+        'nombre': f"{self.template.nombre} #{random.randint(1000, 9999)}",
+        'tipo': 'arbol',
+        'especie': self.template.nombre.lower()
+    }
+```
+
+**¿Qué hace?** Retorna metadata para crear la agrupación (nombre, tipo, especie).
+
+**Nota:** Cada builder puede sobrescribir este método para personalizar la metadata según su tipo de entidad.
 
 ## Ejemplo Completo: Crear un Roble
 
@@ -263,10 +324,11 @@ solido_id = UUID("...")     # ID del estado "solido"
 ### Agregar un Nuevo Builder
 
 1. Crear clase que extiende `BaseBuilder`
-2. Implementar `create_at_position()` con la lógica específica
+2. Implementar `create_at_position()` con la lógica específica (aceptar `agrupacion_id` como parámetro)
 3. Implementar `get_particle_type_ids()` con los tipos necesarios
 4. Implementar `get_matter_state_name()` con el estado necesario
-5. Actualizar `EntityCreator._get_builder()` para incluir el nuevo builder
+5. (Opcional) Implementar `create_agrupacion()` y `get_agrupacion_metadata()` si se desea soporte de agrupaciones
+6. Actualizar `EntityCreator._get_builder()` para incluir el nuevo builder
 
 ### Ejemplo: PlantBuilder
 

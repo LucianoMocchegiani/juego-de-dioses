@@ -1,29 +1,13 @@
 /**
  * Configuración de la escena Three.js
+ * 
+ * NOTA: Este archivo mantiene compatibilidad temporal con el código existente.
+ * La lógica de renderizado de partículas se moverá a renderers/ en pasos posteriores.
  */
 import * as THREE from 'three';
-import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+import { Scene3D as CoreScene3D } from './core/scene.js';
 import {
     DEFAULT_COLOR,
-    COLOR_CIELO,
-    COLOR_GRID_PRIMARY,
-    COLOR_GRID_SECONDARY,
-    COLOR_LUZ_AMBIENTE,
-    COLOR_LUZ_DIRECCIONAL,
-    CAMERA_FOV,
-    CAMERA_NEAR,
-    CAMERA_FAR,
-    CAMERA_POSITION_X,
-    CAMERA_POSITION_Y,
-    CAMERA_POSITION_Z,
-    CONTROLS_DAMPING_FACTOR,
-    CONTROLS_MIN_DISTANCE,
-    CONTROLS_MAX_DISTANCE,
-    LUZ_AMBIENTE_INTENSIDAD,
-    LUZ_DIRECCIONAL_INTENSIDAD,
-    LUZ_DIRECCIONAL_POS_X,
-    LUZ_DIRECCIONAL_POS_Y,
-    LUZ_DIRECCIONAL_POS_Z,
     MATERIAL_DEFAULT_METALNESS,
     MATERIAL_DEFAULT_ROUGHNESS,
     COLOR_MAX_VALUE,
@@ -42,10 +26,17 @@ export class Scene3D {
      */
     constructor(container) {
         this.container = container;
-        this.scene = new THREE.Scene();
-        this.camera = null;
-        this.renderer = null;
-        this.controls = null;
+        
+        // Usar escena core modular
+        this.coreScene = new CoreScene3D(container);
+        
+        // Exponer propiedades para compatibilidad
+        this.scene = this.coreScene.scene;
+        this.camera = this.coreScene.camera.camera;
+        this.renderer = this.coreScene.renderer.renderer;
+        this.controls = this.coreScene.controls.getControls();
+        
+        // Mantener lógica de renderizado de partículas (temporal, se moverá a renderers/)
         this.particleMeshes = new Map();
         /**
          * Instanced meshes agrupados por tipo/material para optimización
@@ -65,57 +56,6 @@ export class Scene3D {
          * @type {Map<string, ParticleStyle>}
          */
         this.styleCache = new Map();
-        
-        this.init();
-    }
-
-    init() {
-        this.createCamera();
-        this.createRenderer();
-        this.createControls();
-        this.createLights();
-        this.createHelpers();
-        this.setupResizeHandler();
-    }
-
-    createCamera() {
-        const width = this.container.clientWidth;
-        const height = this.container.clientHeight;
-        this.camera = new THREE.PerspectiveCamera(CAMERA_FOV, width / height, CAMERA_NEAR, CAMERA_FAR);
-        this.camera.position.set(CAMERA_POSITION_X, CAMERA_POSITION_Y, CAMERA_POSITION_Z);
-        this.camera.lookAt(0, 0, 0);
-    }
-
-    createRenderer() {
-        const width = this.container.clientWidth;
-        const height = this.container.clientHeight;
-        this.renderer = new THREE.WebGLRenderer({ antialias: true });
-        this.renderer.setSize(width, height);
-        this.renderer.setClearColor(COLOR_CIELO);
-        this.container.appendChild(this.renderer.domElement);
-    }
-
-    createControls() {
-        this.controls = new OrbitControls(this.camera, this.renderer.domElement);
-        this.controls.enableDamping = true;
-        this.controls.dampingFactor = CONTROLS_DAMPING_FACTOR;
-        this.controls.minDistance = CONTROLS_MIN_DISTANCE;
-        this.controls.maxDistance = CONTROLS_MAX_DISTANCE;
-    }
-
-    createLights() {
-        const ambientLight = new THREE.AmbientLight(COLOR_LUZ_AMBIENTE, LUZ_AMBIENTE_INTENSIDAD);
-        this.scene.add(ambientLight);
-
-        const directionalLight = new THREE.DirectionalLight(COLOR_LUZ_DIRECCIONAL, LUZ_DIRECCIONAL_INTENSIDAD);
-        directionalLight.position.set(LUZ_DIRECCIONAL_POS_X, LUZ_DIRECCIONAL_POS_Y, LUZ_DIRECCIONAL_POS_Z);
-        this.scene.add(directionalLight);
-    }
-
-    createHelpers() {
-        // La grilla se ajustará dinámicamente cuando se cargue el terreno
-        this.gridHelper = null;
-        this.axesHelper = null;
     }
 
     /**
@@ -124,40 +64,7 @@ export class Scene3D {
      * @param {number} altoMetros - Alto del terreno en metros
      */
     updateHelpers(anchoMetros, altoMetros) {
-        // Remover helpers antiguos si existen
-        if (this.gridHelper) {
-            this.scene.remove(this.gridHelper);
-        }
-        if (this.axesHelper) {
-            this.scene.remove(this.axesHelper);
-        }
-
-        // Calcular tamaño de grilla (un poco más grande que el terreno para contexto)
-        const gridSize = Math.max(anchoMetros, altoMetros) * 1.2;
-        const gridDivisions = Math.max(20, Math.floor(gridSize / 2)); // División cada 2 metros aproximadamente
-        
-        // Crear grilla centrada en el terreno
-        this.gridHelper = new THREE.GridHelper(gridSize, gridDivisions, COLOR_GRID_PRIMARY, COLOR_GRID_SECONDARY);
-        // Posicionar grilla en el centro del terreno (en Y=0 para que esté al nivel del suelo)
-        this.gridHelper.position.set(anchoMetros / 2, 0, altoMetros / 2);
-        this.scene.add(this.gridHelper);
-
-        // Crear ejes en el centro del terreno
-        this.axesHelper = new THREE.AxesHelper(Math.max(anchoMetros, altoMetros) * 0.3);
-        this.axesHelper.position.set(anchoMetros / 2, 0, altoMetros / 2);
-        this.scene.add(this.axesHelper);
-    }
-
-    setupResizeHandler() {
-        window.addEventListener('resize', () => this.onWindowResize());
-    }
-
-    onWindowResize() {
-        const width = this.container.clientWidth;
-        const height = this.container.clientHeight;
-        this.camera.aspect = width / height;
-        this.camera.updateProjectionMatrix();
-        this.renderer.setSize(width, height);
+        this.coreScene.updateHelpers(anchoMetros, altoMetros);
     }
 
     /**
@@ -435,8 +342,6 @@ export class Scene3D {
      * @param {number} centerZ - Centro Z
      */
     centerCamera(centerX, centerY, centerZ) {
-        this.camera.position.set(centerX + 10, centerZ + 10, centerY + 10);
-        this.controls.target.set(centerX, centerZ, centerY);
-        this.controls.update();
+        this.coreScene.centerCamera(centerX, centerY, centerZ);
     }
 }
