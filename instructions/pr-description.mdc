@@ -103,12 +103,44 @@ El archivo `[TICKET-ID]_pr-description_[FECHA-HORA].md` generado debe contener l
 
 ## Notas Adicionales
 <Cualquier información adicional relevante para los revisores - solo si es necesario>
+
+## Anexo: Cambios Fuera del Plan (si aplica)
+
+**IMPORTANTE:** Si durante la implementación se realizaron cambios que no estaban en el plan de acción original, deben documentarse en esta sección.
+
+**Incluir:**
+- Cambios en reglas o documentación que no estaban en el plan
+- Correcciones de bugs encontrados durante la implementación
+- Mejoras adicionales realizadas
+- Actualizaciones a archivos de configuración o reglas
+- Cualquier cambio que no esté explícitamente en el plan de acción
+
+**Formato:**
+- Listar cada cambio fuera del plan
+- Explicar por qué se hizo
+- Indicar si requiere atención especial o verificación adicional
+
+**Ejemplo:**
+```markdown
+## Anexo: Cambios Fuera del Plan
+
+### Corrección de Bug Encontrado
+- **Archivo:** `backend/src/database/builders/tree_builder.py`
+- **Problema:** Mapeo incorrecto de parámetros entre EntityCreator y TreeBuilder
+- **Solución:** Corregido mapeo de `madera`/`hojas` a `madera_id`/`hojas_id`
+- **Impacto:** Crítico para funcionamiento del seed
+
+### Actualización de Reglas
+- **Archivo:** `instructions/action-plan-rule.mdc`
+- **Cambio:** Agregada práctica de READMEs en planes de acción
+- **Razón:** Establecer estándar de documentación para futuros desarrollos
 ```
 
 **Proceso para crear el archivo:**
 1. Primero, ejecuta el comando para obtener la fecha y hora: `Get-Date -Format "yyyy-MM-dd_HH-mm-ss"`
 2. Usa el resultado para construir el nombre del archivo: `[TICKET-ID]_pr-description_[FECHA-HORA].md`
 3. Guarda el archivo en la carpeta `/instructions/prs/`
+4. Si hubo cambios fuera del plan, incluir sección "Anexo: Cambios Fuera del Plan"
 
 El archivo debe guardarse como `[TICKET-ID]_pr-description_[FECHA-HORA].md` en la carpeta `/instructions/prs/`. Debe estar limpio y listo para copiar y pegar sin editar.
 
