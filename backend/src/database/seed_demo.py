@@ -37,6 +37,31 @@ async def seed_demo():
     try:
         print("Iniciando seed de demo - Bioma Bosque 40x40 con Acuífero...")
         
+        # 0. Borrar dimensión existente si existe (y todas sus partículas)
+        print("Verificando si existe dimensión demo anterior...")
+        existing_dim_id = await conn.fetchval("""
+            SELECT id FROM juego_dioses.dimensiones 
+            WHERE nombre = 'Demo - Bioma Bosque 40x40 con Acuífero'
+        """)
+        
+        if existing_dim_id:
+            print(f"Eliminando dimensión existente (ID: {existing_dim_id}) y todas sus partículas...")
+            # Borrar partículas primero (por foreign key)
+            particulas_borradas = await conn.execute("""
+                DELETE FROM juego_dioses.particulas 
+                WHERE dimension_id = $1
+            """, existing_dim_id)
+            print(f"  Partículas eliminadas: {particulas_borradas.split()[-1]}")
+            
+            # Borrar dimensión
+            await conn.execute("""
+                DELETE FROM juego_dioses.dimensiones 
+                WHERE id = $1
+            """, existing_dim_id)
+            print("  Dimensión eliminada correctamente")
+        else:
+            print("  No se encontró dimensión demo anterior")
+        
         # Obtener IDs de tipos y estados necesarios
         hierba_id = await conn.fetchval(
             "SELECT id FROM juego_dioses.tipos_particulas WHERE nombre = 'hierba'"
@@ -70,6 +95,8 @@ async def seed_demo():
         
         # 1. Crear dimensión demo (40m x 40m = 160x160 celdas con celda de 0.25m)
         # Profundidad suficiente para acuífero (hasta z=-13) + límite
+        # Altura suficiente para árboles muy grandes: tronco hasta z=30 + copa 3 niveles = z=33
+        # Agregamos margen: altura_maxima = 40 para seguridad
         print("Creando dimensión demo...")
         dimension_id = await conn.fetchval("""
             INSERT INTO juego_dioses.dimensiones (
@@ -87,7 +114,7 @@ async def seed_demo():
                 40.0,
                 40.0,
                 -15,
-                10,
+                40,
                 0.25,
                 0.0,
                 0.0,
@@ -341,10 +368,12 @@ async def seed_demo():
         
         print(f"Posiciones de árboles generadas: {len(posiciones_arboles)} árboles")
         
-        # Paso 3: Crear árboles usando plantillas
+        # Paso 3: Crear árboles usando plantillas (con inserción en batches)
         print("Creando árboles con troncos de grosor variable y raíces...")
         particulas_arboles = []
         stats_templates = {}  # Estadísticas por tipo de árbol
+        batch_size = 10000  # Insertar en batches de 10k
+        total_particulas_arboles = 0
         
         for idx, ((arbol_x, arbol_y), template) in enumerate(zip(posiciones_arboles, templates_arboles), 1):
             # Actualizar estadísticas
@@ -367,6 +396,9 @@ async def seed_demo():
             
             # 2. Crear tronco (con grosor variable)
             posiciones_tronco = template.get_posiciones_tronco(arbol_x, arbol_y)
+            # Debug: verificar que se generen las posiciones correctas
+            if idx <= 3:  # Solo para los primeros 3 árboles
+                print(f"  Árbol {idx} ({template.nombre}) en ({arbol_x}, {arbol_y}): grosor={template.grosor_tronco}, altura={altura_tronco}, posiciones={len(posiciones_tronco)}")
             for z in range(0, altura_tronco):
                 for tx, ty in posiciones_tronco:
                     if 0 <= tx < max_x and 0 <= ty < max_y:
@@ -377,6 +409,7 @@ async def seed_demo():
                         ))
             
             # 3. Crear copa de hojas
+            # Las hojas empiezan justo donde termina el tronco (sin gap)
             z_copa_base = altura_tronco
             posiciones_copa = template.get_posiciones_copa(arbol_x, arbol_y, z_copa_base)
             for cx, cy, cz in posiciones_copa:
@@ -386,18 +419,38 @@ async def seed_demo():
                         hojas_id, solido_id, 1.0, 22.0, 0.0, False,
                         None, False, json.dumps({"parte": "hojas", "tipo": template.nombre})
                     ))
+            
+            # Insertar en batches para no llenar memoria
+            if len(particulas_arboles) >= batch_size:
+                await conn.executemany("""
+                    INSERT INTO juego_dioses.particulas 
+                    (dimension_id, celda_x, celda_y, celda_z, tipo_particula_id, estado_materia_id,
+                     cantidad, temperatura, energia, extraida, agrupacion_id, es_nucleo, propiedades)
+                    VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb)
+                    ON CONFLICT (dimension_id, celda_x, celda_y, celda_z) DO UPDATE
+                    SET tipo_particula_id = EXCLUDED.tipo_particula_id,
+                        temperatura = EXCLUDED.temperatura,
+                        propiedades = EXCLUDED.propiedades
+                """, particulas_arboles)
+                total_particulas_arboles += len(particulas_arboles)
+                print(f"  Insertadas {len(particulas_arboles)} partículas de árboles... (Total: {total_particulas_arboles}, Árboles procesados: {idx}/{len(posiciones_arboles)})")
+                particulas_arboles = []
         
-        await conn.executemany("""
-            INSERT INTO juego_dioses.particulas 
-            (dimension_id, celda_x, celda_y, celda_z, tipo_particula_id, estado_materia_id,
-             cantidad, temperatura, energia, extraida, agrupacion_id, es_nucleo, propiedades)
-            VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb)
-            ON CONFLICT (dimension_id, celda_x, celda_y, celda_z) DO UPDATE
-            SET tipo_particula_id = EXCLUDED.tipo_particula_id,
-                temperatura = EXCLUDED.temperatura,
-                propiedades = EXCLUDED.propiedades
-        """, particulas_arboles)
-        print(f"Árboles creados: {len(posiciones_arboles)} árboles, {len(particulas_arboles)} partículas")
+        # Insertar resto
+        if particulas_arboles:
+            await conn.executemany("""
+                INSERT INTO juego_dioses.particulas 
+                (dimension_id, celda_x, celda_y, celda_z, tipo_particula_id, estado_materia_id,
+                 cantidad, temperatura, energia, extraida, agrupacion_id, es_nucleo, propiedades)
+                VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb)
+                ON CONFLICT (dimension_id, celda_x, celda_y, celda_z) DO UPDATE
+                SET tipo_particula_id = EXCLUDED.tipo_particula_id,
+                    temperatura = EXCLUDED.temperatura,
+                    propiedades = EXCLUDED.propiedades
+            """, particulas_arboles)
+            total_particulas_arboles += len(particulas_arboles)
+        
+        print(f"Árboles creados: {len(posiciones_arboles)} árboles, {total_particulas_arboles} partículas")
         print("\nDistribución por tipo de árbol:")
         for tipo, cantidad in stats_templates.items():
             print(f"  - {tipo}: {cantidad} árboles")
