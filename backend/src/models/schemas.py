@@ -2,7 +2,7 @@
 Modelos Pydantic para requests y responses
 """
 from pydantic import BaseModel, Field, validator
-from typing import Optional, List
+from typing import Optional, List, Dict, Any, Literal
 from uuid import UUID
 from datetime import datetime
 import json
@@ -38,10 +38,70 @@ class MaterialProperties(BaseModel):
     emissive: bool = Field(default=False, description="Si el material es emisivo")
 
 
+class GeometriaParametros(BaseModel):
+    """
+    Parámetros de geometría según tipo.
+    
+    IMPORTANTE: Estos parámetros son RELATIVOS a tamano_celda de la dimensión.
+    Tamaño absoluto = parametro × tamano_celda × escala
+    
+    Ejemplo:
+    - tamano_celda = 0.25m (default)
+    - width = 1.0 → width absoluto = 0.25m
+    - width = 2.0 → width absoluto = 0.5m (el doble)
+    
+    NO son parámetros de animación, son dimensiones físicas de la forma.
+    """
+    # Box
+    width: Optional[float] = Field(None, description="Ancho relativo a tamano_celda (default: 1.0 = tamaño de celda)")
+    height: Optional[float] = Field(None, description="Alto relativo a tamano_celda (default: 1.0)")
+    depth: Optional[float] = Field(None, description="Profundidad relativa a tamano_celda (default: 1.0)")
+    
+    # Sphere
+    radius: Optional[float] = Field(None, description="Radio relativo a tamano_celda (default: 0.5)")
+    segments: Optional[int] = Field(default=16, ge=3, le=64, description="Número de segmentos para suavizado")
+    
+    # Cylinder
+    radiusTop: Optional[float] = Field(None, description="Radio superior relativo a tamano_celda")
+    radiusBottom: Optional[float] = Field(None, description="Radio inferior relativo a tamano_celda")
+    height: Optional[float] = Field(None, description="Altura relativa a tamano_celda")
+    
+    # Cone (usa radius, height, segments)
+    
+    # Torus
+    # radius: radio principal relativo a tamano_celda
+    # tube: radio del tubo relativo a tamano_celda
+    tube: Optional[float] = Field(None, description="Radio del tubo relativo a tamano_celda (para torus)")
+
+
+class GeometriaVisual(BaseModel):
+    """Definición de geometría visual"""
+    tipo: Literal["box", "sphere", "cylinder", "cone", "torus", "custom"] = Field(
+        default="box",
+        description="Tipo de geometría: box, sphere, cylinder, cone, torus, custom"
+    )
+    parametros: GeometriaParametros = Field(
+        default_factory=GeometriaParametros,
+        description="Parámetros de la geometría (relativos a tamano_celda)"
+    )
+
+
 class VisualProperties(BaseModel):
-    """Propiedades visuales de la partícula"""
-    modelo: str = Field(default="cube", description="Tipo de modelo 3D (cube, sphere, custom)")
-    escala: float = Field(default=1.0, ge=0.1, le=10.0, description="Escala del modelo")
+    """Propiedades visuales extendidas de la partícula"""
+    modelo: Optional[str] = Field(
+        default="cube",
+        description="Tipo de modelo 3D (Deprecated: usar geometria.tipo)"
+    )
+    escala: float = Field(
+        default=1.0,
+        ge=0.1,
+        le=10.0,
+        description="Escala global del modelo (multiplicador final)"
+    )
+    geometria: Optional[GeometriaVisual] = Field(
+        None,
+        description="Definición de geometría visual (tipo y parámetros relativos a tamano_celda)"
+    )
 
 
 class EstilosParticula(BaseModel):
@@ -72,7 +132,15 @@ class EstilosParticula(BaseModel):
                 },
                 "visual": {
                     "modelo": "cube",
-                    "escala": 1.0
+                    "escala": 1.0,
+                    "geometria": {
+                        "tipo": "box",
+                        "parametros": {
+                            "width": 1.0,
+                            "height": 1.0,
+                            "depth": 1.0
+                        }
+                    }
                 }
             }
         }

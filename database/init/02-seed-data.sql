@@ -146,3 +146,116 @@ BEGIN
     RAISE NOTICE 'Colores hardcoded migrados a estilos JSONB correctamente';
 END $$;
 
+-- ===== Agregar Formas Geométricas a Tipos de Partículas =====
+-- NOTA: Los parámetros son RELATIVOS a tamano_celda de la dimensión.
+-- Tamaño absoluto = parametro × tamano_celda × escala
+-- Ejemplo: tamano_celda = 0.25m, radius = 0.5 → radio absoluto = 0.125m
+
+-- Actualizar tipo "madera" con forma cilíndrica (tronco de árbol)
+UPDATE juego_dioses.tipos_particulas 
+SET estilos = jsonb_set(
+    COALESCE(estilos, '{}'::jsonb),
+    '{visual,geometria}',
+    '{
+        "tipo": "cylinder",
+        "parametros": {
+            "radiusTop": 0.4,
+            "radiusBottom": 0.5,
+            "height": 1.0,
+            "segments": 8
+        }
+    }'::jsonb
+)
+WHERE nombre = 'madera';
+
+-- Actualizar tipo "hojas" con forma esférica (copa de árbol)
+UPDATE juego_dioses.tipos_particulas 
+SET estilos = jsonb_set(
+    COALESCE(estilos, '{}'::jsonb),
+    '{visual,geometria}',
+    '{
+        "tipo": "sphere",
+        "parametros": {
+            "radius": 0.5,
+            "segments": 16
+        }
+    }'::jsonb
+)
+WHERE nombre = 'hojas';
+
+-- Actualizar tipo "piedra" con forma de caja (box por defecto, pero más irregular)
+-- Mantener box pero con parámetros ligeramente diferentes para variación
+UPDATE juego_dioses.tipos_particulas 
+SET estilos = jsonb_set(
+    COALESCE(estilos, '{}'::jsonb),
+    '{visual,geometria}',
+    '{
+        "tipo": "box",
+        "parametros": {
+            "width": 0.9,
+            "height": 0.85,
+            "depth": 0.95
+        }
+    }'::jsonb
+)
+WHERE nombre = 'piedra';
+
+-- Actualizar tipo "agua" con forma de caja (box por defecto) y transparencia
+-- Mantener box estándar para líquidos, pero con transparencia para visualización correcta
+UPDATE juego_dioses.tipos_particulas 
+SET estilos = jsonb_set(
+    jsonb_set(
+        COALESCE(estilos, '{}'::jsonb),
+        '{visual,geometria}',
+        '{
+            "tipo": "box",
+            "parametros": {
+                "width": 1.0,
+                "height": 1.0,
+                "depth": 1.0
+            }
+        }'::jsonb
+    ),
+    '{visual,opacity}',
+    '0.7'::jsonb
+)
+WHERE nombre = 'agua';
+
+-- Actualizar tipo "hierba" con forma de caja pequeña (box)
+UPDATE juego_dioses.tipos_particulas 
+SET estilos = jsonb_set(
+    COALESCE(estilos, '{}'::jsonb),
+    '{visual,geometria}',
+    '{
+        "tipo": "box",
+        "parametros": {
+            "width": 0.8,
+            "height": 0.6,
+            "depth": 0.8
+        }
+    }'::jsonb
+)
+WHERE nombre = 'hierba';
+
+-- Actualizar tipo "tierra" con forma de caja (box)
+UPDATE juego_dioses.tipos_particulas 
+SET estilos = jsonb_set(
+    COALESCE(estilos, '{}'::jsonb),
+    '{visual,geometria}',
+    '{
+        "tipo": "box",
+        "parametros": {
+            "width": 1.0,
+            "height": 1.0,
+            "depth": 1.0
+        }
+    }'::jsonb
+)
+WHERE nombre = 'tierra';
+
+-- Mensaje de confirmación
+DO $$
+BEGIN
+    RAISE NOTICE 'Formas geométricas agregadas a tipos de partículas correctamente';
+END $$;
+
