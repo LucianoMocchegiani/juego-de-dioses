@@ -28,7 +28,7 @@ backend/src/database/
 │   │   └── registry.py      # Registry de árboles
 │   ├── plants/              # (futuro)
 │   ├── cuadrupedos/         # (futuro)
-│   └── bipedos/             # (futuro)
+│   └── bipedos/             # Templates de personajes bípedos
 ├── builders/
 │   ├── base.py              # BaseBuilder (clase abstracta)
 │   └── tree_builder.py      # TreeBuilder
@@ -84,6 +84,67 @@ El nuevo template está disponible automáticamente:
 - Se puede obtener con `get_tree_template('nuevo_arbol')`
 - Se puede seleccionar aleatoriamente con `get_random_tree_template()`
 - Funciona con `EntityCreator` sin modificar código adicional
+
+## Cómo Agregar un Nuevo Template de Bípedo
+
+Los bípedos son personajes jugables (humanos, elfos, enanos, etc.) que se definen usando el sistema de templates.
+
+### Paso 1: Crear el archivo del template
+
+Crear archivo `backend/src/database/templates/bipedos/nuevo_biped.py`:
+
+```python
+from src.database.templates.bipedos.base import BipedTemplate
+from typing import List, Tuple
+
+class NuevoBipedTemplate(BipedTemplate):
+    """Template para nuevo tipo de bípedo"""
+    
+    def __init__(self):
+        super().__init__(
+            nombre='Nuevo Bípedo',
+            altura_cabeza=1,      # Altura de la cabeza (en partículas)
+            altura_torso=4,       # Altura del torso
+            altura_piernas=4,     # Altura de las piernas
+            ancho_hombros=2,      # Ancho de hombros
+            ancho_cadera=2        # Ancho de cadera
+        )
+    
+    def get_posiciones(self, x_centro: int, y_centro: int, z_base: int) -> List[Tuple[int, int, int]]:
+        """Implementar lógica para generar posiciones del bípedo"""
+        posiciones = []
+        # Implementar lógica específica
+        return posiciones
+    
+    def get_propiedades_particula(self, parte: str) -> Dict[str, Any]:
+        """Propiedades específicas según la parte del cuerpo"""
+        return {
+            'parte_entidad': parte,
+            'raza': 'nuevo_biped'
+        }
+```
+
+### Paso 2: Registrar en el registry
+
+Editar `backend/src/database/templates/bipedos/registry.py`:
+
+```python
+from src.database.templates.bipedos.nuevo_biped import NuevoBipedTemplate
+
+BIPED_TEMPLATES: Dict[str, BipedTemplate] = {
+    'humano': HumanoTemplate(),
+    'nuevo_biped': NuevoBipedTemplate(),  # ← Agregar aquí
+}
+```
+
+### Paso 3: ¡Listo!
+
+El nuevo template está disponible:
+- Se puede obtener con `get_biped_template('nuevo_biped')`
+- Funciona con `EntityCreator` sin modificar código adicional
+- Se puede crear vía API: `POST /api/v1/dimensions/{dimension_id}/characters`
+
+**Nota:** Los bípedos requieren que el `BipedBuilder` cree `geometria_agrupacion` para el renderizado en el frontend. Ver `builders/biped_builder.py` para más detalles.
 
 ## Cómo Agregar una Nueva Categoría (ej: Plantas)
 

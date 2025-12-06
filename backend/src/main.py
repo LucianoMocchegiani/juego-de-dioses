@@ -101,11 +101,12 @@ async def health_check():
     }
 
 # API Routes
-from src.api.routes import dimensions, particles, agrupaciones
+from src.api.routes import dimensions, particles, agrupaciones, characters
 
 app.include_router(dimensions.router, prefix="/api/v1")
 app.include_router(particles.router, prefix="/api/v1")
 app.include_router(agrupaciones.router, prefix="/api/v1")
+app.include_router(characters.router, prefix="/api/v1")
 
 @app.get("/api/v1")
 async def api_info():
@@ -116,7 +117,8 @@ async def api_info():
         "endpoints": {
             "dimensions": "/api/v1/dimensions",
             "particles": "/api/v1/dimensions/{id}/particles",
-            "agrupaciones": "/api/v1/dimensions/{id}/agrupaciones"
+            "agrupaciones": "/api/v1/dimensions/{id}/agrupaciones",
+            "characters": "/api/v1/dimensions/{id}/characters"
         }
     }
 
