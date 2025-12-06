@@ -14,6 +14,12 @@ import { Scene3D } from './core/scene.js';
 import { ParticleRenderer } from './renderers/particle-renderer.js';
 import { GeometryRegistry } from './renderers/geometries/registry.js';
 import { DEMO_DIMENSION_NAME } from './constants.js';
+import { ECSManager } from './ecs/index.js';
+import { InputSystem, PhysicsSystem, RenderSystem, CollisionSystem, AnimationSystem } from './ecs/systems/index.js';
+import { PlayerFactory } from './ecs/factories/player-factory.js';
+import { InputManager } from './systems/input-manager.js';
+import { CollisionDetector } from './systems/collision-detector.js';
+import { CameraController } from './systems/camera-controller.js';
 
 /**
  * @typedef {import('./types.js').Particle} Particle
@@ -60,6 +66,35 @@ export class App {
         
         // Instanced meshes actuales (para limpieza)
         this.currentInstancedMeshes = new Map();
+        
+        // Inicializar ECS
+        this.ecs = new ECSManager();
+        
+        // Inicializar InputManager
+        this.inputManager = new InputManager();
+        
+        // Inicializar sistemas ECS
+        this.inputSystem = new InputSystem(this.inputManager);
+        this.physicsSystem = new PhysicsSystem({ gravity: -9.8 });
+        this.animationSystem = new AnimationSystem();
+        // RenderSystem y CollisionSystem se inicializarán después de cargar la dimensión
+        this.renderSystem = null;
+        this.collisionSystem = null;
+        this.collisionDetector = null;
+        
+        // Registrar sistemas (RenderSystem y CollisionSystem se registrarán después)
+        this.ecs.registerSystem(this.inputSystem);
+        this.ecs.registerSystem(this.physicsSystem);
+        this.ecs.registerSystem(this.animationSystem);
+        
+        // Jugador se creará después de cargar la dimensión
+        this.playerId = null;
+        
+        // Controlador de cámara (se inicializará después de cargar la dimensión)
+        this.cameraController = null;
+        
+        // Para calcular deltaTime en animate
+        this.lastTime = null;
         
         // Suscribirse a cambios de estado
         this.setupStateListeners();
@@ -163,12 +198,69 @@ export class App {
             // 13. Finalizar carga
             actions.setLoading(this.store, false);
             
-            // 14. Iniciar profiling de performance
+            // 14. Inicializar CollisionDetector y CollisionSystem
+            if (!this.collisionDetector) {
+                this.collisionDetector = new CollisionDetector(
+                    this.particlesApi,
+                    demoDimension.tamano_celda
+                );
+                this.collisionSystem = new CollisionSystem(
+                    this.collisionDetector,
+                    demoDimension.id,
+                    demoDimension,
+                    particlesData.particles // Usar partículas ya cargadas
+                );
+                this.ecs.registerSystem(this.collisionSystem);
+            } else {
+                // Actualizar partículas en CollisionSystem si ya existe
+                this.collisionSystem.setParticles(particlesData.particles);
+            }
+            
+            // 15. Inicializar RenderSystem con cellSize de la dimensión
+            if (!this.renderSystem) {
+                this.renderSystem = new RenderSystem(demoDimension.tamano_celda);
+                this.ecs.registerSystem(this.renderSystem);
+            }
+            
+            // 16. Crear jugador después de cargar dimensión
+            if (!this.playerId) {
+                // Inicializar jugador en posición segura (sobre suelo sólido)
+                // El terreno tiene hierba en z=0, así que iniciamos en z=1 (justo arriba)
+                // Usar posición en esquina superior izquierda para evitar agua (el lago está en el centro)
+                const startX = 45 // Esquina superior izquierda
+                const startY = 45 // Esquina superior izquierda
+                
+                this.playerId = PlayerFactory.createPlayer({
+                    ecs: this.ecs,
+                    scene: this.scene.scene,
+                    x: startX,
+                    y: startY,
+                    z: 1, // Justo arriba de la superficie (hierba en z=0)
+                    cellSize: demoDimension.tamano_celda
+                });
+                
+                // 17. Inicializar controlador de cámara y configurarlo para seguir al jugador
+                if (!this.cameraController) {
+                    this.cameraController = new CameraController(
+                        this.scene.camera,
+                        this.scene,
+                        demoDimension.tamano_celda,
+                        this.inputManager // Pasar InputManager para control de mouse
+                    );
+                    this.cameraController.setTarget(this.playerId);
+                    
+                    // Deshabilitar OrbitControls cuando el jugador está activo
+                    this.scene.controls.setEnabled(false);
+                }
+            }
+            
+            // 18. Iniciar profiling de performance
             this.performanceManager.startProfiling();
             console.log('Performance profiling iniciado. Las métricas aparecerán cada segundo en consola.');
             
-            // 15. Iniciar animación (con medición de FPS)
-            this.scene.animate(this.performanceManager);
+            // 19. Iniciar animación (con medición de FPS y actualización de ECS)
+            // Usar nuestro propio loop de animación que incluye ECS
+            this.startAnimation();
             
             // Retornar datos para actualizar UI externa
             return {
@@ -207,6 +299,45 @@ export class App {
      */
     getParticlesCount() {
         return selectors.getParticlesCount(this.store.getState());
+    }
+    
+    /**
+     * Iniciar loop de animación con actualización de ECS
+     */
+    startAnimation() {
+        const animate = () => {
+            requestAnimationFrame(animate);
+            
+            // Calcular deltaTime
+            const currentTime = performance.now();
+            const deltaTime = this.lastTime ? (currentTime - this.lastTime) / 1000 : 0;
+            this.lastTime = currentTime;
+            
+            // Actualizar sistemas ECS (procesan input primero)
+            if (this.ecs) {
+                this.ecs.update(deltaTime);
+            }
+            
+            // Actualizar controlador de cámara ANTES de limpiar el frame
+            // (necesita el mouseDelta antes de que se resetee)
+            if (this.cameraController) {
+                this.cameraController.update(this.ecs);
+            } else {
+                // Si no hay controlador de cámara, actualizar OrbitControls
+            this.scene.controls.update();
+            }
+            
+            // Limpiar frame de InputManager DESPUÉS de que todos los sistemas procesen el input
+            this.inputManager.clearFrame();
+            
+            // Renderizar
+            this.scene.renderer.render(this.scene.scene, this.scene.camera.camera);
+            
+            // Medir FPS
+            this.performanceManager.measureFPS();
+        };
+        
+        animate();
     }
 }
 
