@@ -9,6 +9,7 @@ database/
 ├── __init__.py              # Inicialización del módulo
 ├── connection.py            # Gestión de conexiones a PostgreSQL
 ├── seed_demo.py             # Script de seed para crear dimensiones demo
+├── seed_human_test.py       # Script de seed para crear terreno de prueba (primer humano)
 ├── terrain_builder.py       # Funciones para construir terrenos y límites
 ├── tree_templates.py        # ⚠️ DEPRECADO: Usar templates/trees/ en su lugar
 │
@@ -81,7 +82,26 @@ database/
 - Genera bioma bosque con árboles
 - Usa el sistema de templates/builders/creators
 
-### 6. Terrain Builder (`terrain_builder.py`)
+### 6. Seed Human Test (`seed_human_test.py`)
+
+**Responsabilidad:** Crear terreno de prueba simple y controlado para facilitar la creación del primer humano.
+
+**Funcionalidad:**
+- Crea dimensión de prueba (40x40m)
+- Terreno plano con tierra y hierba
+- Un lago de agua en superficie (8x8 metros)
+- Una montaña pequeña hecha con tierra y piedra (4x4 metros base, 4 niveles de altura)
+- Exactamente 10 árboles distribuidos estratégicamente
+- Sin acuífero subterráneo (terreno simple)
+
+**Cómo ejecutar:**
+```bash
+docker-compose exec backend python -m src.database.seed_human_test
+```
+
+**Nombre de la dimensión:** "Terreno de Prueba - Primer Humano"
+
+### 7. Terrain Builder (`terrain_builder.py`)
 
 **Responsabilidad:** Funciones helper para construcción de terrenos y límites de dimensiones.
 
