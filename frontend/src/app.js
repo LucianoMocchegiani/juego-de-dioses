@@ -9,7 +9,7 @@ import { StyleManager } from './managers/style-manager.js';
 import { EntityManager } from './managers/entity-manager.js';
 import { PerformanceManager } from './managers/performance-manager.js';
 import { ApiClient } from './api/client.js';
-import { DimensionsApi, ParticlesApi } from './api/endpoints/__init__.js';
+import { DimensionsApi, ParticlesApi, CharactersApi, initCharactersApi } from './api/endpoints/__init__.js';
 import { Scene3D } from './core/scene.js';
 import { ParticleRenderer } from './renderers/particle-renderer.js';
 import { GeometryRegistry } from './renderers/geometries/registry.js';
@@ -60,6 +60,9 @@ export class App {
         const apiClient = new ApiClient();
         this.dimensionsApi = new DimensionsApi(apiClient);
         this.particlesApi = new ParticlesApi(apiClient);
+        this.charactersApi = new CharactersApi(apiClient);
+        // Inicializar funciones helper de CharactersApi
+        initCharactersApi(apiClient);
         
         // Inicializar escena 3D
         this.scene = new Scene3D(container);
@@ -224,20 +227,40 @@ export class App {
             
             // 16. Crear jugador después de cargar dimensión
             if (!this.playerId) {
-                // Inicializar jugador en posición segura (sobre suelo sólido)
-                // El terreno tiene hierba en z=0, así que iniciamos en z=1 (justo arriba)
-                // Usar posición en esquina superior izquierda para evitar agua (el lago está en el centro)
-                const startX = 45 // Esquina superior izquierda
-                const startY = 45 // Esquina superior izquierda
+                // Primero intentar cargar personaje existente
+                let characterId = null;
+                try {
+                    const characters = await this.charactersApi.listCharacters(demoDimension.id);
+                    if (characters && characters.length > 0) {
+                        // Usar el primer personaje encontrado (el más reciente)
+                        characterId = characters[0].id;
+                        console.log(`✓ Cargando personaje existente: ${characterId} (de ${characters.length} totales)`);
+                    } else {
+                        console.log('No hay personajes existentes, se creará uno nuevo');
+                    }
+                } catch (error) {
+                    console.warn('Error al listar personajes:', error);
+                }
                 
-                this.playerId = PlayerFactory.createPlayer({
+                // Si no hay personaje existente, crear uno nuevo
+                const startX = 45; // Esquina superior izquierda
+                const startY = 45; // Esquina superior izquierda
+                
+                // IMPORTANTE: Solo crear si NO hay characterId
+                // Si hay characterId, solo cargar, NO crear nuevo
+                this.playerId = await PlayerFactory.createPlayer({
                     ecs: this.ecs,
                     scene: this.scene.scene,
                     x: startX,
                     y: startY,
                     z: 1, // Justo arriba de la superficie (hierba en z=0)
-                    cellSize: demoDimension.tamano_celda
+                    cellSize: demoDimension.tamano_celda,
+                    characterId: characterId, // Cargar existente si existe
+                    templateId: characterId ? null : 'humano', // Crear solo si NO hay existente
+                    dimensionId: demoDimension.id
                 });
+                
+                console.log(`✓ Jugador creado/cargado. Entity ID: ${this.playerId}, Character ID: ${characterId || 'nuevo'}`);
                 
                 // 17. Inicializar controlador de cámara y configurarlo para seguir al jugador
                 if (!this.cameraController) {
