@@ -47,5 +47,6 @@ export const VIEWPORT_MAX_CELLS_X = 160; // Hasta 160 celdas en x (40m con celda
 export const VIEWPORT_MAX_CELLS_Y = 160; // Hasta 160 celdas en y (40m con celda de 0.25m)
 
 // Nombre de la dimensión demo a cargar
-export const DEMO_DIMENSION_NAME = 'Demo - Bioma Bosque 40x40 con Acuífero';
+// export const DEMO_DIMENSION_NAME = 'Demo - Bioma Bosque 40x40 con Acuífero'; // Demo original comentado
+export const DEMO_DIMENSION_NAME = 'Terreno de Prueba - Primer Humano'; // Nuevo terreno de prueba
 
