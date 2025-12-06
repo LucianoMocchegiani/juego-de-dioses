@@ -4,6 +4,7 @@ import asyncpg
 from src.database.templates.base import BaseTemplate
 from src.database.builders.base import BaseBuilder
 from src.database.builders.tree_builder import TreeBuilder
+from src.database.builders.biped_builder import BipedBuilder
 
 
 class EntityCreator:
@@ -76,9 +77,10 @@ class EntityCreator:
         """
         if template.categoria == 'tree':
             return TreeBuilder(template)
+        elif template.categoria == 'biped':
+            return BipedBuilder(template)
         # Futuro: elif template.categoria == 'plant': return PlantBuilder(template)
         # Futuro: elif template.categoria == 'animal': return AnimalBuilder(template)
-        # Futuro: elif template.categoria == 'race': return RaceBuilder(template)
         else:
             raise ValueError(f"No hay builder para categoría '{template.categoria}'")
     

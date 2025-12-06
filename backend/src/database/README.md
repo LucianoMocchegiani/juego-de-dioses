@@ -18,11 +18,12 @@ database/
 │   ├── trees/               # Templates de árboles
 │   ├── plants/              # Templates de plantas (futuro)
 │   ├── cuadrupedos/         # Templates de animales cuadrúpedos (futuro)
-│   └── bipedos/             # Templates de razas bípedas (futuro)
+│   └── bipedos/             # Templates de razas bípedas (personajes)
 │
 ├── builders/                # Builders para convertir templates en partículas
 │   ├── base.py              # BaseBuilder (clase abstracta)
-│   └── tree_builder.py      # TreeBuilder (crea árboles)
+│   ├── tree_builder.py      # TreeBuilder (crea árboles)
+│   └── biped_builder.py     # BipedBuilder (crea personajes bípedos)
 │
 └── creators/                # Creators de alto nivel para simplificar creación
     └── entity_creator.py    # EntityCreator (factory genérico)
@@ -98,6 +99,23 @@ database/
 ```bash
 docker-compose exec backend python -m src.database.seed_human_test
 ```
+
+### 7. Seed Character Test (`seed_character_test.py`)
+
+**Responsabilidad:** Crear personaje de prueba en la dimensión de prueba.
+
+**Funcionalidad:**
+- Busca la dimensión "Terreno de Prueba - Primer Humano"
+- Crea un personaje humano usando el template 'humano'
+- Posiciona el personaje en (45, 45, 1)
+- Crea agrupación con `geometria_agrupacion` para renderizado en frontend
+
+**Cómo ejecutar:**
+```bash
+docker-compose exec backend python -m src.database.seed_character_test
+```
+
+**Nota:** Requiere que la dimensión de prueba exista (ejecutar `seed_human_test.py` primero).
 
 **Nombre de la dimensión:** "Terreno de Prueba - Primer Humano"
 
