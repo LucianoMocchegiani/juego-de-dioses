@@ -59,26 +59,27 @@ export class PhysicsSystem extends System {
             if (!physics || !position) continue;
             
             // Aplicar salto (si tiene componente Input)
+            // Z es altura, Y es adelante/atrás, X es izquierda/derecha
             if (input && input.wantsToJump && physics.isGrounded) {
-                physics.velocity.y = 5; // Velocidad de salto en celdas/segundo
+                physics.velocity.z = 5; // Velocidad de salto en celdas/segundo (Z es altura)
                 physics.isGrounded = false;
                 input.wantsToJump = false; // Resetear
             }
             
-            // Aplicar gravedad
+            // Aplicar gravedad (Z es altura)
             if (physics.useGravity && !physics.isGrounded) {
-                physics.acceleration.y += this.gravity;
+                physics.acceleration.z += this.gravity;
             }
             
             // Actualizar velocidad con aceleración
-            physics.velocity.x += physics.acceleration.x * timestep;
-            physics.velocity.y += physics.acceleration.y * timestep;
-            physics.velocity.z += physics.acceleration.z * timestep;
+            physics.velocity.x += physics.acceleration.x * timestep; // Izquierda/derecha
+            physics.velocity.y += physics.acceleration.y * timestep; // Adelante/atrás
+            physics.velocity.z += physics.acceleration.z * timestep; // Arriba/abajo
             
-            // Aplicar fricción
+            // Aplicar fricción (solo horizontal: X e Y)
             const friction = physics.isGrounded ? physics.groundFriction : physics.airFriction;
-            physics.velocity.x *= friction;
-            physics.velocity.z *= friction;
+            physics.velocity.x *= friction; // Izquierda/derecha
+            physics.velocity.y *= friction; // Adelante/atrás
             
             // Limitar velocidad máxima
             if (Math.abs(physics.velocity.x) > physics.maxVelocity.x) {
@@ -92,9 +93,9 @@ export class PhysicsSystem extends System {
             }
             
             // Actualizar posición con velocidad
-            position.x += physics.velocity.x * timestep;
-            position.y += physics.velocity.y * timestep;
-            position.z += physics.velocity.z * timestep;
+            position.x += physics.velocity.x * timestep; // Izquierda/derecha
+            position.y += physics.velocity.y * timestep; // Adelante/atrás
+            position.z += physics.velocity.z * timestep; // Arriba/abajo
             
             // Resetear aceleración
             physics.resetAcceleration();

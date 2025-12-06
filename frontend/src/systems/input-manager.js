@@ -156,15 +156,19 @@ export class InputManager {
      * @param {MouseEvent} event - Evento de mouse
      */
     handleMouseMove(event) {
-        this.mousePosition.x = event.clientX;
-        this.mousePosition.y = event.clientY;
+        const newX = event.clientX;
+        const newY = event.clientY;
         
-        // Calcular delta
-        this.mouseDelta.x = event.movementX || (event.clientX - this.lastMousePosition.x);
-        this.mouseDelta.y = event.movementY || (event.clientY - this.lastMousePosition.y);
+        // Calcular delta usando la diferencia de posición
+        // movementX/movementY solo funciona con pointer lock, así que usamos diferencia
+        this.mouseDelta.x = event.movementX !== undefined ? event.movementX : (newX - this.lastMousePosition.x);
+        this.mouseDelta.y = event.movementY !== undefined ? event.movementY : (newY - this.lastMousePosition.y);
         
-        this.lastMousePosition.x = event.clientX;
-        this.lastMousePosition.y = event.clientY;
+        // Actualizar posición
+        this.mousePosition.x = newX;
+        this.mousePosition.y = newY;
+        this.lastMousePosition.x = newX;
+        this.lastMousePosition.y = newY;
     }
     
     /**
@@ -172,10 +176,9 @@ export class InputManager {
      * @param {MouseEvent} event - Evento de mouse
      */
     handleContextMenu(event) {
-        // Prevenir menú contextual si está en modo juego
-        if (this.mouseLocked) {
-            event.preventDefault();
-        }
+        // Prevenir menú contextual cuando se usa click derecho para rotar cámara
+        // Siempre prevenir en modo juego para mejor experiencia
+        event.preventDefault();
     }
     
     /**
@@ -262,6 +265,7 @@ export class InputManager {
         this.keysUp.clear();
         this.mouseButtonsDown.clear();
         this.mouseButtonsUp.clear();
+        // Resetear mouseDelta después de que todos los sistemas lo hayan usado
         this.mouseDelta.x = 0;
         this.mouseDelta.y = 0;
     }

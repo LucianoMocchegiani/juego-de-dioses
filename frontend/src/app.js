@@ -224,12 +224,18 @@ export class App {
             
             // 16. Crear jugador después de cargar dimensión
             if (!this.playerId) {
+                // Inicializar jugador en posición segura (sobre suelo sólido)
+                // El terreno tiene hierba en z=0, así que iniciamos en z=1 (justo arriba)
+                // Usar posición en esquina superior izquierda para evitar agua (el lago está en el centro)
+                const startX = 45 // Esquina superior izquierda
+                const startY = 45 // Esquina superior izquierda
+                
                 this.playerId = PlayerFactory.createPlayer({
                     ecs: this.ecs,
                     scene: this.scene.scene,
-                    x: 80,
-                    y: 80,
-                    z: 1,
+                    x: startX,
+                    y: startY,
+                    z: 1, // Justo arriba de la superficie (hierba en z=0)
                     cellSize: demoDimension.tamano_celda
                 });
                 
@@ -238,7 +244,8 @@ export class App {
                     this.cameraController = new CameraController(
                         this.scene.camera,
                         this.scene,
-                        demoDimension.tamano_celda
+                        demoDimension.tamano_celda,
+                        this.inputManager // Pasar InputManager para control de mouse
                     );
                     this.cameraController.setTarget(this.playerId);
                     
@@ -306,21 +313,22 @@ export class App {
             const deltaTime = this.lastTime ? (currentTime - this.lastTime) / 1000 : 0;
             this.lastTime = currentTime;
             
-            // Limpiar frame de InputManager
-            this.inputManager.clearFrame();
-            
-            // Actualizar sistemas ECS
+            // Actualizar sistemas ECS (procesan input primero)
             if (this.ecs) {
                 this.ecs.update(deltaTime);
             }
             
-            // Actualizar controlador de cámara (si existe)
+            // Actualizar controlador de cámara ANTES de limpiar el frame
+            // (necesita el mouseDelta antes de que se resetee)
             if (this.cameraController) {
                 this.cameraController.update(this.ecs);
             } else {
                 // Si no hay controlador de cámara, actualizar OrbitControls
-                this.scene.controls.update();
+            this.scene.controls.update();
             }
+            
+            // Limpiar frame de InputManager DESPUÉS de que todos los sistemas procesen el input
+            this.inputManager.clearFrame();
             
             // Renderizar
             this.scene.renderer.render(this.scene.scene, this.scene.camera.camera);

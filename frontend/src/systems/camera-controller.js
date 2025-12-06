@@ -10,11 +10,13 @@ export class CameraController {
      * @param {Object} camera - Objeto Camera del core
      * @param {Object} scene - Objeto Scene3D del core
      * @param {number} cellSize - Tamaño de celda en metros (para conversión de coordenadas)
+     * @param {InputManager} inputManager - InputManager para detectar mouse
      */
-    constructor(camera, scene, cellSize = 0.25) {
+    constructor(camera, scene, cellSize = 0.25, inputManager = null) {
         this.camera = camera;
         this.scene = scene;
         this.cellSize = cellSize;
+        this.inputManager = inputManager;
         
         /**
          * Modo de cámara
@@ -29,10 +31,40 @@ export class CameraController {
         this.targetEntityId = null;
         
         /**
-         * Offset para tercera persona (en metros)
+         * Ángulos de rotación de la cámara (en radianes)
          * @type {Object}
          */
-        this.offset = { x: 0, y: 1.25, z: 2.5 }; // Detrás y arriba del jugador
+        this.rotation = {
+            horizontal: 0, // Rotación horizontal (alrededor del eje Y)
+            vertical: Math.PI / 6 // Rotación vertical (ángulo de inclinación, 30 grados)
+        };
+        
+        /**
+         * Distancia de la cámara al objetivo (en metros)
+         * @type {number}
+         */
+        this.distance = 2.5;
+        
+        /**
+         * Altura de la cámara sobre el objetivo (en metros)
+         * @type {number}
+         */
+        this.height = 1.25;
+        
+        /**
+         * Sensibilidad del mouse
+         * @type {number}
+         */
+        this.mouseSensitivity = 0.005; // Aumentado de 0.002 a 0.005 (2.5x más rápido)
+        
+        /**
+         * Límites de rotación vertical (en radianes)
+         * @type {Object}
+         */
+        this.verticalLimits = {
+            min: -Math.PI / 3, // -60 grados
+            max: Math.PI / 3   // +60 grados
+        };
         
         /**
          * Factor de suavizado (0-1, menor = más suave)
@@ -72,11 +104,43 @@ export class CameraController {
         const targetY = position.z * this.cellSize; // Z en celdas es altura en Three.js
         const targetZ = position.y * this.cellSize;
         
+        // Rotar cámara con click derecho + mouse
+        if (this.inputManager && this.inputManager.isMouseButtonPressed(2)) { // Botón derecho (2)
+            const mouseDelta = this.inputManager.getMouseDelta();
+            
+            // Solo rotar si hay movimiento del mouse
+            if (mouseDelta.x !== 0 || mouseDelta.y !== 0) {
+                // Rotación horizontal (alrededor del eje Y)
+                this.rotation.horizontal -= mouseDelta.x * this.mouseSensitivity;
+                
+                // Rotación vertical (inclinación)
+                this.rotation.vertical += mouseDelta.y * this.mouseSensitivity;
+                
+                // Limitar rotación vertical
+                this.rotation.vertical = Math.max(
+                    this.verticalLimits.min,
+                    Math.min(this.verticalLimits.max, this.rotation.vertical)
+                );
+            }
+        }
+        
+        // Actualizar rotación del personaje para que siempre mire en la dirección de la cámara
+        // (se actualiza cada frame, no solo cuando se mueve el mouse)
+        const render = ecs.getComponent(this.targetEntityId, 'Render');
+        if (render) {
+            // La rotación horizontal de la cámara es la dirección en la que mira el personaje
+            render.rotationY = this.rotation.horizontal;
+        }
+        
         if (this.mode === 'third-person') {
-            // Cámara detrás y arriba del jugador
-            const cameraX = targetX + this.offset.x;
-            const cameraY = targetY + this.offset.y;
-            const cameraZ = targetZ + this.offset.z;
+            // Calcular posición de la cámara usando esfera (órbita alrededor del jugador)
+            const horizontalDistance = this.distance * Math.cos(this.rotation.vertical);
+            const verticalDistance = this.distance * Math.sin(this.rotation.vertical);
+            
+            // Posición de la cámara en coordenadas esféricas
+            const cameraX = targetX + horizontalDistance * Math.sin(this.rotation.horizontal);
+            const cameraY = targetY + this.height + verticalDistance;
+            const cameraZ = targetZ + horizontalDistance * Math.cos(this.rotation.horizontal);
             
             // Suavizado usando lerp
             const currentPos = this.camera.camera.position;
@@ -84,9 +148,9 @@ export class CameraController {
             currentPos.lerp(targetPos, this.smoothing);
             
             // Mirar al jugador
-            this.camera.camera.lookAt(targetX, targetY, targetZ);
+            this.camera.camera.lookAt(targetX, targetY + this.height * 0.5, targetZ);
         } else if (this.mode === 'first-person') {
-            // Cámara en la posición del jugador (futuro)
+            // Cámara en la posición del jugador
             const cameraX = targetX;
             const cameraY = targetY + 0.5; // Altura de los ojos
             const cameraZ = targetZ;
@@ -96,7 +160,9 @@ export class CameraController {
             const targetPos = new THREE.Vector3(cameraX, cameraY, cameraZ);
             currentPos.lerp(targetPos, this.smoothing);
             
-            // La rotación se manejaría con input del mouse (futuro)
+            // Rotación de cámara en primera persona
+            this.camera.camera.rotation.y = this.rotation.horizontal;
+            this.camera.camera.rotation.x = this.rotation.vertical;
         }
     }
 }
