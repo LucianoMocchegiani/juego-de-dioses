@@ -46,5 +46,13 @@ export class Controls {
     getControls() {
         return this.controls;
     }
+    
+    /**
+     * Habilitar o deshabilitar los controles
+     * @param {boolean} enabled - True para habilitar, false para deshabilitar
+     */
+    setEnabled(enabled) {
+        this.controls.enabled = enabled;
+    }
 }
 

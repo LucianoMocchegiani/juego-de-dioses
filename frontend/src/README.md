@@ -52,6 +52,18 @@ src/
 │       ├── particles.js
 │       └── agrupaciones.js
 │
+├── ecs/                      # Sistema ECS (Entity Component System)
+│   ├── manager.js          # ECSManager - Núcleo del sistema
+│   ├── system.js           # Clase base System
+│   ├── components/         # Componentes (Position, Physics, Render, Input, Animation)
+│   ├── systems/            # Sistemas (Input, Physics, Render, Collision, Animation)
+│   └── factories/          # Factories para crear entidades (PlayerFactory)
+│
+├── systems/                 # Sistemas de juego
+│   ├── input-manager.js   # Gestor centralizado de input
+│   ├── collision-detector.js # Detector de colisiones
+│   └── camera-controller.js  # Controlador de cámara
+│
 ├── utils/                    # Utilidades organizadas
 │   ├── colors.js           # Utilidades de colores
 │   ├── geometry.js         # Utilidades de geometría
@@ -116,6 +128,26 @@ Cliente API modular organizado por recurso.
 
 **Ver:** `api/README.md` para documentación completa.
 
+### ECS (`ecs/`)
+Sistema ECS (Entity Component System) para gestionar entidades jugables y del mundo.
+
+**Características:**
+- Componentes: Position, Physics, Render, Input, Animation
+- Sistemas: InputSystem, PhysicsSystem, RenderSystem, CollisionSystem, AnimationSystem
+- Factories: PlayerFactory para crear jugadores
+
+**Ver:** `ecs/README.md` para documentación completa.
+
+### Systems (`systems/`)
+Sistemas de juego que operan sobre entidades del ECS o proporcionan servicios globales.
+
+**Características:**
+- InputManager: Gestión centralizada de input (teclado, mouse)
+- CollisionDetector: Detección de colisiones con partículas sólidas
+- CameraController: Controlador de cámara que sigue al jugador
+
+**Ver:** `systems/README.md` para documentación completa.
+
 ### Utils (`utils/`)
 Funciones de utilidad organizadas por tipo.
 
@@ -132,9 +164,10 @@ Funciones de utilidad organizadas por tipo.
 ### Patrones de Diseño
 - **Registry Pattern**: Para geometrías y renderizadores
 - **Strategy Pattern**: Para renderizadores especializados
-- **Factory Pattern**: Para creación de geometrías
+- **Factory Pattern**: Para creación de geometrías y entidades
 - **Observer Pattern**: Para gestión de estado
 - **Component Pattern**: Para componentes UI
+- **ECS Pattern**: Para gestión de entidades jugables (Entity Component System)
 
 ## Extensibilidad
 
