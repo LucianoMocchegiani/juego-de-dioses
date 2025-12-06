@@ -22,6 +22,9 @@ export class RenderComponent {
         this.isCrouching = false;
         this.normalScale = { x: 1, y: 1, z: 1 };
         this.crouchScale = { x: 1, y: 0.6, z: 1 }; // Reducir altura al 60%
+        
+        // Rotación del personaje (en radianes, alrededor del eje Y)
+        this.rotationY = 0;
     }
     
     /**

@@ -48,43 +48,72 @@ export class InputSystem extends System {
                 input.releaseKey(key);
             }
             
-            // Calcular dirección de movimiento
-            input.moveDirection.x = 0;
-            input.moveDirection.y = 0;
-            input.moveDirection.z = 0;
+            // Obtener rotación de la cámara desde RenderComponent
+            const render = this.ecs.getComponent(entityId, 'Render');
+            const cameraRotation = render && render.rotationY !== undefined ? render.rotationY : 0;
+            
+            // Calcular dirección de movimiento en espacio local (relativo a la cámara)
+            // En espacio local: X = izquierda/derecha, Y = adelante/atrás
+            let localX = 0;
+            let localY = 0;
             
             if (input.isKeyPressed('KeyW') || input.isKeyPressed('ArrowUp')) {
-                input.moveDirection.z -= 1; // Adelante
+                localY -= 1; // Adelante (negativo Y en espacio local)
             }
             if (input.isKeyPressed('KeyS') || input.isKeyPressed('ArrowDown')) {
-                input.moveDirection.z += 1; // Atrás
+                localY += 1; // Atrás (positivo Y en espacio local)
             }
             if (input.isKeyPressed('KeyA') || input.isKeyPressed('ArrowLeft')) {
-                input.moveDirection.x -= 1; // Izquierda
+                localX -= 1; // Izquierda (negativo X en espacio local)
             }
             if (input.isKeyPressed('KeyD') || input.isKeyPressed('ArrowRight')) {
-                input.moveDirection.x += 1; // Derecha
+                localX += 1; // Derecha (positivo X en espacio local)
             }
             
-            // Normalizar dirección
+            // Rotar dirección local según la rotación de la cámara
+            // La rotación de la cámara es el ángulo alrededor del eje Y (horizontal)
+            // En nuestro sistema: Y negativo = adelante, Y positivo = atrás
+            // El ángulo de la cámara representa la dirección en la que mira
+            // Necesitamos rotar el vector de movimiento para que sea relativo a esa dirección
+            // Como Y negativo es adelante, necesitamos ajustar: el vector (0, -1) rotado por angle
+            // debería resultar en un vector que apunte en la dirección 'angle'
+            const cos = Math.cos(cameraRotation);
+            const sin = Math.sin(cameraRotation);
+            // Rotar vector (localX, localY) por el ángulo cameraRotation
+            // Pero invertimos el signo de Y en la rotación porque Y negativo es adelante
+            input.moveDirection.x = localX * cos - (-localY) * sin;
+            input.moveDirection.y = localX * sin + (-localY) * cos;
+            // Ahora invertimos Y de vuelta para mantener Y negativo como adelante
+            input.moveDirection.y = -input.moveDirection.y;
+            input.moveDirection.z = 0;
+            
+            // Normalizar dirección solo si hay movimiento
             const length = Math.sqrt(
                 input.moveDirection.x ** 2 + 
-                input.moveDirection.y ** 2 + 
-                input.moveDirection.z ** 2
+                input.moveDirection.y ** 2
             );
-            if (length > 0) {
+            if (length > 0.01) { // Umbral pequeño para evitar normalización cuando es casi cero
                 input.moveDirection.x /= length;
                 input.moveDirection.y /= length;
-                input.moveDirection.z /= length;
+            } else {
+                input.moveDirection.x = 0;
+                input.moveDirection.y = 0;
             }
             
             // Correr
             input.isRunning = input.isKeyPressed('ShiftLeft') || input.isKeyPressed('ShiftRight');
             
-            // Aplicar movimiento a física
-            const speed = input.isRunning ? 3 : 1.5; // celdas por segundo
-            physics.acceleration.x = input.moveDirection.x * speed;
-            physics.acceleration.z = input.moveDirection.z * speed;
+            // Resetear aceleración horizontal antes de aplicar nuevo input
+            physics.acceleration.x = 0;
+            physics.acceleration.y = 0; // Y es adelante/atrás, no Z
+            // Nota: acceleration.z se maneja en PhysicsSystem (gravedad)
+            
+            // Aplicar movimiento a física solo si hay dirección de movimiento
+            if (input.moveDirection.x !== 0 || input.moveDirection.y !== 0) {
+                const speed = input.isRunning ? 30 : 15; // celdas por segundo (aumentado a 15/30)
+                physics.acceleration.x = input.moveDirection.x * speed;
+                physics.acceleration.y = input.moveDirection.y * speed; // Y para adelante/atrás
+            }
             
             // Saltar (solo si está en el suelo)
             if (input.isKeyDown('Space') && physics.isGrounded) {

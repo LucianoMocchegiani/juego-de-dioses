@@ -55,10 +55,12 @@ export class RenderSystem extends System {
                 );
             }
             
-            // Orientación según dirección de movimiento
-            if (input && (input.moveDirection.x !== 0 || input.moveDirection.z !== 0)) {
-                const angle = Math.atan2(input.moveDirection.x, input.moveDirection.z);
-                render.mesh.rotation.y = angle;
+            // Orientación del personaje
+            // El personaje solo rota cuando se mueve la cámara (no cuando se presionan WASD)
+            // La rotación se actualiza desde CameraController cuando se rota la cámara
+            // Aquí solo aplicamos la rotación guardada
+            if (render.rotationY !== undefined) {
+                render.mesh.rotation.y = render.rotationY;
             }
             
             // Animación simple: balanceo al caminar/correr

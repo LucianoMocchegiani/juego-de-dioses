@@ -13,6 +13,14 @@ const statusEl = document.getElementById('status');
 const container = document.getElementById('canvas-container');
 const app = new App(container);
 
+// Asegurar que el contenedor tenga focus para capturar eventos de teclado
+container.focus();
+
+// Mantener focus cuando se hace click en el contenedor
+container.addEventListener('click', () => {
+    container.focus();
+});
+
 /**
  * Cargar y renderizar dimensión demo
  */

@@ -114,31 +114,57 @@ export class CollisionSystem extends System {
             }
             
             // Verificar colisión en dirección de movimiento
+            // X = izquierda/derecha, Y = adelante/atrás, Z = arriba/abajo
             const nextX = position.x + physics.velocity.x * deltaTime;
             const nextY = position.y + physics.velocity.y * deltaTime;
             const nextZ = position.z + physics.velocity.z * deltaTime;
             
-            // Verificar colisión lateral X
+            // Verificar colisión lateral X (izquierda/derecha)
             if (occupiedCells && this.collisionDetector.isCellOccupied(occupiedCells, nextX, position.y, position.z)) {
                 physics.velocity.x = 0;
             }
             
-            // Verificar colisión lateral Z
-            if (occupiedCells && this.collisionDetector.isCellOccupied(occupiedCells, position.x, position.y, nextZ)) {
-                physics.velocity.z = 0;
+            // Verificar colisión lateral Y (adelante/atrás)
+            if (occupiedCells && this.collisionDetector.isCellOccupied(occupiedCells, position.x, nextY, position.z)) {
+                physics.velocity.y = 0;
             }
             
-            // Verificar suelo (debajo)
-            const groundX = Math.floor(position.x);
-            const groundY = Math.floor(position.y) - 1;
-            const groundZ = Math.floor(position.z);
+            // Verificar suelo (debajo en Z)
+            // X = izquierda/derecha, Y = adelante/atrás, Z = arriba/abajo
+            const currentX = Math.floor(position.x);
+            const currentY = Math.floor(position.y);
+            const currentZ = Math.floor(position.z);
+            const groundZ = currentZ - 1; // Z es altura, suelo está abajo
             
-            if (occupiedCells && this.collisionDetector.isCellOccupied(occupiedCells, groundX, groundY, groundZ)) {
+            // Verificar si hay suelo debajo
+            let hasGround = false;
+            if (occupiedCells && occupiedCells.size > 0) {
+                // Verificar suelo directamente debajo
+                hasGround = this.collisionDetector.isCellOccupied(occupiedCells, currentX, currentY, groundZ);
+                
+                // Si no hay suelo debajo, verificar si estamos dentro de una partícula sólida (ajustar hacia arriba)
+                if (!hasGround && this.collisionDetector.isCellOccupied(occupiedCells, currentX, currentY, currentZ)) {
+                    // Estamos dentro de una partícula sólida, mover hacia arriba
+                    position.z = currentZ + 1;
+                    hasGround = false; // Aún no estamos en el suelo
+                }
+            } else {
+                // Si no hay partículas cargadas, verificar límites del terreno
+                // Si estamos muy abajo (z <= 1), asumir que hay suelo para prevenir caída infinita
+                if (this.dimension && position.z <= 1) {
+                    hasGround = true;
+                    position.z = 1;
+                    physics.velocity.z = 0;
+                }
+            }
+            
+            if (hasGround) {
                 physics.isGrounded = true;
-                if (physics.velocity.y < 0) {
-                    physics.velocity.y = 0;
-                    // Ajustar posición a superficie
-                    position.y = Math.floor(position.y) + 1;
+                if (physics.velocity.z < 0) { // Z es altura, negativo es hacia abajo
+                    physics.velocity.z = 0;
+                    // Ajustar posición a superficie (arriba del suelo)
+                    // Asegurar que esté exactamente arriba del suelo
+                    position.z = groundZ + 1;
                 }
             } else {
                 physics.isGrounded = false;
