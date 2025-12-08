@@ -20,8 +20,25 @@ export class RenderComponent {
         
         // Estado de agachado
         this.isCrouching = false;
-        this.normalScale = { x: 1, y: 1, z: 1 };
-        this.crouchScale = { x: 1, y: 0.6, z: 1 }; // Reducir altura al 60%
+        
+        // IMPORTANTE: Guardar la escala original del mesh cuando se asigna
+        // Si el mesh ya tiene una escala personalizada (ej: modelo 3D), preservarla
+        if (this.mesh) {
+            this.normalScale = {
+                x: this.mesh.scale.x,
+                y: this.mesh.scale.y,
+                z: this.mesh.scale.z
+            };
+        } else {
+            this.normalScale = { x: 1, y: 1, z: 1 };
+        }
+        
+        // Escala al agacharse (relativa a la escala normal)
+        this.crouchScale = {
+            x: this.normalScale.x,
+            y: this.normalScale.y * 0.6, // Reducir altura al 60%
+            z: this.normalScale.z
+        };
         
         // Rotación del personaje (en radianes, alrededor del eje Y)
         this.rotationY = 0;
@@ -37,6 +54,21 @@ export class RenderComponent {
             mesh.castShadow = this.castShadow;
             mesh.receiveShadow = this.receiveShadow;
             mesh.visible = this.visible;
+            
+            // IMPORTANTE: Guardar la escala original del mesh
+            // Esto preserva escalas personalizadas (ej: modelos 3D con escala 0.0025)
+            this.normalScale = {
+                x: mesh.scale.x,
+                y: mesh.scale.y,
+                z: mesh.scale.z
+            };
+            
+            // Actualizar escala de agacharse basada en la escala normal
+            this.crouchScale = {
+                x: this.normalScale.x,
+                y: this.normalScale.y * 0.6, // Reducir altura al 60%
+                z: this.normalScale.z
+            };
         }
     }
     

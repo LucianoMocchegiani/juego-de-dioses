@@ -385,6 +385,37 @@ class BipedGeometry(BaseModel):
     partes: Dict[str, BipedGeometryPart] = Field(..., description="Diccionario de partes del cuerpo con sus geometrías")
 
 
+# ===== Modelos 3D (definir antes de CharacterResponse) =====
+class Model3DOffset(BaseModel):
+    """Offset del modelo 3D en metros"""
+    x: float = Field(default=0.0, description="Offset X en metros")
+    y: float = Field(default=0.0, description="Offset Y en metros")
+    z: float = Field(default=0.0, description="Offset Z en metros")
+
+
+class Model3DRotation(BaseModel):
+    """Rotación del modelo 3D en grados"""
+    x: float = Field(default=0.0, ge=0, le=360, description="Rotación X en grados")
+    y: float = Field(default=0.0, ge=0, le=360, description="Rotación Y en grados")
+    z: float = Field(default=0.0, ge=0, le=360, description="Rotación Z en grados")
+
+
+class Model3D(BaseModel):
+    """Modelo 3D asociado a una agrupación"""
+    tipo: Literal["gltf", "glb", "obj"] = Field(..., description="Tipo de modelo (gltf, glb, obj)")
+    ruta: str = Field(..., description="Ruta relativa del modelo (ej: 'characters/humano.glb')")
+    escala: float = Field(default=1.0, gt=0, description="Escala del modelo (multiplicador)")
+    offset: Optional[Model3DOffset] = Field(default=None, description="Offset del modelo en metros")
+    rotacion: Optional[Model3DRotation] = Field(default=None, description="Rotación del modelo en grados")
+    
+    @validator('ruta')
+    def validate_ruta(cls, v):
+        """Validar que la ruta no contenga path traversal"""
+        if '..' in v or v.startswith('/'):
+            raise ValueError("Ruta inválida: no puede contener '..' o ser absoluta")
+        return v
+
+
 class CharacterResponse(BaseModel):
     """Respuesta con información completa de un personaje"""
     id: str = Field(..., description="ID del personaje (agrupación)")
@@ -394,6 +425,7 @@ class CharacterResponse(BaseModel):
     especie: str = Field(..., description="Especie del personaje (ej: 'humano')")
     posicion: Dict[str, int] = Field(..., description="Posición {x, y, z} en celdas")
     geometria_agrupacion: Optional[BipedGeometry] = Field(None, description="Geometría de agrupación del personaje")
+    modelo_3d: Optional[Model3D] = Field(None, description="Modelo 3D asociado al personaje")
     particulas_count: int = Field(..., description="Cantidad de partículas que forman el personaje")
 
 

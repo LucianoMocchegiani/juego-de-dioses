@@ -43,7 +43,22 @@ export class CameraController {
          * Distancia de la cámara al objetivo (en metros)
          * @type {number}
          */
-        this.distance = 2.5;
+        this.distance = 10.0; // Aumentado para ver mejor modelos pequeños (el modelo tiene 0.19m)
+        
+        /**
+         * Distancia mínima y máxima de la cámara (en metros)
+         * @type {Object}
+         */
+        this.distanceLimits = {
+            min: 1.0,  // Mínimo: 1 metro
+            max: 20.0  // Máximo: 20 metros
+        };
+        
+        /**
+         * Velocidad de zoom (cuánto cambia la distancia por scroll)
+         * @type {number}
+         */
+        this.zoomSpeed = 0.5;
         
         /**
          * Altura de la cámara sobre el objetivo (en metros)
@@ -103,6 +118,21 @@ export class CameraController {
         const targetX = position.x * this.cellSize;
         const targetY = position.z * this.cellSize; // Z en celdas es altura en Three.js
         const targetZ = position.y * this.cellSize;
+        
+        // Zoom con rueda del mouse
+        if (this.inputManager) {
+            const wheelDelta = this.inputManager.getWheelDelta();
+            if (wheelDelta !== 0) {
+                // Ajustar distancia (wheelDelta positivo = acercar, negativo = alejar)
+                this.distance += wheelDelta * this.zoomSpeed;
+                
+                // Limitar distancia
+                this.distance = Math.max(
+                    this.distanceLimits.min,
+                    Math.min(this.distanceLimits.max, this.distance)
+                );
+            }
+        }
         
         // Rotar cámara con click derecho + mouse
         if (this.inputManager && this.inputManager.isMouseButtonPressed(2)) { // Botón derecho (2)

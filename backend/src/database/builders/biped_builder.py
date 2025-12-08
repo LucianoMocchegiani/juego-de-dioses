@@ -4,16 +4,18 @@ import asyncpg
 import json
 from src.database.builders.base import BaseBuilder
 from src.database.templates.bipedos.base import BipedTemplate
+from src.models.schemas import Model3D
 
 
 class BipedBuilder(BaseBuilder):
     """Builder para crear bípedos usando BipedTemplate"""
     
-    def __init__(self, template: BipedTemplate):
+    def __init__(self, template: BipedTemplate, modelo_3d: Optional[Model3D] = None):
         if not isinstance(template, BipedTemplate):
             raise ValueError(f"BipedBuilder requiere BipedTemplate, recibió {type(template)}")
         super().__init__(template)
         self.template: BipedTemplate = template  # Type hint específico
+        self.modelo_3d: Optional[Model3D] = modelo_3d  # Modelo 3D opcional
     
     async def create_at_position(
         self,
@@ -117,13 +119,18 @@ class BipedBuilder(BaseBuilder):
         # Construir geometria_agrupacion
         geometria = self._build_geometria_agrupacion(tamano_celda)
         
+        # Incluir modelo_3d si está disponible
+        modelo_3d_json = None
+        if self.modelo_3d:
+            modelo_3d_json = json.dumps(self.modelo_3d.dict())
+        
         agrupacion_id = await conn.fetchval("""
             INSERT INTO juego_dioses.agrupaciones
-            (dimension_id, nombre, tipo, especie, geometria_agrupacion, posicion_x, posicion_y, posicion_z)
-            VALUES ($1, $2, $3, $4, $5::jsonb, $6, $7, $8)
+            (dimension_id, nombre, tipo, especie, geometria_agrupacion, modelo_3d, posicion_x, posicion_y, posicion_z)
+            VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7, $8, $9)
             RETURNING id
         """, dimension_id, metadata['nombre'], metadata['tipo'], metadata['especie'], 
-            json.dumps(geometria), x, y, z)
+            json.dumps(geometria), modelo_3d_json, x, y, z)
         
         return agrupacion_id
     

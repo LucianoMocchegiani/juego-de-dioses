@@ -23,7 +23,7 @@ export class CharactersApi {
         try {
             return await this.client.get(endpoint);
         } catch (error) {
-            console.error('Error al obtener personaje:', error);
+            // console.error('Error al obtener personaje:', error);
             throw new Error(`Error al obtener personaje: ${error.message}`);
         }
     }
@@ -39,7 +39,7 @@ export class CharactersApi {
         try {
             return await this.client.get(endpoint);
         } catch (error) {
-            console.error('Error al listar personajes:', error);
+            // console.error('Error al listar personajes:', error);
             throw new Error(`Error al listar personajes: ${error.message}`);
         }
     }
@@ -64,8 +64,25 @@ export class CharactersApi {
                 z
             });
         } catch (error) {
-            console.error('Error al crear personaje:', error);
+            // console.error('Error al crear personaje:', error);
             throw new Error(`Error al crear personaje: ${error.message}`);
+        }
+    }
+    
+    /**
+     * Obtener URL y metadatos del modelo 3D de un personaje
+     * @param {string} dimensionId - ID de la dimensión
+     * @param {string} characterId - ID del personaje
+     * @returns {Promise<Object>} - { model_url, metadata }
+     */
+    async getCharacterModel(dimensionId, characterId) {
+        const endpoint = `/dimensions/${dimensionId}/characters/${characterId}/model`;
+        
+        try {
+            return await this.client.get(endpoint);
+        } catch (error) {
+            // console.error('Error al obtener modelo del personaje:', error);
+            throw new Error(`Error al obtener modelo del personaje: ${error.message}`);
         }
     }
 }
@@ -120,5 +137,18 @@ export async function createCharacter(dimensionId, templateId, x, y, z) {
         throw new Error('CharactersApi no inicializado. Llama a initCharactersApi() primero.');
     }
     return await defaultClient.createCharacter(dimensionId, templateId, x, y, z);
+}
+
+/**
+ * Obtener URL y metadatos del modelo 3D de un personaje (función helper)
+ * @param {string} dimensionId - ID de la dimensión
+ * @param {string} characterId - ID del personaje
+ * @returns {Promise<Object>} - { model_url, metadata }
+ */
+export async function getCharacterModel(dimensionId, characterId) {
+    if (!defaultClient) {
+        throw new Error('CharactersApi no inicializado. Llama a initCharactersApi() primero.');
+    }
+    return await defaultClient.getCharacterModel(dimensionId, characterId);
 }
 

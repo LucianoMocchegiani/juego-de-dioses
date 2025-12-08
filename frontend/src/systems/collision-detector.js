@@ -76,7 +76,7 @@ export class CollisionDetector {
             
             return occupiedCells;
         } catch (error) {
-            console.error('Error al consultar partículas para colisiones:', error);
+            // console.error('Error al consultar partículas para colisiones:', error);
             // Retornar set vacío en caso de error
             return new Set();
         }

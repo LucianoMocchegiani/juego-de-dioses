@@ -62,12 +62,13 @@ class EntityCreator:
             self._state_cache[nombre] = state_id
         return self._state_cache[nombre]
     
-    def _get_builder(self, template: BaseTemplate) -> BaseBuilder:
+    def _get_builder(self, template: BaseTemplate, **kwargs) -> BaseBuilder:
         """
         Obtener builder apropiado según el template
         
         Args:
             template: Template de la entidad a crear
+            **kwargs: Parámetros adicionales para el builder (ej: modelo_3d)
         
         Returns:
             Builder apropiado para el template
@@ -78,7 +79,8 @@ class EntityCreator:
         if template.categoria == 'tree':
             return TreeBuilder(template)
         elif template.categoria == 'biped':
-            return BipedBuilder(template)
+            modelo_3d = kwargs.get('modelo_3d')
+            return BipedBuilder(template, modelo_3d=modelo_3d)
         # Futuro: elif template.categoria == 'plant': return PlantBuilder(template)
         # Futuro: elif template.categoria == 'animal': return AnimalBuilder(template)
         else:
@@ -90,7 +92,8 @@ class EntityCreator:
         x: int,
         y: int,
         z: int,
-        create_agrupacion: bool = True
+        create_agrupacion: bool = True,
+        **kwargs
     ) -> int:
         """
         Crear una entidad usando un template
@@ -106,7 +109,7 @@ class EntityCreator:
         Raises:
             ValueError: Si faltan tipos de partículas o estados de materia
         """
-        builder = self._get_builder(template)
+        builder = self._get_builder(template, **kwargs)
         
         # Crear agrupación si está habilitado y el builder lo soporta
         agrupacion_id = None

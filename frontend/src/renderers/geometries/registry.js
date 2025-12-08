@@ -112,14 +112,14 @@ export class GeometryRegistry {
     create(tipo, params = {}, cellSize = 0.25) {
         const factory = this.geometries.get(tipo);
         if (!factory) {
-            console.warn(`Geometría desconocida: ${tipo}, usando box`);
+            // console.warn(`Geometría desconocida: ${tipo}, usando box`);
             return new THREE.BoxGeometry(cellSize, cellSize, cellSize);
         }
         
         try {
             return factory(params, cellSize);
         } catch (error) {
-            console.error(`Error creando geometría ${tipo}:`, error);
+            // console.error(`Error creando geometría ${tipo}:`, error);
             return new THREE.BoxGeometry(cellSize, cellSize, cellSize);
         }
     }

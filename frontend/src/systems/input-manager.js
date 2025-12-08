@@ -61,6 +61,12 @@ export class InputManager {
         this.lastMousePosition = { x: 0, y: 0 };
         
         /**
+         * Scroll del mouse (wheel delta)
+         * @type {number}
+         */
+        this.wheelDelta = 0;
+        
+        /**
          * Si el mouse está bloqueado (para FPS controls)
          * @type {boolean}
          */
@@ -72,6 +78,7 @@ export class InputManager {
         this.handleMouseDown = this.handleMouseDown.bind(this);
         this.handleMouseUp = this.handleMouseUp.bind(this);
         this.handleMouseMove = this.handleMouseMove.bind(this);
+        this.handleWheel = this.handleWheel.bind(this);
         this.handleContextMenu = this.handleContextMenu.bind(this);
         
         // Agregar event listeners
@@ -87,6 +94,7 @@ export class InputManager {
         document.addEventListener('mousedown', this.handleMouseDown);
         document.addEventListener('mouseup', this.handleMouseUp);
         document.addEventListener('mousemove', this.handleMouseMove);
+        document.addEventListener('wheel', this.handleWheel, { passive: false });
         document.addEventListener('contextmenu', this.handleContextMenu);
     }
     
@@ -99,6 +107,7 @@ export class InputManager {
         document.removeEventListener('mousedown', this.handleMouseDown);
         document.removeEventListener('mouseup', this.handleMouseUp);
         document.removeEventListener('mousemove', this.handleMouseMove);
+        document.removeEventListener('wheel', this.handleWheel);
         document.removeEventListener('contextmenu', this.handleContextMenu);
     }
     
@@ -175,6 +184,29 @@ export class InputManager {
      * Prevenir menú contextual (click derecho)
      * @param {MouseEvent} event - Evento de mouse
      */
+    /**
+     * Manejar rueda del mouse (zoom)
+     * @param {WheelEvent} event - Evento de rueda
+     */
+    handleWheel(event) {
+        // Prevenir scroll de página
+        event.preventDefault();
+        
+        // Guardar delta (positivo = alejar, negativo = acercar)
+        // Normalizar para que sea consistente entre navegadores
+        this.wheelDelta = event.deltaY > 0 ? 1 : -1;
+    }
+    
+    /**
+     * Obtener delta de la rueda del mouse y resetearlo
+     * @returns {number} Delta de la rueda (-1 = acercar, 1 = alejar, 0 = sin cambio)
+     */
+    getWheelDelta() {
+        const delta = this.wheelDelta;
+        this.wheelDelta = 0; // Resetear después de leer
+        return delta;
+    }
+    
     handleContextMenu(event) {
         // Prevenir menú contextual cuando se usa click derecho para rotar cámara
         // Siempre prevenir en modo juego para mejor experiencia

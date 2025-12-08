@@ -124,10 +124,10 @@ export class ParticleRenderer extends BaseRenderer {
             );
             
             // Log para debugging (remover en producción o hacer configurable)
-            if (particles.length !== particlesToRender.length) {
-                const reduction = ((1 - particlesToRender.length / particles.length) * 100).toFixed(1);
-                console.log(`Frustum culling: ${particles.length} -> ${particlesToRender.length} partículas (reducción: ${reduction}%)`);
-            }
+            // if (particles.length !== particlesToRender.length) {
+            //     const reduction = ((1 - particlesToRender.length / particles.length) * 100).toFixed(1);
+            //     console.log(`Frustum culling: ${particles.length} -> ${particlesToRender.length} partículas (reducción: ${reduction}%)`);
+            // }
         }
         
         // 2. Aplicar LOD si está habilitado y se proporciona cámara
@@ -151,10 +151,10 @@ export class ParticleRenderer extends BaseRenderer {
             );
             
             // Log para debugging
-            if (beforeLimit !== particlesToRender.length) {
-                const reduction = ((1 - particlesToRender.length / beforeLimit) * 100).toFixed(1);
-                console.log(`Particle limiting: ${beforeLimit} -> ${particlesToRender.length} partículas (reducción: ${reduction}%)`);
-            }
+            // if (beforeLimit !== particlesToRender.length) {
+            //     const reduction = ((1 - particlesToRender.length / beforeLimit) * 100).toFixed(1);
+            //     console.log(`Particle limiting: ${beforeLimit} -> ${particlesToRender.length} partículas (reducción: ${reduction}%)`);
+            // }
         }
         
         // 3. Ordenar partículas por profundidad (celda_z) de mayor a menor
@@ -301,7 +301,7 @@ export class ParticleRenderer extends BaseRenderer {
             }
         });
         
-        console.log(`Renderizadas ${particlesToRender.length} partículas (de ${particles.length} totales) en ${particlesByGeometry.size} grupos instanciados`);
+        // console.log(`Renderizadas ${particlesToRender.length} partículas (de ${particles.length} totales) en ${particlesByGeometry.size} grupos instanciados`);
         return instancedMeshes;
     }
     
