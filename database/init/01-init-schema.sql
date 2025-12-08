@@ -147,6 +147,9 @@ CREATE TABLE IF NOT EXISTS agrupaciones (
     -- Geometría especializada de la agrupación
     geometria_agrupacion JSONB DEFAULT '{}'::jsonb,
     
+    -- Modelo 3D asociado a la agrupación
+    modelo_3d JSONB,
+    
     -- Metadatos
     creado_por UUID,
     creado_en TIMESTAMP DEFAULT NOW(),
@@ -159,6 +162,7 @@ CREATE INDEX IF NOT EXISTS idx_agrupaciones_dimension_tipo ON agrupaciones(dimen
 CREATE INDEX IF NOT EXISTS idx_agrupaciones_nombre ON agrupaciones(nombre);
 CREATE INDEX IF NOT EXISTS idx_agrupaciones_especie ON agrupaciones(especie);
 CREATE INDEX IF NOT EXISTS idx_agrupaciones_geometria ON agrupaciones USING GIN (geometria_agrupacion);
+CREATE INDEX IF NOT EXISTS idx_agrupaciones_modelo_3d ON agrupaciones USING GIN (modelo_3d);
 
 -- Agregar foreign key de agrupacion_id en particulas
 ALTER TABLE particulas 
@@ -190,6 +194,19 @@ COMMENT ON COLUMN juego_dioses.agrupaciones.geometria_agrupacion IS
 }
 Los parámetros son RELATIVOS a tamano_celda de la dimensión.
 Tamaño absoluto = parametro × tamano_celda × escala';
+
+-- Comentario para documentar el campo modelo_3d
+COMMENT ON COLUMN juego_dioses.agrupaciones.modelo_3d IS 
+'Modelo 3D asociado a la agrupación. Formato JSON:
+{
+  "tipo": "gltf|glb|obj",
+  "ruta": "characters/humano.glb",
+  "escala": 1.0,
+  "offset": {"x": 0, "y": 0, "z": 0},
+  "rotacion": {"x": 0, "y": 0, "z": 0}
+}
+El modelo se almacena en backend/static/models/ y se sirve en /static/models/{ruta}.
+Si este campo está presente, el frontend debe cargar el modelo 3D en lugar de usar geometria_agrupacion.';
 
 -- Mensaje de confirmación
 DO $$
