@@ -9,7 +9,7 @@ import json
 from src.database.connection import get_connection
 from src.database.templates.bipedos.registry import get_biped_template, list_biped_template_ids
 from src.database.creators.entity_creator import EntityCreator
-from src.models.schemas import CharacterResponse, CharacterCreate, BipedGeometry
+from src.models.schemas import CharacterResponse, CharacterCreate, BipedGeometry, Model3D
 from src.models.schemas import parse_jsonb_field
 
 router = APIRouter(prefix="/dimensions/{dimension_id}/characters", tags=["characters"])
@@ -33,9 +33,9 @@ async def get_character(
         if not dim_exists:
             raise HTTPException(status_code=404, detail="Dimensión no encontrada")
         
-        # Obtener agrupación (incluyendo posición)
+        # Obtener agrupación (incluyendo posición y modelo_3d)
         agrupacion = await conn.fetchrow("""
-            SELECT id, nombre, tipo, especie, geometria_agrupacion, posicion_x, posicion_y, posicion_z
+            SELECT id, nombre, tipo, especie, geometria_agrupacion, modelo_3d, posicion_x, posicion_y, posicion_z
             FROM juego_dioses.agrupaciones
             WHERE id = $1 AND dimension_id = $2
         """, character_id, dimension_id)
@@ -61,6 +61,17 @@ async def get_character(
                     # Si hay error parseando, continuar sin geometría
                     print(f"Error parseando geometria_agrupacion: {e}")
         
+        # Parsear modelo_3d
+        modelo_3d = None
+        if agrupacion['modelo_3d']:
+            modelo_3d_data = parse_jsonb_field(agrupacion['modelo_3d'])
+            if modelo_3d_data:
+                try:
+                    modelo_3d = Model3D(**modelo_3d_data)
+                except Exception as e:
+                    # Si hay error parseando, continuar sin modelo
+                    print(f"Error parseando modelo_3d: {e}")
+        
         return CharacterResponse(
             id=str(agrupacion['id']),
             dimension_id=str(dimension_id),
@@ -73,6 +84,7 @@ async def get_character(
                 'z': agrupacion['posicion_z'] or 0
             },
             geometria_agrupacion=geometria,
+            modelo_3d=modelo_3d,
             particulas_count=0  # Los bípedos no tienen partículas físicas
         )
 
@@ -94,12 +106,13 @@ async def list_characters(
         if not dim_exists:
             raise HTTPException(status_code=404, detail="Dimensión no encontrada")
         
-        # Obtener todas las agrupaciones de tipo 'biped' (incluyendo posición)
+        # Obtener todas las agrupaciones de tipo 'biped' (incluyendo posición y modelo_3d)
+        # Ordenar por fecha de creación DESC para que el más reciente aparezca primero
         agrupaciones = await conn.fetch("""
-            SELECT id, nombre, tipo, especie, geometria_agrupacion, posicion_x, posicion_y, posicion_z
+            SELECT id, nombre, tipo, especie, geometria_agrupacion, modelo_3d, posicion_x, posicion_y, posicion_z
             FROM juego_dioses.agrupaciones
             WHERE dimension_id = $1 AND tipo = 'biped'
-            ORDER BY nombre
+            ORDER BY creado_en DESC
         """, dimension_id)
         
         characters = []
@@ -117,6 +130,17 @@ async def list_characters(
                         # Si hay error parseando, continuar sin geometría
                         print(f"Error parseando geometria_agrupacion: {e}")
             
+            # Parsear modelo_3d
+            modelo_3d = None
+            if agrupacion['modelo_3d']:
+                modelo_3d_data = parse_jsonb_field(agrupacion['modelo_3d'])
+                if modelo_3d_data:
+                    try:
+                        modelo_3d = Model3D(**modelo_3d_data)
+                    except Exception as e:
+                        # Si hay error parseando, continuar sin modelo
+                        print(f"Error parseando modelo_3d: {e}")
+            
             characters.append(CharacterResponse(
                 id=str(agrupacion['id']),
                 dimension_id=str(dimension_id),
@@ -129,10 +153,61 @@ async def list_characters(
                     'z': agrupacion['posicion_z'] or 0
                 },
                 geometria_agrupacion=geometria,
+                modelo_3d=modelo_3d,
                 particulas_count=0  # Los bípedos no tienen partículas físicas
             ))
         
         return characters
+
+
+@router.get("/{character_id}/model")
+async def get_character_model(
+    dimension_id: UUID = Path(..., description="ID de la dimensión"),
+    character_id: UUID = Path(..., description="ID del personaje")
+):
+    """
+    Obtener URL y metadatos del modelo 3D de un personaje
+    """
+    async with get_connection() as conn:
+        # Verificar que la dimensión existe
+        dim_exists = await conn.fetchval(
+            "SELECT EXISTS(SELECT 1 FROM juego_dioses.dimensiones WHERE id = $1)",
+            dimension_id
+        )
+        
+        if not dim_exists:
+            raise HTTPException(status_code=404, detail="Dimensión no encontrada")
+        
+        # Obtener modelo_3d de la agrupación
+        agrupacion = await conn.fetchrow("""
+            SELECT modelo_3d
+            FROM juego_dioses.agrupaciones
+            WHERE id = $1 AND dimension_id = $2 AND tipo = 'biped'
+        """, character_id, dimension_id)
+        
+        if not agrupacion:
+            raise HTTPException(status_code=404, detail="Personaje no encontrado")
+        
+        if not agrupacion['modelo_3d']:
+            raise HTTPException(status_code=404, detail="Personaje no tiene modelo 3D")
+        
+        # Parsear modelo_3d
+        modelo_3d_data = parse_jsonb_field(agrupacion['modelo_3d'])
+        if not modelo_3d_data:
+            raise HTTPException(status_code=404, detail="Modelo 3D no válido")
+        
+        try:
+            modelo_3d = Model3D(**modelo_3d_data)
+        except Exception as e:
+            raise HTTPException(status_code=400, detail=f"Error parseando modelo_3d: {str(e)}")
+        
+        # Construir URL completa
+        model_url = f"/static/models/{modelo_3d.ruta}"
+        
+        return {
+            "model_url": model_url,
+            "metadata": modelo_3d.dict()
+        }
 
 
 @router.post("", response_model=CharacterResponse, status_code=201)
@@ -186,9 +261,9 @@ async def create_character(
             raise HTTPException(status_code=500, detail=f"Error al crear personaje: {str(e)}")
         
         # Obtener la agrupación creada (última creada en esta dimensión de tipo biped)
-        # Incluir posición en la consulta
+        # Incluir posición y modelo_3d en la consulta
         agrupacion = await conn.fetchrow("""
-            SELECT id, nombre, tipo, especie, geometria_agrupacion, posicion_x, posicion_y, posicion_z
+            SELECT id, nombre, tipo, especie, geometria_agrupacion, modelo_3d, posicion_x, posicion_y, posicion_z
             FROM juego_dioses.agrupaciones
             WHERE dimension_id = $1 AND tipo = 'biped'
             ORDER BY creado_en DESC
@@ -211,6 +286,17 @@ async def create_character(
                     # Si hay error parseando, continuar sin geometría
                     print(f"Error parseando geometria_agrupacion: {e}")
         
+        # Parsear modelo_3d
+        modelo_3d = None
+        if agrupacion['modelo_3d']:
+            modelo_3d_data = parse_jsonb_field(agrupacion['modelo_3d'])
+            if modelo_3d_data:
+                try:
+                    modelo_3d = Model3D(**modelo_3d_data)
+                except Exception as e:
+                    # Si hay error parseando, continuar sin modelo
+                    print(f"Error parseando modelo_3d: {e}")
+        
         return CharacterResponse(
             id=str(agrupacion['id']),
             dimension_id=str(dimension_id),
@@ -223,6 +309,7 @@ async def create_character(
                 'z': agrupacion['posicion_z'] or character_data.z
             },
             geometria_agrupacion=geometria,
+            modelo_3d=modelo_3d,
             particulas_count=0  # Los bípedos no tienen partículas físicas
         )
 

@@ -106,7 +106,7 @@ export class CollisionSystem extends System {
                     ).then(cells => {
                         this.entityCollisionCache.set(entityId, cells);
                     }).catch(error => {
-                        console.error('Error en detección de colisiones:', error);
+                        // console.error('Error en detección de colisiones:', error);
                     });
                     // Por ahora, usar set vacío hasta que llegue la respuesta
                     occupiedCells = new Set();

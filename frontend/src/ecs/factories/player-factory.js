@@ -7,6 +7,7 @@ import * as THREE from 'three';
 import { PositionComponent, PhysicsComponent, RenderComponent, InputComponent, AnimationComponent } from '../components/index.js';
 import { GeometryRegistry } from '../../renderers/geometries/registry.js';
 import { getCharacter, createCharacter } from '../../api/endpoints/characters.js';
+import { loadModel3D } from '../../renderers/models/model-utils.js';
 
 /**
  * Construir mesh Three.js desde geometria_agrupacion
@@ -53,7 +54,7 @@ function buildMeshFromGeometry(geometria_agrupacion, cellSize) {
                 cellSize
             );
         } catch (error) {
-            console.warn(`Error creando geometría ${geometria.tipo} para parte ${parteNombre}:`, error);
+            // console.warn(`Error creando geometría ${geometria.tipo} para parte ${parteNombre}:`, error);
             continue; // Saltar esta parte si hay error
         }
         
@@ -167,24 +168,38 @@ export class PlayerFactory {
             // Si hay characterId, cargar desde API
             if (characterId && dimensionId) {
                 character = await getCharacter(dimensionId, characterId);
-                mesh = buildMeshFromGeometry(character.geometria_agrupacion, cellSize);
             }
             // Si hay templateId, crear personaje primero
             else if (templateId && dimensionId) {
                 character = await createCharacter(dimensionId, templateId, x, y, z);
-                mesh = buildMeshFromGeometry(character.geometria_agrupacion, cellSize);
             }
-            // Fallback a mesh hardcodeado
-            else {
+            
+            // Prioridad: modelo_3d > geometria_agrupacion > default
+            // IMPORTANTE: Si hay modelo_3d, NO renderizar geometria_agrupacion (evitar doble renderizado)
+            if (character?.modelo_3d) {
+                try {
+                    mesh = await loadModel3D(character.modelo_3d, cellSize);
+                } catch (error) {
+                    // Fallback a geometria_agrupacion
+                    if (character?.geometria_agrupacion) {
+                        mesh = buildMeshFromGeometry(character.geometria_agrupacion, cellSize);
+                    } else {
+                        mesh = createDefaultMesh(cellSize);
+                    }
+                }
+            } else if (character?.geometria_agrupacion) {
+                mesh = buildMeshFromGeometry(character.geometria_agrupacion, cellSize);
+            } else {
                 mesh = createDefaultMesh(cellSize);
             }
         } catch (error) {
-            console.warn('Error al cargar personaje desde BD, usando fallback:', error);
             mesh = createDefaultMesh(cellSize);
         }
         
         // Agregar a la escena
-        scene.add(mesh);
+        if (mesh) {
+            scene.add(mesh);
+        }
         
         // Usar posición del personaje si está disponible
         const finalX = character?.posicion?.x ?? x;
@@ -204,12 +219,15 @@ export class PlayerFactory {
             maxVelocity: { x: 5, y: 10, z: 5 } // Velocidad máxima en celdas/segundo
         }));
         
-        ecs.addComponent(playerId, 'Render', new RenderComponent({
-            mesh: mesh,
+        // IMPORTANTE: Crear RenderComponent y luego asignar el mesh
+        // Esto asegura que la escala original del mesh se preserve
+        const renderComponent = new RenderComponent({
             visible: true,
             castShadow: true,
             receiveShadow: true
-        }));
+        });
+        renderComponent.setMesh(mesh); // Esto guardará la escala original del mesh
+        ecs.addComponent(playerId, 'Render', renderComponent);
         
         ecs.addComponent(playerId, 'Input', new InputComponent());
         

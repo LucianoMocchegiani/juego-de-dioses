@@ -43,7 +43,7 @@ async function loadDemo() {
         statusEl.className = 'success';
         
     } catch (error) {
-        console.error('Error cargando demo:', error);
+        // console.error('Error cargando demo:', error);
         loadingEl.textContent = `Error: ${error.message}`;
         loadingEl.className = 'error';
         statusEl.textContent = `Error: ${error.message}`;

@@ -18,6 +18,7 @@ Template → Builder → Lista de Tuplas → Base de Datos
 
 - **`BaseBuilder`**: Clase abstracta que define la interfaz común
 - **`TreeBuilder`**: Implementación específica para árboles
+- **`BipedBuilder`**: Implementación para bípedos (personajes)
 - **`PlantBuilder`**: (Futuro) Implementación para plantas
 - **`CuadripedoBuilder`**: (Futuro) Implementación para animales de cuatro patas
 
