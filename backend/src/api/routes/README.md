@@ -112,7 +112,7 @@ GET /api/v1/dimensions/{dimension_id}/characters/{character_id}/model
 - `400` - Error parseando modelo_3d
 
 **Templates disponibles:**
-- `humano` - Personaje humano básico
+- `humano` - Personaje humano básico (usa modelo `Human.glb` por defecto)
 
 **Errores (crear personaje):**
 - `404` - Dimensión no encontrada
@@ -142,4 +142,9 @@ El campo `modelo_3d` en `CharacterResponse` es opcional. Si está presente, el f
 1. `modelo_3d` (si existe)
 2. `geometria_agrupacion` (si existe)
 3. Mesh por defecto (fallback)
+
+**Modelo principal:**
+- `Human.glb` - Modelo humanoide voxel/low-poly con vertex groups para sistema de daño por partes (JDG-014)
+  - Vertex groups: head, torso, left_arm, right_arm, left_leg, right_leg
+  - Ubicación: `backend/static/models/characters/Human.glb`
 

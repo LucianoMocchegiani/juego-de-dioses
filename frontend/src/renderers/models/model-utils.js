@@ -7,26 +7,10 @@
 import * as THREE from 'three';
 import { ModelLoader } from './model-loader.js';
 import { ModelCache } from './model-cache.js';
+import { getBackendBaseUrl } from '../../utils/config.js';
 
 const modelLoader = new ModelLoader();
 const modelCache = ModelCache.getInstance();
-
-/**
- * Obtener URL base del backend para archivos estáticos
- * @returns {string} URL base del backend
- * 
- * NOTA: Esta función duplica la lógica de API_BASE_URL en api/client.js
- * TODO: Extraer a un módulo común de configuración
- */
-function getBackendBaseUrl() {
-    // Misma lógica que ApiClient: si está en Docker (nginx proxy), usar ruta relativa
-    // Si está en desarrollo local, usar URL completa del backend
-    if (window.location.hostname === 'localhost' && window.location.port === '8080') {
-        return '';  // Nginx proxy (Docker) - rutas relativas funcionan
-    } else {
-        return 'http://localhost:8000';  // Desarrollo local directo
-    }
-}
 
 /**
  * Cargar modelo 3D y aplicar transformaciones
@@ -91,22 +75,46 @@ function applyTransformations(model, modelo3d, cellSize) {
     // Mapear ejes: juego (x,y,z) -> Three.js (x,z,y)
     // Juego: X=izq/der, Y=adelante/atrás, Z=arriba/abajo
     // Three.js: X=izq/der, Y=arriba/abajo, Z=adelante/atrás
+    // IMPORTANTE: Guardar el offset en userData para que RenderSystem lo pueda usar
     if (modelo3d.offset) {
-        transformed.position.set(
-            (modelo3d.offset.x || 0),
-            (modelo3d.offset.z || 0), // Z del juego -> Y de Three.js (altura)
-            (modelo3d.offset.y || 0)  // Y del juego -> Z de Three.js (profundidad)
-        );
+        const offsetX = modelo3d.offset.x || 0;
+        const offsetY = modelo3d.offset.z || 0; // Z del juego -> Y de Three.js (altura)
+        const offsetZ = modelo3d.offset.y || 0; // Y del juego -> Z de Three.js (profundidad)
+        
+        // Guardar offset en userData para que RenderSystem lo sume a la posición
+        transformed.userData.modelOffset = {
+            x: offsetX,
+            y: offsetY,
+            z: offsetZ
+        };
+        
+        // Aplicar offset inicial (RenderSystem sumará este offset a la posición del personaje)
+        transformed.position.set(offsetX, offsetY, offsetZ);
+    } else {
+        // Sin offset, inicializar a cero
+        transformed.userData.modelOffset = { x: 0, y: 0, z: 0 };
     }
     
     // Aplicar rotación (convertir grados a radianes)
     // Mapear rotaciones igual que posiciones
+    // IMPORTANTE: Guardar la rotación inicial en userData para que RenderSystem la pueda usar
     if (modelo3d.rotacion) {
-        transformed.rotation.set(
-            ((modelo3d.rotacion.x || 0) * Math.PI) / 180,  // X igual
-            ((modelo3d.rotacion.z || 0) * Math.PI) / 180, // Z del juego -> Y de Three.js
-            ((modelo3d.rotacion.y || 0) * Math.PI) / 180  // Y del juego -> Z de Three.js
-        );
+        const rotX = ((modelo3d.rotacion.x || 0) * Math.PI) / 180;  // X igual
+        const rotY = ((modelo3d.rotacion.z || 0) * Math.PI) / 180; // Z del juego -> Y de Three.js
+        const rotZ = ((modelo3d.rotacion.y || 0) * Math.PI) / 180; // Y del juego -> Z de Three.js
+        
+        // Guardar rotación inicial en userData (especialmente Y para que RenderSystem la sume)
+        transformed.userData.modelRotation = {
+            x: rotX,
+            y: rotY,  // Esta es la rotación Y inicial del modelo
+            z: rotZ
+        };
+        
+        // Aplicar rotación inicial
+        transformed.rotation.set(rotX, rotY, rotZ);
+    } else {
+        // Sin rotación inicial, inicializar a cero
+        transformed.userData.modelRotation = { x: 0, y: 0, z: 0 };
     }
     
     // Habilitar sombras por defecto

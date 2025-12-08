@@ -1,8 +1,19 @@
 """
-Script para crear personaje con modelo 3D de prueba
+Script para crear personaje con modelo 3D
 
 Este script crea un personaje humano con un modelo 3D asociado.
-Requiere que exista un modelo GLB en backend/static/models/characters/humano_test.glb
+Modelo principal: Human.glb (voxel/low-poly con vertex groups)
+Ubicación: backend/static/models/characters/Human.glb
+
+Vertex groups disponibles:
+- head
+- torso
+- left_arm
+- right_arm
+- left_leg
+- right_leg
+
+Este modelo prepara el terreno para JDG-014 (Sistema de Daño por Partes del Cuerpo).
 """
 import asyncio
 import sys
@@ -17,6 +28,7 @@ from src.database.templates.bipedos.registry import get_biped_template
 from src.database.builders.biped_builder import BipedBuilder
 from src.models.schemas import Model3D
 from src.storage.local_file_storage import LocalFileStorage
+from src.database.utils.terrain_utils import get_terrain_height_area
 
 
 async def main():
@@ -24,11 +36,11 @@ async def main():
     
     # 1. Verificar que el modelo existe
     storage = LocalFileStorage()
-    model_path = "characters/humano_test.glb"
+    model_path = "characters/Human.glb"  # Modelo principal: Human.glb con vertex groups
     
     if not await storage.model_exists(model_path):
         print(f"⚠️  Modelo no encontrado: {model_path}")
-        print("Coloca un modelo GLB en backend/static/models/characters/humano_test.glb")
+        print("Coloca el modelo GLB en backend/static/models/characters/Human.glb")
         print("O modifica 'model_path' en este script para usar otro modelo.")
         return
     
@@ -53,7 +65,7 @@ async def main():
             """)
         
         if not dimension_id:
-            print("⚠️  No se encontró ninguna dimensión.")
+            print(" No se encontró ninguna dimensión.")
             print("Ejecuta primero seed_demo.py o crea una dimensión manualmente.")
             return
         
@@ -64,24 +76,44 @@ async def main():
         
         print(f"✓ Dimensión encontrada: {dimension_id} ({dimension_nombre})")
         
-        # 3. Crear modelo_3d
-        # NOTA: La escala depende del modelo:
-        # - Duck: ~1.0 (tamaño normal, ~0.5m)
-        # - BrainStem: ~1.0 (tamaño normal, ~1m)
-        # - BarramundiFish: ~2.0 (hacer más grande, ~0.3m original)
-        # - Avocado: ~5.0 (hacer más grande, ~0.1m original)
-        # - Fox: ~0.001 (MUY pequeño, ~154m original - NO RECOMENDADO)
+        # 3. Calcular altura del terreno y posición Z del personaje
+        # Posición X, Y de prueba (ajustar según necesidad)
+        x, y = 45, 45
+        
+        # Obtener altura del terreno en esa posición (buscar en área 3×3 para terrenos irregulares)
+        terrain_height = await get_terrain_height_area(conn, dimension_id, x, y, radius=1)
+        
+        # Calcular posición Z del personaje basándose en el terreno
+        # Si hay terreno, el personaje debería estar en terrain_height + 1 (arriba del terreno)
+        # Si no hay terreno, usar z = 1 como fallback
+        if terrain_height is not None:
+            z = terrain_height + 1
+            print(f"  Altura del terreno en ({x}, {y}): Z = {terrain_height}")
+            print(f"  Posición Z del personaje: {z} (arriba del terreno)")
+        else:
+            z = 1  # Fallback si no hay terreno
+            print(f"  No se encontró terreno en ({x}, {y}), usando Z = {z}")
+        
+        # Offset Z del modelo (en metros)
+        # Este es un valor fijo basado en la geometría del modelo (dónde está el origen)
+        # Si el modelo aparece enterrado, aumentar este valor
+        # Si el modelo está flotando, disminuir este valor
+        # Con escala 6.0, ajustado a 0.9m para que los pies estén completamente sobre el suelo
+        offset_z = 0.9  # Ajustar según necesidad
+        
+        # 4. Crear modelo_3d
+        # Human.glb: escala 6.0 para tamaño humano apropiado (~1.7m)
         modelo_3d = Model3D(
             tipo="glb",
             ruta=model_path,
-            escala=1.0,  # Ajustar según el modelo descargado
-            offset={"x": 0, "y": 0, "z": 0},
-            rotacion={"x": 0, "y": 0, "z": 0}
+            escala=6.0,  # Human.glb: escala ajustada para tamaño humano apropiado
+            offset={"x": 0, "y": 0, "z": offset_z},  # Offset Z calculado según terreno
+            rotacion={"x": 0, "y": 0, "z": 180}  # Rotar 180° en Z del juego (Y de Three.js) para que mire de espaldas
         )
         
-        print(f"✓ Modelo 3D configurado: {modelo_3d.dict()}")
+        print(f"✓ Modelo 3D configurado: {modelo_3d.model_dump()}")
         
-        # 4. Obtener template
+        # 5. Obtener template
         template = get_biped_template('humano')
         if not template:
             print("⚠️  Template 'humano' no encontrado.")
@@ -89,14 +121,13 @@ async def main():
         
         print(f"✓ Template encontrado: {template.nombre}")
         
-        # 5. Crear builder con modelo_3d
+        # 6. Crear builder con modelo_3d
         builder = BipedBuilder(template, modelo_3d=modelo_3d)
         
-        # 6. Crear personaje usando EntityCreator
+        # 7. Crear personaje usando EntityCreator
         creator = EntityCreator(conn, dimension_id)
         
-        # Posición de prueba (ajustar según necesidad)
-        x, y, z = 45, 45, 1
+        # Posición ya calculada arriba basándose en el terreno (x, y, z)
         
         print(f"Creando personaje en posición ({x}, {y}, {z})...")
         

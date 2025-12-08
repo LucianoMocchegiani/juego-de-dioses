@@ -4,9 +4,7 @@
  * Si se sirve desde nginx (Docker), usa rutas relativas (/api/)
  * Si se sirve localmente, usa la URL completa del backend
  */
-const API_BASE_URL = window.location.hostname === 'localhost' && window.location.port === '8080'
-    ? '/api/v1'  // Nginx proxy (Docker)
-    : 'http://localhost:8000/api/v1';  // Desarrollo local directo
+import { API_BASE_URL } from '../utils/config.js';
 
 export class ApiClient {
     /**
