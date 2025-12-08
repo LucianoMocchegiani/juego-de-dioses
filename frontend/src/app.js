@@ -44,7 +44,7 @@ export class App {
         this.performanceManager.subscribe((metrics) => {
             // Log en consola (opcional: mostrar en UI)
             // El notify ya verifica isProfiling, así que siempre loguear aquí
-            console.log(`Performance: FPS: ${metrics.fps}, Draw Calls: ${metrics.drawCalls || 0}`);
+            // console.log(`Performance: FPS: ${metrics.fps}, Draw Calls: ${metrics.drawCalls || 0}`);
         });
         
         // Inicializar Registry de Geometrías
@@ -234,12 +234,12 @@ export class App {
                     if (characters && characters.length > 0) {
                         // Usar el primer personaje encontrado (el más reciente)
                         characterId = characters[0].id;
-                        console.log(`✓ Cargando personaje existente: ${characterId} (de ${characters.length} totales)`);
+                        // console.log(`✓ Cargando personaje existente: ${characterId} (de ${characters.length} totales)`);
                     } else {
-                        console.log('No hay personajes existentes, se creará uno nuevo');
+                        // console.log('No hay personajes existentes, se creará uno nuevo');
                     }
                 } catch (error) {
-                    console.warn('Error al listar personajes:', error);
+                    // console.warn('Error al listar personajes:', error);
                 }
                 
                 // Si no hay personaje existente, crear uno nuevo
@@ -260,7 +260,7 @@ export class App {
                     dimensionId: demoDimension.id
                 });
                 
-                console.log(`✓ Jugador creado/cargado. Entity ID: ${this.playerId}, Character ID: ${characterId || 'nuevo'}`);
+                // console.log(`✓ Jugador creado/cargado. Entity ID: ${this.playerId}, Character ID: ${characterId || 'nuevo'}`);
                 
                 // 17. Inicializar controlador de cámara y configurarlo para seguir al jugador
                 if (!this.cameraController) {
@@ -279,7 +279,7 @@ export class App {
             
             // 18. Iniciar profiling de performance
             this.performanceManager.startProfiling();
-            console.log('Performance profiling iniciado. Las métricas aparecerán cada segundo en consola.');
+            // console.log('Performance profiling iniciado. Las métricas aparecerán cada segundo en consola.');
             
             // 19. Iniciar animación (con medición de FPS y actualización de ECS)
             // Usar nuestro propio loop de animación que incluye ECS
@@ -293,7 +293,7 @@ export class App {
             };
             
         } catch (error) {
-            console.error('Error cargando demo:', error);
+            // console.error('Error cargando demo:', error);
             actions.setLoading(this.store, false);
             actions.setError(this.store, error.message);
             throw error;

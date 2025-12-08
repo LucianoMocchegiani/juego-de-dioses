@@ -4,7 +4,9 @@ Sistema de partículas y agrupaciones con FastAPI
 """
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
+from pathlib import Path
 import uvicorn
 from dotenv import load_dotenv
 import os
@@ -107,6 +109,11 @@ app.include_router(dimensions.router, prefix="/api/v1")
 app.include_router(particles.router, prefix="/api/v1")
 app.include_router(agrupaciones.router, prefix="/api/v1")
 app.include_router(characters.router, prefix="/api/v1")
+
+# Servir archivos estáticos de modelos 3D
+static_models_path = Path("static/models")
+static_models_path.mkdir(parents=True, exist_ok=True)
+app.mount("/static/models", StaticFiles(directory=str(static_models_path)), name="models")
 
 @app.get("/api/v1")
 async def api_info():
