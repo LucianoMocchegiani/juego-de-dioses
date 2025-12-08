@@ -6,11 +6,12 @@ Este módulo proporciona un sistema completo para cargar, cachear y renderizar m
 
 ```
 models/
-├── __init__.js           # Exports principales
-├── model-loader.js        # Loader de modelos (Factory pattern)
-├── model-cache.js         # Cache de modelos (Registry + Singleton)
-├── model-utils.js         # Utilidades de carga y transformación
-└── README.md             # Este archivo
+├── __init__.js              # Exports principales
+├── model-loader.js          # Loader de modelos (Factory pattern)
+├── model-cache.js           # Cache de modelos (Registry + Singleton)
+├── model-utils.js           # Utilidades de carga y transformación
+├── vertex-groups-utils.js   # Utilidades para vertex groups (JDG-014)
+└── README.md                # Este archivo
 ```
 
 ## Componentes
@@ -95,6 +96,32 @@ El cache almacena modelos originales (sin transformaciones). Al obtener un model
 - Reutilizar modelos entre múltiples personajes
 - Aplicar diferentes transformaciones sin modificar el original
 - Evitar recargas innecesarias
+
+## Vertex Groups
+
+Los modelos pueden incluir vertex groups para identificar partes específicas del cuerpo (ej: cabeza, brazos, piernas). Esto es necesario para el sistema de daño por partes (JDG-014).
+
+**Modelo principal:** `Human.glb` incluye los siguientes vertex groups:
+- `head` - Cabeza
+- `torso` - Torso
+- `left_arm` - Brazo izquierdo
+- `right_arm` - Brazo derecho
+- `left_leg` - Pierna izquierda
+- `right_leg` - Pierna derecha
+
+**Uso:**
+```javascript
+import { getVertexGroups, listVertexGroups, getPartMesh } from './vertex-groups-utils.js';
+
+// Obtener todos los vertex groups
+const groups = getVertexGroups(model);
+const groupsList = listVertexGroups(model);
+
+// Obtener mesh de una parte específica
+const headMesh = getPartMesh(model, 'head');
+```
+
+Los vertex groups se almacenan automáticamente en `mesh.userData.vertexGroups` cuando se carga un modelo con vertex groups.
 
 ## Referencias
 

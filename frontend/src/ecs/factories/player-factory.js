@@ -8,6 +8,7 @@ import { PositionComponent, PhysicsComponent, RenderComponent, InputComponent, A
 import { GeometryRegistry } from '../../renderers/geometries/registry.js';
 import { getCharacter, createCharacter } from '../../api/endpoints/characters.js';
 import { loadModel3D } from '../../renderers/models/model-utils.js';
+import { getVertexGroups, listVertexGroups } from '../../renderers/models/vertex-groups-utils.js';
 
 /**
  * Construir mesh Three.js desde geometria_agrupacion
@@ -179,6 +180,17 @@ export class PlayerFactory {
             if (character?.modelo_3d) {
                 try {
                     mesh = await loadModel3D(character.modelo_3d, cellSize);
+                    
+                    // Verificar vertex groups (preparación para JDG-014: Sistema de Daño por Partes)
+                    if (mesh) {
+                        const vertexGroups = getVertexGroups(mesh);
+                        const groupsList = listVertexGroups(mesh);
+                        if (groupsList.length > 0) {
+                            // Vertex groups encontrados - preparado para sistema de daño por partes
+                            mesh.userData.vertexGroups = vertexGroups;
+                            mesh.userData.vertexGroupsList = groupsList;
+                        }
+                    }
                 } catch (error) {
                     // Fallback a geometria_agrupacion
                     if (character?.geometria_agrupacion) {
