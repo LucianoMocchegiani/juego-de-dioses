@@ -29,10 +29,12 @@ export class RenderSystem extends System {
             if (!render || !position || !render.mesh) continue;
             
             // Actualizar posición del mesh (convertir de celdas a metros)
+            // IMPORTANTE: Si el mesh tiene un offset de modelo 3D, sumarlo a la posición
+            const modelOffset = render.mesh.userData.modelOffset || { x: 0, y: 0, z: 0 };
             render.mesh.position.set(
-                position.x * this.cellSize,
-                position.z * this.cellSize, // Z en Three.js es altura
-                position.y * this.cellSize
+                position.x * this.cellSize + modelOffset.x,
+                position.z * this.cellSize + modelOffset.y, // Z en Three.js es altura, offset Y del modelo
+                position.y * this.cellSize + modelOffset.z
             );
             
             // Actualizar visibilidad
@@ -43,11 +45,6 @@ export class RenderSystem extends System {
             // Los modelos 3D tienen escalas personalizadas que NO deben ser sobrescritas
             const currentScale = render.mesh.scale;
             const isModel3D = currentScale.x < 0.1 || currentScale.y < 0.1 || currentScale.z < 0.1;
-            
-            // Marcar que ya se detectó el modelo 3D (evitar procesamiento repetido)
-            if (!render._scaleDebugLogged && isModel3D) {
-                render._scaleDebugLogged = true;
-            }
             
             if (isModel3D) {
                 // Es un modelo 3D, NO tocar la escala excepto para agacharse
@@ -81,9 +78,14 @@ export class RenderSystem extends System {
             // Orientación del personaje
             // El personaje solo rota cuando se mueve la cámara (no cuando se presionan WASD)
             // La rotación se actualiza desde CameraController cuando se rota la cámara
-            // Aquí solo aplicamos la rotación guardada
+            // IMPORTANTE: Si el mesh tiene una rotación inicial del modelo 3D, sumarla
+            const modelRotation = render.mesh.userData.modelRotation || { x: 0, y: 0, z: 0 };
             if (render.rotationY !== undefined) {
-                render.mesh.rotation.y = render.rotationY;
+                // Sumar la rotación del personaje a la rotación inicial del modelo
+                render.mesh.rotation.y = modelRotation.y + render.rotationY;
+            } else {
+                // Si no hay rotación del personaje, usar solo la rotación inicial del modelo
+                render.mesh.rotation.y = modelRotation.y;
             }
             
             // Animación simple: balanceo al caminar/correr
