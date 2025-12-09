@@ -2,11 +2,10 @@
 Script para crear personaje con modelo 3D
 
 Este script crea un personaje humano con un modelo 3D asociado.
-Modelo principal: Human.glb (voxel/low-poly con vertex groups)
-Ubicación: backend/static/models/characters/Human.glb
+Modelo principal: Character_output.glb (con esqueleto para animaciones)
+Ubicación: backend/static/models/characters/Character_output.glb
 
-Vertex groups disponibles:
-- head
+El modelo usa bones (esqueleto) para animaciones y sistema de daño por partes.
 - torso
 - left_arm
 - right_arm
@@ -36,11 +35,11 @@ async def main():
     
     # 1. Verificar que el modelo existe
     storage = LocalFileStorage()
-    model_path = "characters/Human.glb"  # Modelo principal: Human.glb con vertex groups
+    model_path = "characters/Character_output.glb"  # Modelo principal con esqueleto para animaciones
     
     if not await storage.model_exists(model_path):
         print(f"⚠️  Modelo no encontrado: {model_path}")
-        print("Coloca el modelo GLB en backend/static/models/characters/Human.glb")
+        print("Coloca el modelo GLB en backend/static/models/characters/Character_output.glb")
         print("O modifica 'model_path' en este script para usar otro modelo.")
         return
     
@@ -102,11 +101,12 @@ async def main():
         offset_z = 0.9  # Ajustar según necesidad
         
         # 4. Crear modelo_3d
-        # Human.glb: escala 6.0 para tamaño humano apropiado (~1.7m)
+        # Character_output.glb: modelo con esqueleto para animaciones de Meshy
+        # El modelo de las animaciones es más pequeño, usar escala 5.0
         modelo_3d = Model3D(
             tipo="glb",
             ruta=model_path,
-            escala=6.0,  # Human.glb: escala ajustada para tamaño humano apropiado
+            escala=5.0,  # Escala ajustada para modelo de animaciones de Meshy
             offset={"x": 0, "y": 0, "z": offset_z},  # Offset Z calculado según terreno
             rotacion={"x": 0, "y": 0, "z": 180}  # Rotar 180° en Z del juego (Y de Three.js) para que mire de espaldas
         )

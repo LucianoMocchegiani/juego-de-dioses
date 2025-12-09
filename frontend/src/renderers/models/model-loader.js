@@ -40,6 +40,12 @@ export class ModelLoader {
         try {
             if (tipo === 'gltf' || tipo === 'glb') {
                 const gltf = await loader.loadAsync(url);
+                
+                // Guardar animaciones en userData si existen
+                if (gltf.animations && gltf.animations.length > 0) {
+                    gltf.scene.userData.animations = gltf.animations;
+                }
+                
                 return gltf.scene;
             }
             // Agregar otros tipos aquí si se implementan

@@ -15,7 +15,7 @@ import { ParticleRenderer } from './renderers/particle-renderer.js';
 import { GeometryRegistry } from './renderers/geometries/registry.js';
 import { DEMO_DIMENSION_NAME } from './constants.js';
 import { ECSManager } from './ecs/index.js';
-import { InputSystem, PhysicsSystem, RenderSystem, CollisionSystem, AnimationSystem } from './ecs/systems/index.js';
+import { InputSystem, PhysicsSystem, RenderSystem, CollisionSystem, AnimationSystem, AnimationMixerSystem } from './ecs/systems/index.js';
 import { PlayerFactory } from './ecs/factories/player-factory.js';
 import { InputManager } from './systems/input-manager.js';
 import { CollisionDetector } from './systems/collision-detector.js';
@@ -80,6 +80,7 @@ export class App {
         this.inputSystem = new InputSystem(this.inputManager);
         this.physicsSystem = new PhysicsSystem({ gravity: -9.8 });
         this.animationSystem = new AnimationSystem();
+        this.animationMixerSystem = new AnimationMixerSystem();
         // RenderSystem y CollisionSystem se inicializarán después de cargar la dimensión
         this.renderSystem = null;
         this.collisionSystem = null;
@@ -89,6 +90,7 @@ export class App {
         this.ecs.registerSystem(this.inputSystem);
         this.ecs.registerSystem(this.physicsSystem);
         this.ecs.registerSystem(this.animationSystem);
+        this.ecs.registerSystem(this.animationMixerSystem);
         
         // Jugador se creará después de cargar la dimensión
         this.playerId = null;
