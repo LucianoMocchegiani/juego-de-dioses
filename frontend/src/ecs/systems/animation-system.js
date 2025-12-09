@@ -27,23 +27,27 @@ export class AnimationSystem extends System {
             if (!animation || !input || !physics) continue;
             
             // Determinar estado de animación según prioridad
-            // 1. Salto (si está subiendo en Z, que es altura)
-            if (physics.velocity.z > 0.1) {
+            // 1. Ataque (prioridad máxima)
+            if (input.wantsToAttack) {
+                animation.currentState = 'attack';
+            }
+            // 2. Salto (si está subiendo en Z, que es altura)
+            else if (physics.velocity.z > 0.1) {
                 animation.currentState = 'jump';
             }
-            // 2. Agacharse
+            // 3. Agacharse
             else if (input.wantsToCrouch) {
                 animation.currentState = 'crouch';
             }
-            // 3. Correr (si está corriendo y moviéndose)
+            // 4. Correr (si está corriendo y moviéndose)
             else if (input.isRunning && (input.moveDirection.x !== 0 || input.moveDirection.y !== 0)) {
                 animation.currentState = 'run';
             }
-            // 4. Caminar (si se está moviendo)
+            // 5. Caminar (si se está moviendo)
             else if (input.moveDirection.x !== 0 || input.moveDirection.y !== 0) {
                 animation.currentState = 'walk';
             }
-            // 5. Idle (por defecto)
+            // 6. Idle (por defecto)
             else {
                 animation.currentState = 'idle';
             }
