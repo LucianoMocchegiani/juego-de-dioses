@@ -1,8 +1,9 @@
 """
-Script para actualizar la escala y offset del modelo Human.glb
+Script para actualizar la escala y offset del modelo Character_output.glb
 
 Ajusta la escala y el offset Z para que el modelo esté sobre el suelo.
-El offset Z depende del terreno de cada dimensión, ajustar según necesidad.
+El modelo Character_output.glb se reemplaza automáticamente por el modelo de las animaciones
+que tiene el esqueleto correcto, pero las transformaciones (escala, offset, rotación) se preservan.
 
 Uso:
     python src/database/update_human_scale.py
@@ -20,18 +21,18 @@ from src.database.connection import get_connection
 
 
 async def main():
-    """Actualizar escala y offset del modelo Human.glb"""
+    """Actualizar escala y offset del modelo Character_output.glb"""
     
-    # Escala a aplicar
-    nueva_escala = 6.0
+    # Escala a aplicar (ajustar según necesidad)
+    # El modelo de las animaciones es más pequeño, aumentar escala
+    nueva_escala = 5.0  # Empezar con 5.0, ajustar según necesidad
     
     # Offset Z para elevar el modelo (en metros)
     # IMPORTANTE: El offset Z depende del terreno de cada dimensión.
     # - Si el modelo aparece enterrado, aumentar este valor (ej: 1.0, 1.5, 2.0)
     # - Si el modelo está flotando, disminuir este valor (ej: 0.5, 0.0)
-    # - Con escala 6.0, ajustar offset proporcionalmente
-    # - Probando con 0.9m para que los pies estén completamente sobre el suelo
-    offset_z = 0.9  # Ajustar según el terreno de la dimensión
+    # - Ajustar según necesidad con Character_output.glb
+    offset_z = 0.0  # Ajustar según el terreno de la dimensión
     
     # Rotación Z del juego (que se mapea a Y de Three.js) para rotar horizontalmente
     # 180 grados = mirar hacia atrás (de espaldas a la cámara)
@@ -59,7 +60,7 @@ async def main():
                 '{rotacion,y}',
                 '0'::jsonb
             )
-            WHERE modelo_3d->>'ruta' = 'characters/Human.glb'
+            WHERE modelo_3d->>'ruta' = 'characters/Character_output.glb'
         """, str(nueva_escala), str(offset_z), str(rotacion_z))
         
         print(f"✓ Escala actualizada a {nueva_escala}")
@@ -73,7 +74,7 @@ async def main():
         agrupacion = await conn.fetchrow("""
             SELECT id, nombre, modelo_3d
             FROM juego_dioses.agrupaciones
-            WHERE modelo_3d->>'ruta' = 'characters/Human.glb'
+            WHERE modelo_3d->>'ruta' = 'characters/Character_output.glb'
             ORDER BY creado_en DESC
             LIMIT 1
         """)

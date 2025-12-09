@@ -10,7 +10,8 @@ models/
 ├── model-loader.js          # Loader de modelos (Factory pattern)
 ├── model-cache.js           # Cache de modelos (Registry + Singleton)
 ├── model-utils.js           # Utilidades de carga y transformación
-├── vertex-groups-utils.js   # Utilidades para vertex groups (JDG-014)
+├── bones-utils.js           # Utilidades para bones/esqueleto (JDG-014, JDG-015)
+├── vertex-groups-utils.js   # DEPRECADO: Reemplazado por bones-utils.js
 └── README.md                # Este archivo
 ```
 
@@ -97,11 +98,11 @@ El cache almacena modelos originales (sin transformaciones). Al obtener un model
 - Aplicar diferentes transformaciones sin modificar el original
 - Evitar recargas innecesarias
 
-## Vertex Groups
+## Bones (Esqueleto)
 
-Los modelos pueden incluir vertex groups para identificar partes específicas del cuerpo (ej: cabeza, brazos, piernas). Esto es necesario para el sistema de daño por partes (JDG-014).
+Los modelos con animaciones incluyen un esqueleto (bones) que permite identificar partes específicas del cuerpo (ej: cabeza, brazos, piernas). Esto se usa tanto para animaciones como para el sistema de daño por partes (JDG-014).
 
-**Modelo principal:** `Human.glb` incluye los siguientes vertex groups:
+**Modelo principal:** `Character_output.glb` incluye un esqueleto con bones mapeados a:
 - `head` - Cabeza
 - `torso` - Torso
 - `left_arm` - Brazo izquierdo
@@ -111,17 +112,19 @@ Los modelos pueden incluir vertex groups para identificar partes específicas de
 
 **Uso:**
 ```javascript
-import { getVertexGroups, listVertexGroups, getPartMesh } from './vertex-groups-utils.js';
+import { mapBonesToBodyParts, findBone, setBoneVisibility } from './bones-utils.js';
 
-// Obtener todos los vertex groups
-const groups = getVertexGroups(model);
-const groupsList = listVertexGroups(model);
+// Mapear bones a partes del cuerpo
+const bodyPartsMap = mapBonesToBodyParts(model);
 
-// Obtener mesh de una parte específica
-const headMesh = getPartMesh(model, 'head');
+// Encontrar un bone específico
+const headBone = findBone(model, 'head');
+
+// Ocultar una parte (ej: brazo cortado)
+setBoneVisibility(leftArmBone, false);
 ```
 
-Los vertex groups se almacenan automáticamente en `mesh.userData.vertexGroups` cuando se carga un modelo con vertex groups.
+Los bones se mapean automáticamente y se almacenan en `mesh.userData.bodyPartsMap` cuando se carga un modelo con esqueleto.
 
 ## Referencias
 

@@ -8,7 +8,7 @@ import { PositionComponent, PhysicsComponent, RenderComponent, InputComponent, A
 import { GeometryRegistry } from '../../renderers/geometries/registry.js';
 import { getCharacter, createCharacter } from '../../api/endpoints/characters.js';
 import { loadModel3D } from '../../renderers/models/model-utils.js';
-import { getVertexGroups, listVertexGroups } from '../../renderers/models/vertex-groups-utils.js';
+import { listBones, mapBonesToBodyParts, hasSkeleton } from '../../renderers/models/bones-utils.js';
 
 /**
  * Construir mesh Three.js desde geometria_agrupacion
@@ -181,14 +181,12 @@ export class PlayerFactory {
                 try {
                     mesh = await loadModel3D(character.modelo_3d, cellSize);
                     
-                    // Verificar vertex groups (preparación para JDG-014: Sistema de Daño por Partes)
-                    if (mesh) {
-                        const vertexGroups = getVertexGroups(mesh);
-                        const groupsList = listVertexGroups(mesh);
-                        if (groupsList.length > 0) {
-                            // Vertex groups encontrados - preparado para sistema de daño por partes
-                            mesh.userData.vertexGroups = vertexGroups;
-                            mesh.userData.vertexGroupsList = groupsList;
+                    // Verificar bones (esqueleto) para sistema de daño por partes (JDG-014)
+                    if (mesh && hasSkeleton(mesh)) {
+                        const bodyPartsMap = mapBonesToBodyParts(mesh);
+                        if (Object.keys(bodyPartsMap).length > 0) {
+                            // Guardar mapeo en userData para sistema de daño
+                            mesh.userData.bodyPartsMap = bodyPartsMap;
                         }
                     }
                 } catch (error) {

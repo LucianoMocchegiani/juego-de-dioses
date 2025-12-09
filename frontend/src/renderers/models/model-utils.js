@@ -45,10 +45,18 @@ export async function loadModel3D(modelo3d, cellSize) {
     originalClone.scale.set(1, 1, 1);
     originalClone.position.set(0, 0, 0);
     originalClone.rotation.set(0, 0, 0);
+    // Preservar animaciones en el clon si existen
+    if (model.userData.animations) {
+        originalClone.userData.animations = model.userData.animations;
+    }
     modelCache.set(modelUrl, originalClone);
     
     // Aplicar transformaciones al modelo original
     const transformed = applyTransformations(model, modelo3d, cellSize);
+    // Preservar animaciones en el modelo transformado si existen
+    if (model.userData.animations) {
+        transformed.userData.animations = model.userData.animations;
+    }
     return transformed;
 }
 
