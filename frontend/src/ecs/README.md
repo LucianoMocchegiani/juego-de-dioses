@@ -169,18 +169,37 @@ Almacena referencia al mesh de Three.js y propiedades de renderizado.
 Almacena estado de input: teclas presionadas, dirección de movimiento, acciones (saltar, agacharse, etc.).
 
 ### AnimationComponent
-Almacena estado de animación: estado actual (idle, walk, run, jump, crouch) y velocidad de animación.
+Almacena estado de animación: estado actual (idle, walk, run, jump, crouch, combo_attack, etc.) y velocidad de animación.
+
+### ComboComponent
+Almacena estado de combo activo: ID del combo, paso actual, última animación ejecutada, y si el combo está completo.
+
+### CombatComponent
+Almacena estado de combate: si está atacando, tipo de ataque/defensa, si puede cancelar, y animación de combate activa.
+
+### WeaponComponent (Opcional)
+Almacena información del arma equipada: tipo de arma, ID del arma, y si tiene escudo. Preparado para sistema futuro de armamentos.
 
 ## Sistemas Disponibles
 
 ### InputSystem (Priority 0)
 Procesa input del InputManager y actualiza InputComponent. Se ejecuta primero.
 
+### CombatSystem (Priority 1.4)
+Procesa combinaciones de teclas para acciones de combate (ataques pesados, cargados, especiales, parry, dodge, grab).
+
+**Ver:** [animation/config/input-combinations-config.js](animation/config/input-combinations-config.js)
+
+### ComboSystem (Priority 1.5)
+Gestiona detección y ejecución de combos (secuencias de ataques consecutivos).
+
+**Ver:** [animation/combos/README.md](animation/combos/README.md)
+
 ### PhysicsSystem (Priority 1)
 Aplica física: gravedad, velocidad, aceleración, fricción. Usa timestep fijo para estabilidad.
 
 ### AnimationStateSystem (Priority 2)
-Determina estado de animación según Input y Physics usando una máquina de estados escalable con configuración declarativa.
+Determina estado de animación según Input, Physics, Combo y Combat usando una máquina de estados escalable con configuración declarativa.
 
 **Ver:** [animation/README.md](animation/README.md)
 

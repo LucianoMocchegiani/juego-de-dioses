@@ -176,6 +176,11 @@ export class AnimationMixerSystem extends System {
                     const clips = await this.loadAnimation(file);
                     if (clips.length > 0) {
                         animations[animName] = clips[0];
+                    } else {
+                        // Log solo para animaciones que esperamos que existan (no todos los 42 archivos)
+                        if (animName === 'regular_jump' || animName === 'crouch_walk_forward') {
+                            console.warn(`[AnimationMixer] No se pudo cargar la animación '${animName}' desde '${file}'. El archivo puede no existir o estar vacío.`);
+                        }
                     }
                 }
             }
@@ -245,7 +250,7 @@ export class AnimationMixerSystem extends System {
                 } else if (currentState === 'attack' && mesh.userData.isAttacking) {
                     // No interrumpir ataques en progreso (mantener lógica especial para attack)
                     // attack tiene interruptOnInputRelease = false, así que no se interrumpe
-                    return;
+            return;
                 } else {
                     // Para otros estados que no tienen interruptOnInputRelease = true,
                     // permitir interrupción (comportamiento por defecto cuando se cambia a idle)
@@ -354,14 +359,32 @@ export class AnimationMixerSystem extends System {
             // Reproducir animación según estado
             const clips = mesh.userData.animationClips;
             if (clips) {
-                // Obtener nombre de animación desde configuración
-                const animationName = this.getAnimationNameForState(animation.currentState);
+                // Prioridad 1: Animación de combo (si hay combo activo)
+                // Prioridad 2: Animación de combate (si hay acción de combate)
+                // Prioridad 3: Resolver por estado normal
+                let animationName = null;
+                if (animation.comboAnimationName) {
+                    animationName = animation.comboAnimationName;
+                } else if (animation.combatAnimationName) {
+                    animationName = animation.combatAnimationName;
+                } else {
+                    // Obtener nombre de animación desde configuración
+                    animationName = this.getAnimationNameForState(animation.currentState);
+                }
+                
+                // Debug temporal: verificar qué animación se está buscando
+                if (animation.currentState === 'jump' || animation.currentState === 'crouch') {
+                    console.log(`[AnimationMixer] Estado: ${animation.currentState}, Animación buscada: ${animationName}, Existe en clips: ${!!clips[animationName]}, Clips disponibles:`, Object.keys(clips));
+                }
                 
                 // Si la animación existe en los clips cargados, reproducirla
                 if (animationName && clips[animationName]) {
                     this.playAnimation(mixer, clips, animationName, mesh);
                 } else if (clips['combat_stance']) {
                     // Fallback: usar combat_stance si no hay animación específica
+                    if (animationName && !clips[animationName] && (animation.currentState === 'jump' || animation.currentState === 'crouch')) {
+                        console.warn(`[AnimationMixer] Animación '${animationName}' no encontrada en clips, usando fallback 'combat_stance'`);
+                    }
                     this.playAnimation(mixer, clips, 'combat_stance', mesh);
                 }
             }
