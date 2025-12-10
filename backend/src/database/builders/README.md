@@ -297,7 +297,7 @@ solido_id = UUID("...")     # ID del estado "solido"
 
 ### Proceso Interno
 
-1. **Validación**: ✅ Todos los IDs están presentes
+1. **Validación**: Todos los IDs están presentes
 2. **Altura aleatoria**: `altura_tronco = 23` (aleatorio entre 20-25)
 3. **Raíces**: Genera ~30 posiciones bajo tierra (z=-1, z=-2, z=-3, z=-4)
 4. **Tronco**: Genera 9 posiciones (x,y) × 23 niveles = 207 partículas

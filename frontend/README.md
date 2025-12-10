@@ -32,10 +32,10 @@ Frontend simple para visualizar partículas en 3D usando Three.js.
 **Solo abre en navegador:** **http://localhost:8080**
 
 **Ventajas de usar Docker/nginx:**
-- ✅ Todo levantado con un solo comando
-- ✅ Más rápido y robusto que servidores simples
-- ✅ Configuración lista para producción
-- ✅ Proxy automático al backend (no necesitas configurar CORS manualmente)
+- Todo levantado con un solo comando
+- Más rápido y robusto que servidores simples
+- Configuración lista para producción
+- Proxy automático al backend (no necesitas configurar CORS manualmente)
 
 ### Levantar Frontend (Desarrollo Local - Opcional)
 

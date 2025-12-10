@@ -11,7 +11,7 @@ database/
 ├── seed_demo.py             # Script de seed para crear dimensiones demo
 ├── seed_human_test.py       # Script de seed para crear terreno de prueba (primer humano)
 ├── terrain_builder.py       # Funciones para construir terrenos y límites
-├── tree_templates.py        # ⚠️ DEPRECADO: Usar templates/trees/ en su lugar
+├── tree_templates.py        # DEPRECADO: Usar templates/trees/ en su lugar
 │
 ├── templates/               # Sistema de templates para entidades
 │   ├── base.py              # BaseTemplate (clase abstracta)
@@ -184,7 +184,7 @@ particulas_creadas = await creator.create_entity(template, x=10, y=20, z=0)
 
 ## Mantenimiento de READMEs
 
-**⚠️ IMPORTANTE:** Cada vez que se modifique este módulo o sus subcarpetas:
+**IMPORTANTE:** Cada vez que se modifique este módulo o sus subcarpetas:
 
 1. **Actualizar README del módulo/carpeta modificado**
 2. **Verificar y actualizar READMEs padres si es necesario**
