@@ -178,6 +178,20 @@ particulas = await creator.create_entity(template, x=10, y=20, z=0)
 - [ ] README tiene referencias a READMEs hijos
 - [ ] README padre actualizado si aplica
 
+### Estilo y Formato
+
+**IMPORTANTE - No usar emojis:**
+- Los READMEs deben mantener un tono profesional sin emojis
+- No usar emojis en títulos, listas o contenido
+- Preferir texto descriptivo en lugar de emojis
+- Esta regla aplica a todos los READMEs del proyecto
+
+**Ejemplos:**
+- ❌ `# 🎮 Juego de Dioses` → ✅ `# Juego de Dioses`
+- ❌ `## 🚀 Inicio Rápido` → ✅ `## Inicio Rápido`
+- ❌ `- ✅ Característica` → ✅ `- Característica`
+- ❌ `**⚠️ IMPORTANTE**` → ✅ `**IMPORTANTE**`
+
 ### Notas Importantes
 
 - **Los READMEs son código**: Deben mantenerse actualizados como el código
@@ -185,6 +199,7 @@ particulas = await creator.create_entity(template, x=10, y=20, z=0)
 - **Ejemplos prácticos**: Incluir código de ejemplo siempre que sea posible
 - **Estructura clara**: Usar secciones bien definidas
 - **Referencias cruzadas**: Facilitar navegación entre módulos
+- **Tono profesional**: No usar emojis, mantener estilo técnico y claro
 
 ---
 
