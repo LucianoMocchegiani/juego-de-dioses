@@ -188,7 +188,7 @@ Funciones de utilidad organizadas por tipo.
 
 ## Mantenimiento de READMEs
 
-**⚠️ IMPORTANTE:** Cada vez que se modifique un módulo o carpeta:
+**IMPORTANTE:** Cada vez que se modifique un módulo o carpeta:
 
 1. **Actualizar README del módulo/carpeta modificado**
 2. **Verificar y actualizar READMEs padres si es necesario**

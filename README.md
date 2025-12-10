@@ -1,10 +1,10 @@
-# 🎮 Juego de Dioses - Backend
+# Juego de Dioses
 
 Sistema de juego basado en partículas (voxels) donde los jugadores interactúan con un mundo persistente creado y modificado por AIs (Dioses).
 
 **Proyecto**: `juego_de_dioses`
 
-## 🏗️ Arquitectura
+## Arquitectura
 
 - **Backend**: Python 3.11 + FastAPI + Uvicorn
 - **Base de Datos**: PostgreSQL 16
@@ -16,7 +16,7 @@ Sistema de juego basado en partículas (voxels) donde los jugadores interactúan
 
 ### ¿Por qué Python/FastAPI?
 
-✅ **Mejor para este proyecto:**
+**Mejor para este proyecto:**
 - Cálculos matemáticos y físicos (NumPy, SciPy)
 - Algoritmos complejos (BFS/DFS para conectividad de núcleos)
 - Procesamiento de datos científicos
@@ -24,15 +24,15 @@ Sistema de juego basado en partículas (voxels) donde los jugadores interactúan
 - Async/await nativo
 - Librerías maduras para simulaciones físicas
 
-## 📋 Requisitos Previos
+## Requisitos Previos
 
 - Docker >= 20.10
 - Docker Compose >= 2.0
 - Python >= 3.11 (solo para desarrollo local sin Docker)
 
-## 🚀 Inicio Rápido
+## Inicio Rápido
 
-### 1. Levantar Backend con Docker
+### 1. Levantar el Proyecto
 
 ```bash
 # Desde la raíz del proyecto (juego-de-dioses/)
@@ -42,26 +42,33 @@ docker-compose up -d
 docker-compose logs -f backend
 ```
 
-**Esto levanta:**
+**Esto levanta automáticamente:**
 - PostgreSQL (puerto 5432)
 - Redis (puerto 6379)
-- Backend API (puerto 8000)
+- Backend API FastAPI (puerto 8000)
 - Frontend (nginx, puerto 8080)
 
-### 2. Verificar Backend
+**El backend automáticamente:**
+- Crea el pool de conexiones a PostgreSQL
+- Ejecuta el seed demo si no existe la dimensión demo
+- Crea 400 partículas de hierba + 3 árboles
+- Inicia la API en http://localhost:8000
+
+### 2. Verificar que Todo Está Corriendo
 
 ```bash
-# Health check
+# Ver estado de contenedores
+docker-compose ps
+
+# Health check del backend
 curl http://localhost:8000/health
+
+# Ver logs del backend (opcional)
+docker-compose logs -f backend
 
 # Ver documentación interactiva
 # Abrir en navegador: http://localhost:8000/docs
 ```
-
-El backend automáticamente:
-- Crea el pool de conexiones a PostgreSQL
-- Ejecuta el seed demo si no existe la dimensión demo
-- Crea 400 partículas de hierba + 3 árboles
 
 ### 3. Acceder al Frontend
 
@@ -69,19 +76,16 @@ El frontend ya está levantado con Docker (nginx). Solo abre en navegador:
 
 **http://localhost:8080**
 
-**Nota**: El frontend se sirve automáticamente con nginx cuando levantas `docker-compose up -d`. No necesitas levantar nada manualmente.
+**Nota**: El frontend se sirve automáticamente con nginx cuando ejecutas `docker-compose up -d`. No necesitas levantar nada manualmente.
 
-### 4. Verificar que todo funciona
+### 4. Verificar Base de Datos (Opcional)
 
 ```bash
-# Backend health check
-curl http://localhost:8000/health
-
 # Verificar PostgreSQL
 docker-compose exec postgres psql -U juegodioses -d juego_dioses -c "SELECT COUNT(*) FROM juego_dioses.dimensiones;"
 ```
 
-## 📁 Estructura del Proyecto
+## Estructura del Proyecto
 
 ```
 juego_de_dioses/
@@ -101,7 +105,7 @@ juego_de_dioses/
 └── README.md
 ```
 
-## 🔧 Comandos Útiles
+## Comandos Útiles
 
 ### Docker Compose
 
@@ -157,7 +161,7 @@ docker-compose exec backend alembic upgrade head
 docker-compose exec backend python src/database/seed.py
 ```
 
-## 🌐 Puertos
+## Puertos
 
 - **Backend API**: http://localhost:8000
 - **API Docs (Swagger)**: http://localhost:8000/docs
@@ -166,7 +170,7 @@ docker-compose exec backend python src/database/seed.py
 - **Redis**: localhost:6379
 - **PgAdmin** (opcional): http://localhost:5050
 
-## 📊 PgAdmin (Opcional)
+## PgAdmin (Opcional)
 
 Para gestionar la base de datos con interfaz gráfica:
 
@@ -187,7 +191,7 @@ docker-compose --profile tools up -d
 - Username: `juegodioses`
 - Password: `juegodioses123` (o el que configuraste en .env)
 
-## 🔐 Variables de Entorno
+## Variables de Entorno
 
 Ver `.env.example` para todas las variables disponibles. Las más importantes:
 
@@ -197,7 +201,7 @@ Ver `.env.example` para todas las variables disponibles. Las más importantes:
 - `JWT_SECRET`: Secreto para JWT (cambiar en producción)
 - `CORS_ORIGINS`: Orígenes permitidos para CORS (separados por coma)
 
-## 🐛 Troubleshooting
+## Troubleshooting
 
 ### El backend no se conecta a PostgreSQL
 
@@ -230,30 +234,19 @@ docker-compose up -d
 sudo chown -R $USER:$USER .
 ```
 
-## 📚 Próximos Pasos
+## Arquitectura de Comunicación
 
-- [ ] Implementar API REST completa (HTTP para operaciones no críticas)
-- [ ] Sistema de autenticación (JWT)
-- [ ] WebSocket para actualizaciones en tiempo real (ya configurado básico)
-- [ ] Sistema de suscripción por viewport (interest management)
-- [ ] Delta compression para actualizaciones del mundo
-- [ ] Redis Pub/Sub para broadcast a múltiples clientes
-- [ ] Sistema de inventario
-- [ ] Optimizaciones de consultas (índices, cache)
-- [ ] Tests unitarios e integración
-- [ ] Documentación API (Swagger/OpenAPI - ya disponible en /docs)
-
-## 📡 Arquitectura de Comunicación
-
-**⚠️ IMPORTANTE**: Los juegos en tiempo real NO usan solo HTTP.
+**IMPORTANTE**: Los juegos en tiempo real NO usan solo HTTP.
 
 - **HTTP/REST**: Para autenticación, inventario, consultas (operaciones no críticas)
 - **WebSockets**: Para actualizaciones del mundo en tiempo real (cambios de partículas, agrupaciones)
 - **Redis Pub/Sub**: Para broadcast a múltiples clientes simultáneamente
 
-Ver `ARQUITECTURA-COMUNICACION.md` para detalles completos.
+## Roadmap
 
-## 📝 Notas
+Para ver los próximos pasos y funcionalidades planificadas, consulta [roadmap.md](roadmap.md).
+
+## Notas
 
 - Los scripts SQL en `database/init/` se ejecutan automáticamente al crear el contenedor de PostgreSQL
 - El backend se reinicia automáticamente cuando cambias código (gracias a `--reload` de uvicorn)
@@ -261,14 +254,14 @@ Ver `ARQUITECTURA-COMUNICACION.md` para detalles completos.
 - FastAPI genera documentación automática en `/docs` (Swagger UI)
 - Python con NumPy/SciPy es ideal para cálculos de física de partículas
 
-## 🤝 Contribuir
+## Contribuir
 
 1. Crear una rama para tu feature
 2. Hacer commit de tus cambios
 3. Push a la rama
 4. Crear un Pull Request
 
-## 📄 Licencia
+## Licencia
 
 MIT
 
