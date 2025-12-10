@@ -163,7 +163,7 @@ particulas_creadas = await creator.create_entity(template, x=10, y=20, z=0)
 
 ## Mantenimiento de READMEs
 
-**⚠️ IMPORTANTE:** Cada vez que se modifique este módulo o sus subcarpetas:
+**IMPORTANTE:** Cada vez que se modifique este módulo o sus subcarpetas:
 
 1. **Actualizar README del módulo/carpeta modificado**
 2. **Verificar y actualizar READMEs padres si es necesario**
