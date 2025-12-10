@@ -37,8 +37,14 @@ ecs/
 │   ├── physics-system.js    # Sistema de física
 │   ├── render-system.js    # Sistema de renderizado
 │   ├── collision-system.js # Sistema de colisiones
-│   ├── animation-system.js # Sistema de animaciones
+│   ├── animation-state-system.js # Máquina de estados para animaciones
+│   ├── animation-mixer-system.js  # Sistema de reproducción de animaciones GLB
 │   └── index.js            # Exportaciones
+├── animation/               # Sistema de animaciones escalable
+│   ├── config/             # Configuración declarativa de animaciones
+│   ├── conditions/         # Sistema de condiciones evaluables
+│   ├── states/             # Sistema de estados y registry
+│   └── README.md           # Documentación del sistema de animaciones
 ├── factories/               # Factories para crear entidades
 │   └── player-factory.js   # Factory para crear jugador
 └── index.js                 # Exportaciones principales
@@ -92,19 +98,21 @@ ecs.addComponent(playerId, 'Animation', new AnimationComponent({
 ### 4. Registrar Sistemas
 
 ```javascript
-import { InputSystem, PhysicsSystem, RenderSystem, CollisionSystem, AnimationSystem } from './ecs/systems/index.js';
+import { InputSystem, PhysicsSystem, RenderSystem, CollisionSystem, AnimationStateSystem, AnimationMixerSystem } from './ecs/systems/index.js';
 
 const inputSystem = new InputSystem(inputManager);
 const physicsSystem = new PhysicsSystem({ gravity: -9.8 });
-const animationSystem = new AnimationSystem();
+const animationStateSystem = new AnimationStateSystem();
+const animationMixerSystem = new AnimationMixerSystem();
 const collisionSystem = new CollisionSystem(collisionDetector, dimensionId, dimension);
 const renderSystem = new RenderSystem(cellSize);
 
-ecs.registerSystem(inputSystem);      // Priority 0 - Ejecutar primero
-ecs.registerSystem(physicsSystem);    // Priority 1
-ecs.registerSystem(animationSystem);  // Priority 2
-ecs.registerSystem(collisionSystem);  // Priority 2
-ecs.registerSystem(renderSystem);     // Priority 3 - Ejecutar al final
+ecs.registerSystem(inputSystem);        // Priority 0 - Ejecutar primero
+ecs.registerSystem(physicsSystem);      // Priority 1
+ecs.registerSystem(animationStateSystem); // Priority 2 - Determina estados de animación
+ecs.registerSystem(animationMixerSystem);  // Priority 2.5 - Reproduce animaciones GLB
+ecs.registerSystem(collisionSystem);    // Priority 2
+ecs.registerSystem(renderSystem);       // Priority 3 - Ejecutar al final
 ```
 
 ### 5. Actualizar Sistemas
@@ -171,8 +179,13 @@ Procesa input del InputManager y actualiza InputComponent. Se ejecuta primero.
 ### PhysicsSystem (Priority 1)
 Aplica física: gravedad, velocidad, aceleración, fricción. Usa timestep fijo para estabilidad.
 
-### AnimationSystem (Priority 2)
-Determina estado de animación según Input y Physics.
+### AnimationStateSystem (Priority 2)
+Determina estado de animación según Input y Physics usando una máquina de estados escalable con configuración declarativa.
+
+**Ver:** [animation/README.md](animation/README.md)
+
+### AnimationMixerSystem (Priority 2.5)
+Reproduce animaciones GLB usando Three.js AnimationMixer basándose en el estado determinado por AnimationStateSystem.
 
 ### CollisionSystem (Priority 2)
 Detecta y resuelve colisiones con partículas sólidas del mundo.
