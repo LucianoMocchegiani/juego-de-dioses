@@ -2,7 +2,7 @@
 
 Este directorio contiene reglas personalizadas para Cursor AI (archivos `.mdc`) que ayudan a estructurar y estandarizar el trabajo de desarrollo en el proyecto Juego de Dioses.
 
-## 📁 Estructura
+## Estructura
 
 ```
 instructions/
@@ -17,7 +17,7 @@ instructions/
 └── /tickets/                     # Tickets de trabajo generados
 ```
 
-## 🎯 ¿Qué son las Reglas de Cursor?
+## ¿Qué son las Reglas de Cursor?
 
 Las reglas de Cursor (archivos `.mdc`) son instrucciones especiales que guían al asistente de IA para realizar tareas específicas de manera consistente. Son especialmente útiles para:
 
@@ -26,7 +26,7 @@ Las reglas de Cursor (archivos `.mdc`) son instrucciones especiales que guían a
 - Planificar implementaciones complejas
 - Generar documentación automáticamente
 
-## 📋 Reglas Disponibles
+## Reglas Disponibles
 
 ### 1. `action-plan-rule.mdc` 
 
@@ -101,14 +101,14 @@ Asistente: *Genera JDG-123_work-ticket_2024-12-04_14-30-45.md con ticket complet
 - Se aplica a todos los cambios (alwaysApply: true)
 
 **Qué documenta:**
-- ✅ Servicios y routers FastAPI
-- ✅ Modelos Pydantic
-- ✅ Funciones exportadas
-- ✅ Clases complejas
-- ✅ Endpoints de API
-- ❌ Imports/exports simples
-- ❌ Variables locales
-- ❌ Código boilerplate
+- Servicios y routers FastAPI
+- Modelos Pydantic
+- Funciones exportadas
+- Clases complejas
+- Endpoints de API
+- NO documenta: Imports/exports simples
+- NO documenta: Variables locales
+- NO documenta: Código boilerplate
 
 **Ejemplo:**
 ```python
@@ -136,7 +136,7 @@ def get_particles(dimension_id: int, viewport: dict):
     pass
 ```
 
-## 🚀 Flujo de Trabajo Recomendado
+## Flujo de Trabajo Recomendado
 
 ### Para Features Nuevas
 
@@ -194,7 +194,7 @@ Para bugs menores puedes omitir el action plan y ir directo a la implementación
 "Genera la descripción del PR para [TICKET-ID]"
 ```
 
-## 🎨 Convenciones de Juego de Dioses
+## Convenciones de Juego de Dioses
 
 ### Conventional Commits
 - `feat(scope):` - Nueva funcionalidad
@@ -235,7 +235,7 @@ Todos los archivos generados por las reglas incluyen fecha y hora en su nombre p
 
 **Nota:** La IA ejecutará automáticamente `Get-Date -Format "yyyy-MM-dd_HH-mm-ss"` para obtener la fecha y hora actual antes de crear cada archivo. Si necesitas encontrar un archivo específico, busca por el TICKET-ID y ordena por fecha de creación.
 
-## 💡 Tips y Mejores Prácticas
+## Tips y Mejores Prácticas
 
 ### 1. Usa Action Plans para Tareas Complejas
 Si una tarea involucra más de 3 pasos o múltiples archivos, genera un action plan primero.
@@ -250,12 +250,12 @@ Haz commits después de cada paso significativo con mensajes descriptivos.
 Aunque la documentación se genera automáticamente, revísala para asegurar que sea precisa.
 
 ### 5. Actualiza el Action Plan
-Marca los pasos como completados (✅) a medida que avanzas.
+Marca los pasos como completados a medida que avanzas.
 
 ### 6. Personaliza la PR Description
 Aunque la descripción del PR se genera automáticamente, puedes agregar contexto adicional si es necesario.
 
-## 🔧 Configuración en Cursor
+## Configuración en Cursor
 
 ### Activar Reglas Manualmente
 
@@ -268,14 +268,14 @@ Si una regla no se activa automáticamente:
 ### Verificar Reglas Activas
 
 Las reglas con `alwaysApply: true` se activan automáticamente:
-- ✅ `code-documentation.mdc`
+- `code-documentation.mdc`
 
 Las reglas con `alwaysApply: false` deben invocarse manualmente:
-- 🔵 `action-plan-rule.mdc`
-- 🔵 `pr-description.mdc`
-- 🔵 `work-ticket.mdc`
+- `action-plan-rule.mdc`
+- `pr-description.mdc`
+- `work-ticket.mdc`
 
-## 📚 Ejemplos Reales
+## Ejemplos Reales
 
 ### Ejemplo 1: Implementar Sistema de Recolección de Partículas
 
@@ -316,7 +316,7 @@ Las reglas con `alwaysApply: false` deben invocarse manualmente:
 - Código documentado
 ```
 
-## 🤝 Contribuir
+## Contribuir
 
 Si necesitas agregar nuevas reglas o mejorar las existentes:
 
@@ -326,13 +326,13 @@ Si necesitas agregar nuevas reglas o mejorar las existentes:
 4. Prueba la regla con casos reales
 5. Comparte con el equipo
 
-## 📝 Notas
+## Notas
 
 - Los archivos generados en `/tasks/` y `/prs/` deben versionarse en Git
 - Sirven como documentación histórica del proyecto
 - Ayudan a nuevos desarrolladores a entender decisiones de implementación
 
-## 🔗 Referencias
+## Referencias
 
 - [Cursor Documentation](https://docs.cursor.sh/)
 - [Conventional Commits](https://www.conventionalcommits.org/)
