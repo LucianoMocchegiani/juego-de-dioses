@@ -1,0 +1,42 @@
+---
+description: Proporciona contexto esencial del proyecto Juego de Dioses al inicio de cada conversación con la IA
+globs:
+alwaysApply: true
+---
+
+## Contexto: Juego de Dioses
+
+MMO voxel-based donde jugadores interactúan con AIs (Dioses) que modifican el mundo. El mundo está compuesto de **partículas** (voxels de 0.25m) que forman objetos, seres vivos y estructuras.
+
+### Conceptos Clave
+
+- **Partículas**: Unidad básica (voxels 0.25m). Todo está hecho de partículas
+- **Agrupaciones**: Conjuntos de partículas que forman objetos (árboles, personajes)
+- **Núcleos**: Partículas críticas de seres vivos. Extracción = muerte (verificación BFS/DFS)
+- **Dimensiones**: Mundos separados con límites 3D
+- **Dioses**: AIs que crean/modifican el mundo. Suscripciones dan Energía Creadora (EC)
+- **ECS**: Entity Component System en frontend para gestión de entidades
+
+### Stack Técnico
+
+**Backend**: Python 3.11 + FastAPI + PostgreSQL 16 + Redis 7 + WebSockets + NumPy/SciPy + NetworkX
+**Frontend**: HTML5 + JS ES6+ + Three.js + ECS + Animaciones (state machine declarativo)
+**Infra**: Docker Compose (postgres, redis, backend:8000, frontend:8080)
+
+### Directorios
+
+**`juego-de-dioses/`**: Repositorio principal
+- `backend/src/`: Python/FastAPI | `frontend/src/`: JS/Three.js/ECS
+- `database/init/`: SQL | `instructions/`: Reglas (.mdc), tickets, planes, PRs
+
+**`Juego de Dioses/`**: Diseño y recursos
+- `Ideas/`: Conceptos | `arquitectura/`, `desarrollo/`: Docs técnicos
+- `blender/`, `meshy/`: Recursos 3D (GLB)
+
+### Convenciones
+
+Tickets: `JDG-XXX` | Commits: Conventional Commits | Partículas: 1m = 4 partículas (0.25m c/u) | READMEs: Sin emojis
+
+### Estado Actual
+
+Partículas funcionales, agrupaciones (árboles/personajes), ECS con animaciones, dimensiones dinámicas, API REST + WebSockets, animaciones escalables.

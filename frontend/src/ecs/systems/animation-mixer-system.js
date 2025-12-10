@@ -10,6 +10,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { getBackendBaseUrl } from '../../utils/config.js';
 import { mapBonesToBodyParts } from '../../renderers/models/bones-utils.js';
 import { ANIMATION_FILES, ANIMATION_STATES } from '../animation/config/animation-config.js';
+import { StateConfig } from '../animation/states/state-config.js';
 
 const gltfLoader = new GLTFLoader();
 
@@ -27,8 +28,15 @@ export class AnimationMixerSystem extends System {
         
         // Crear mapa de estado → nombre de animación desde configuración
         this.stateToAnimationMap = new Map();
-        for (const stateConfig of ANIMATION_STATES) {
+        
+        // Crear mapa de estado → StateConfig para acceder a propiedades de configuración
+        // (como interruptOnInputRelease) de forma escalable
+        this.stateConfigMap = new Map();
+        
+        for (const stateConfigData of ANIMATION_STATES) {
+            const stateConfig = new StateConfig(stateConfigData);
             this.stateToAnimationMap.set(stateConfig.id, stateConfig.animation);
+            this.stateConfigMap.set(stateConfig.id, stateConfig);
         }
     }
     
@@ -208,15 +216,41 @@ export class AnimationMixerSystem extends System {
         const currentAction = mesh.userData.currentAction;
         const currentState = mesh.userData.currentAnimationState;
         
-        // Si ya está reproduciendo esta misma animación, no hacer nada
-        if (currentAction && currentState === state && currentAction.isRunning()) {
+        // Verificar si el estado cambió
+        const stateChanged = currentState !== state;
+        
+        // Si ya está reproduciendo esta misma animación Y el estado no cambió, no hacer nada
+        if (currentAction && !stateChanged && currentAction.isRunning()) {
             return;
         }
         
-        // combat_stance es la animación base y no debe interrumpir otras animaciones
-        // Si se intenta reproducir combat_stance pero hay otra animación activa, ignorar
+        // LÓGICA ESCALABLE: Permitir que combat_stance (idle) interrumpa animaciones que tienen
+        // interruptOnInputRelease = true cuando el estado cambió legítimamente (usuario soltó tecla)
+        // 
+        // Esto reemplaza el código hardcodeado anterior que verificaba:
+        //   if (currentState === 'walk' || currentState === 'run')
+        //
+        // Ahora usa la configuración declarativa para determinar qué animaciones se pueden interrumpir.
+        // Ejemplo: walk y run tienen interruptOnInputRelease = true, por lo que se detienen al soltar la tecla.
+        //          attack tiene interruptOnInputRelease = false, por lo que se completa aunque se suelte el click.
         if (state === 'combat_stance' && currentAction && currentState !== 'combat_stance' && currentAction.isRunning()) {
-            return;
+            // Obtener configuración del estado actual para verificar si se puede interrumpir
+            const currentStateConfig = this.stateConfigMap.get(currentState);
+            
+            if (currentStateConfig) {
+                // Si el estado actual tiene interruptOnInputRelease = true, permitir interrupción
+                // (ej: walk, run, swim, fly, etc. - animaciones de movimiento continuo)
+                if (currentStateConfig.interruptOnInputRelease) {
+                    // Continuar con la transición - permitir que se interrumpa
+                } else if (currentState === 'attack' && mesh.userData.isAttacking) {
+                    // No interrumpir ataques en progreso (mantener lógica especial para attack)
+                    // attack tiene interruptOnInputRelease = false, así que no se interrumpe
+                    return;
+                } else {
+                    // Para otros estados que no tienen interruptOnInputRelease = true,
+                    // permitir interrupción (comportamiento por defecto cuando se cambia a idle)
+                }
+            }
         }
         
         // Detener animación actual si existe y es diferente (excepto si la nueva es combat_stance)
