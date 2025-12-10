@@ -9,15 +9,12 @@ database/
 ├── __init__.py              # Inicialización del módulo
 ├── connection.py            # Gestión de conexiones a PostgreSQL
 ├── seed_demo.py             # Script de seed para crear dimensiones demo
-├── seed_human_test.py       # Script de seed para crear terreno de prueba (primer humano)
+├── seed_character_with_model.py  # Script de seed para crear personajes con modelos 3D
 ├── terrain_builder.py       # Funciones para construir terrenos y límites
-├── tree_templates.py        # DEPRECADO: Usar templates/trees/ en su lugar
 │
 ├── templates/               # Sistema de templates para entidades
 │   ├── base.py              # BaseTemplate (clase abstracta)
 │   ├── trees/               # Templates de árboles
-│   ├── plants/              # Templates de plantas (futuro)
-│   ├── cuadrupedos/         # Templates de animales cuadrúpedos (futuro)
 │   └── bipedos/             # Templates de razas bípedas (personajes)
 │
 ├── builders/                # Builders para convertir templates en partículas
@@ -25,8 +22,11 @@ database/
 │   ├── tree_builder.py      # TreeBuilder (crea árboles)
 │   └── biped_builder.py     # BipedBuilder (crea personajes bípedos)
 │
-└── creators/                # Creators de alto nivel para simplificar creación
-    └── entity_creator.py    # EntityCreator (factory genérico)
+├── creators/                # Creators de alto nivel para simplificar creación
+│   └── entity_creator.py    # EntityCreator (factory genérico)
+│
+└── utils/                   # Utilidades auxiliares
+    └── terrain_utils.py     # Funciones auxiliares para cálculos de terreno
 ```
 
 ## Componentes Principales
@@ -83,41 +83,20 @@ database/
 - Genera bioma bosque con árboles
 - Usa el sistema de templates/builders/creators
 
-### 6. Seed Human Test (`seed_human_test.py`)
+### 6. Seed Character with Model (`seed_character_with_model.py`)
 
-**Responsabilidad:** Crear terreno de prueba simple y controlado para facilitar la creación del primer humano.
+**Responsabilidad:** Crear personajes con modelos 3D asociados.
 
 **Funcionalidad:**
-- Crea dimensión de prueba (40x40m)
-- Terreno plano con tierra y hierba
-- Un lago de agua en superficie (8x8 metros)
-- Una montaña pequeña hecha con tierra y piedra (4x4 metros base, 4 niveles de altura)
-- Exactamente 10 árboles distribuidos estratégicamente
-- Sin acuífero subterráneo (terreno simple)
+- Crea personajes usando templates de bípedos
+- Asocia modelos 3D desde archivos GLB
+- Crea agrupaciones con `geometria_agrupacion` para renderizado en frontend
+- Posiciona personajes en dimensiones existentes
 
 **Cómo ejecutar:**
 ```bash
-docker-compose exec backend python -m src.database.seed_human_test
+docker-compose exec backend python -m src.database.seed_character_with_model
 ```
-
-### 7. Seed Character Test (`seed_character_test.py`)
-
-**Responsabilidad:** Crear personaje de prueba en la dimensión de prueba.
-
-**Funcionalidad:**
-- Busca la dimensión "Terreno de Prueba - Primer Humano"
-- Crea un personaje humano usando el template 'humano'
-- Posiciona el personaje en (45, 45, 1)
-- Crea agrupación con `geometria_agrupacion` para renderizado en frontend
-
-**Cómo ejecutar:**
-```bash
-docker-compose exec backend python -m src.database.seed_character_test
-```
-
-**Nota:** Requiere que la dimensión de prueba exista (ejecutar `seed_human_test.py` primero).
-
-**Nombre de la dimensión:** "Terreno de Prueba - Primer Humano"
 
 ### 7. Terrain Builder (`terrain_builder.py`)
 
@@ -237,9 +216,8 @@ La tabla `agrupaciones` incluye el campo `geometria_agrupacion` (JSONB) para def
 
 ## Notas
 
-- El archivo `tree_templates.py` está **deprecado** y se mantiene solo por compatibilidad temporal
-- Usar el nuevo sistema de `templates/trees/` en su lugar
-- Todos los nuevos desarrollos deben usar el sistema modular
+- Todos los desarrollos deben usar el sistema modular de templates/builders/creators
+- El sistema de templates es extensible: agregar nuevas categorías siguiendo el patrón existente
 
 ## Actualizar Formas Geométricas en Tipos de Partículas
 
