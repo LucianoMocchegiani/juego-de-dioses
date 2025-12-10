@@ -41,6 +41,7 @@ export const ANIMATION_STATES = [
             { type: 'movement', operator: 'hasMovement' }
         ],
         animation: 'run',
+        interruptOnInputRelease: true, // Se interrumpe cuando se suelta la tecla de movimiento
         transitions: ['idle', 'walk', 'attack']
     },
     {
@@ -50,6 +51,7 @@ export const ANIMATION_STATES = [
             { type: 'movement', operator: 'hasMovement' }
         ],
         animation: 'walk',
+        interruptOnInputRelease: true, // Se interrumpe cuando se suelta la tecla de movimiento
         transitions: ['idle', 'run', 'attack']
     },
     {

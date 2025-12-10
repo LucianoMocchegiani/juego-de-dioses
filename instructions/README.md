@@ -7,6 +7,7 @@ Este directorio contiene reglas personalizadas para Cursor AI (archivos `.mdc`) 
 ```
 instructions/
 ├── README.md                      # Este archivo
+├── project-context.mdc           # Contexto esencial del proyecto (siempre activo)
 ├── action-plan-rule.mdc          # Genera planes de acción desde tickets
 ├── pr-description.mdc            # Genera descripciones de PRs
 ├── work-ticket.mdc               # Genera tickets de trabajo
@@ -28,7 +29,31 @@ Las reglas de Cursor (archivos `.mdc`) son instrucciones especiales que guían a
 
 ## Reglas Disponibles
 
-### 1. `action-plan-rule.mdc` 
+### 1. `project-context.mdc` (Always Apply)
+
+**Propósito:** Proporciona contexto esencial del proyecto al inicio de cada conversación con la IA.
+
+**Cuándo se aplica:**
+- Automáticamente al iniciar cada conversación (alwaysApply: true)
+- Proporciona contexto sobre el proyecto sin necesidad de explicarlo manualmente
+
+**Qué incluye:**
+- Conceptos clave del juego (partículas, agrupaciones, núcleos, dimensiones, dioses, ECS)
+- Stack técnico completo (backend, frontend, infraestructura)
+- Estructura de directorios
+- Convenciones del proyecto
+- Estado actual del desarrollo
+
+**Ejemplo:**
+```
+Al iniciar cualquier conversación, la IA automáticamente tiene contexto sobre:
+- Qué es Juego de Dioses (MMO voxel-based)
+- Cómo funciona el sistema de partículas
+- Qué tecnologías se usan
+- Dónde está cada cosa en el proyecto
+```
+
+### 2. `action-plan-rule.mdc` 
 
 **Propósito:** Genera un plan de acción detallado paso a paso para implementar una feature o bugfix.
 
@@ -49,7 +74,7 @@ Usuario: "Necesito un action plan para implementar sistema de recolección de pa
 Asistente: *Genera JDG-123-action-plan_2024-12-04_14-30-45.md con pasos detallados*
 ```
 
-### 2. `pr-description.mdc`
+### 3. `pr-description.mdc`
 
 **Propósito:** Genera una descripción completa de Pull Request lista para copiar.
 
@@ -70,7 +95,7 @@ Usuario: "Genera la descripción del PR para JDG-123"
 Asistente: *Analiza commits y genera JDG-123_pr-description_2024-12-04_14-30-45.md*
 ```
 
-### 3. `work-ticket.mdc`
+### 4. `work-ticket.mdc`
 
 **Propósito:** Genera tickets de trabajo estructurados y completos para el proyecto.
 
@@ -92,7 +117,7 @@ Usuario: "Genera un ticket para implementar sistema de recolección de partícul
 Asistente: *Genera JDG-123_work-ticket_2024-12-04_14-30-45.md con ticket completo*
 ```
 
-### 4. `code-documentation.mdc` (Always Apply)
+### 5. `code-documentation.mdc` (Always Apply)
 
 **Propósito:** Agrega automáticamente documentación Python docstring inline a código nuevo o modificado.
 

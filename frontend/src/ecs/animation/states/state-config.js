@@ -9,6 +9,21 @@ export class StateConfig {
         this.animation = config.animation;
         this.canInterrupt = config.canInterrupt || false;
         this.transitions = config.transitions || [];
+        
+        /**
+         * Si es true, esta animación se interrumpe cuando se suelta la tecla/input que la activa.
+         * Útil para animaciones de movimiento continuo como walk, run, swim, fly, etc.
+         * 
+         * Ejemplo:
+         * - walk: interruptOnInputRelease = true → se detiene al soltar W/A/S/D
+         * - attack: interruptOnInputRelease = false → se completa aunque se suelte el click
+         * 
+         * @type {boolean}
+         * @default false
+         */
+        this.interruptOnInputRelease = config.interruptOnInputRelease !== undefined 
+            ? config.interruptOnInputRelease 
+            : false;
     }
     
     /**
