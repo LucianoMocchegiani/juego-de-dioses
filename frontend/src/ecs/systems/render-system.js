@@ -17,7 +17,7 @@ export class RenderSystem extends System {
      * Actualizar sistema de renderizado
      * @param {number} deltaTime - Tiempo transcurrido desde el último frame
      */
-    update(deltaTime) {
+    update(_deltaTime) {
         const entities = this.getEntities();
         
         for (const entityId of entities) {
@@ -39,41 +39,6 @@ export class RenderSystem extends System {
             
             // Actualizar visibilidad
             render.mesh.visible = render.visible;
-            
-            // Aplicar agacharse
-            // IMPORTANTE: NO tocar la escala si es un modelo 3D (escala < 0.1)
-            // Los modelos 3D tienen escalas personalizadas que NO deben ser sobrescritas
-            const currentScale = render.mesh.scale;
-            const isModel3D = currentScale.x < 0.1 || currentScale.y < 0.1 || currentScale.z < 0.1;
-            
-            if (isModel3D) {
-                // Es un modelo 3D, NO tocar la escala excepto para agacharse
-                if (input && input.wantsToCrouch && !render.isCrouching) {
-                    render.isCrouching = true;
-                    render.mesh.scale.y *= 0.6; // Reducir altura al 60%
-                } else if (!input?.wantsToCrouch && render.isCrouching) {
-                    render.isCrouching = false;
-                    render.mesh.scale.y = render.normalScale.y; // Restaurar altura
-                }
-                // NO aplicar escala normal, preservar la escala del modelo 3D
-            } else if (render.normalScale) {
-                // Mesh normal (primitivas), aplicar lógica normal
-                if (input && input.wantsToCrouch) {
-                    render.isCrouching = true;
-                    render.mesh.scale.set(
-                        render.crouchScale.x,
-                        render.crouchScale.y,
-                        render.crouchScale.z
-                    );
-                } else {
-                    render.isCrouching = false;
-                    render.mesh.scale.set(
-                        render.normalScale.x,
-                        render.normalScale.y,
-                        render.normalScale.z
-                    );
-                }
-            }
             
             // Orientación del personaje
             // El personaje solo rota cuando se mueve la cámara (no cuando se presionan WASD)
