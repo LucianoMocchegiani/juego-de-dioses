@@ -15,7 +15,7 @@ import { ParticleRenderer } from './renderers/particle-renderer.js';
 import { GeometryRegistry } from './renderers/geometries/registry.js';
 import { DEMO_DIMENSION_NAME } from './constants.js';
 import { ECSManager } from './ecs/index.js';
-import { InputSystem, PhysicsSystem, RenderSystem, CollisionSystem, AnimationStateSystem, AnimationMixerSystem } from './ecs/systems/index.js';
+import { InputSystem, PhysicsSystem, RenderSystem, CollisionSystem, AnimationStateSystem, AnimationMixerSystem, ComboSystem, CombatSystem } from './ecs/systems/index.js';
 import { PlayerFactory } from './ecs/factories/player-factory.js';
 import { InputManager } from './systems/input-manager.js';
 import { CollisionDetector } from './systems/collision-detector.js';
@@ -79,6 +79,8 @@ export class App {
         // Inicializar sistemas ECS
         this.inputSystem = new InputSystem(this.inputManager);
         this.physicsSystem = new PhysicsSystem({ gravity: -9.8 });
+        this.combatSystem = new CombatSystem(this.inputManager);
+        this.comboSystem = new ComboSystem(this.inputManager);
         this.animationStateSystem = new AnimationStateSystem();
         this.animationMixerSystem = new AnimationMixerSystem();
         // RenderSystem y CollisionSystem se inicializarán después de cargar la dimensión
@@ -86,11 +88,13 @@ export class App {
         this.collisionSystem = null;
         this.collisionDetector = null;
         
-        // Registrar sistemas (RenderSystem y CollisionSystem se registrarán después)
-        this.ecs.registerSystem(this.inputSystem);
-        this.ecs.registerSystem(this.physicsSystem);
-        this.ecs.registerSystem(this.animationStateSystem);
-        this.ecs.registerSystem(this.animationMixerSystem);
+        // Registrar sistemas con prioridades correctas (orden de ejecución)
+        this.ecs.registerSystem(this.inputSystem);         // Priority 0
+        this.ecs.registerSystem(this.physicsSystem);       // Priority 1
+        this.ecs.registerSystem(this.combatSystem);        // Priority 1.4
+        this.ecs.registerSystem(this.comboSystem);         // Priority 1.5
+        this.ecs.registerSystem(this.animationStateSystem); // Priority 2
+        this.ecs.registerSystem(this.animationMixerSystem); // Priority 2.5
         
         // Jugador se creará después de cargar la dimensión
         this.playerId = null;

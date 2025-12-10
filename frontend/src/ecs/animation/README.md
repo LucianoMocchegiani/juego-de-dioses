@@ -15,19 +15,30 @@ Proporcionar un sistema de animaciones que:
 ```
 animation/
 ├── config/
-│   └── animation-config.js    # Configuración declarativa de estados y animaciones
-├── conditions/                 # Sistema de condiciones evaluables
-│   ├── base-condition.js      # Clase base para condiciones
-│   ├── input-condition.js     # Condiciones basadas en InputComponent
-│   ├── physics-condition.js   # Condiciones basadas en PhysicsComponent
-│   ├── movement-condition.js  # Condiciones basadas en movimiento
-│   ├── condition-factory.js   # Factory para crear condiciones desde configuración
-│   └── index.js               # Exportaciones
-├── states/                     # Sistema de estados
-│   ├── state-config.js        # Configuración de un estado individual
-│   ├── state-registry.js      # Registry que gestiona todos los estados
-│   └── index.js               # Exportaciones
-└── index.js                    # Exportaciones principales
+│   ├── animation-config.js           # Configuración declarativa de estados y animaciones
+│   ├── combo-config.js               # Configuración de combos (secuencias de ataques)
+│   ├── input-combinations-config.js  # Configuración de combinaciones de teclas
+│   └── weapon-animations-config.js   # Configuración de animaciones por tipo de arma
+├── conditions/                        # Sistema de condiciones evaluables
+│   ├── base-condition.js             # Clase base para condiciones
+│   ├── input-condition.js            # Condiciones basadas en InputComponent
+│   ├── physics-condition.js          # Condiciones basadas en PhysicsComponent
+│   ├── movement-condition.js         # Condiciones basadas en movimiento
+│   ├── combo-condition.js            # Condiciones basadas en ComboComponent
+│   ├── combat-condition.js           # Condiciones basadas en CombatComponent
+│   ├── condition-factory.js          # Factory para crear condiciones desde configuración
+│   └── index.js                      # Exportaciones
+├── combos/                            # Sistema de combos
+│   ├── input-buffer.js               # Buffer de inputs temporales
+│   ├── combo-chain.js                # Representación de cadena de combo
+│   ├── combo-manager.js              # Gestor de detección y ejecución de combos
+│   ├── README.md                     # Documentación del sistema de combos
+│   └── index.js                      # Exportaciones
+├── states/                            # Sistema de estados
+│   ├── state-config.js               # Configuración de un estado individual
+│   ├── state-registry.js             # Registry que gestiona todos los estados
+│   └── index.js                      # Exportaciones
+└── index.js                           # Exportaciones principales
 ```
 
 ## Componentes Principales
@@ -73,6 +84,16 @@ Define de forma declarativa:
 - **MovementCondition**: Evalúa si hay movimiento basándose en `InputComponent`
   ```javascript
   { type: 'movement', operator: 'hasMovement' }
+  ```
+
+- **ComboCondition**: Evalúa propiedades del `ComboComponent`
+  ```javascript
+  { type: 'combo', property: 'hasActiveCombo', operator: 'equals', value: true }
+  ```
+
+- **CombatCondition**: Evalúa propiedades del `CombatComponent`
+  ```javascript
+  { type: 'combat', property: 'isAttacking', operator: 'equals', value: true }
   ```
 
 #### Operadores Soportados:
@@ -231,11 +252,62 @@ Este módulo se integra con el sistema ECS a través de:
 - **AnimationStateSystem** (`../systems/animation-state-system.js`): Sistema ECS que usa este módulo
 - **AnimationMixerSystem** (`../systems/animation-mixer-system.js`): Sistema que reproduce las animaciones GLB basándose en los estados
 
+## Configuraciones Adicionales
+
+### Sistema de Combos (`config/combo-config.js`)
+
+Define cadenas de combos (secuencias de ataques):
+
+```javascript
+{
+    id: 'basic_combo_3hit',
+    steps: [
+        { input: 'click', animation: 'left_slash', timing: 500 },
+        { input: 'click', animation: 'right_slash', timing: 500 },
+        { input: 'click', animation: 'forward_slash', timing: 500 }
+    ],
+    cancelable: false,
+    weaponTypes: ['sword', 'generic']
+}
+```
+
+**Ver:** [combos/README.md](combos/README.md)
+
+### Combinaciones de Input (`config/input-combinations-config.js`)
+
+Define acciones de combate basadas en combinaciones de teclas:
+
+```javascript
+{
+    id: 'heavy_attack',
+    trigger: 'click+shift',
+    animation: 'charged_axe_chop',
+    attackType: 'heavy',
+    conditions: { weaponType: ['sword', 'axe'] }
+}
+```
+
+### Animaciones de Armas (`config/weapon-animations-config.js`)
+
+Mapea tipos de armas a animaciones específicas:
+
+```javascript
+{
+    sword: {
+        lightAttack: 'sword_slash',
+        heavyAttack: 'sword_heavy_slash',
+        // ...
+    }
+}
+```
+
 ## Referencias
 
-- **Análisis de Arquitectura**: `instructions/analysis/JDG-016-architecture-analysis_2025-12-09_19-59-40.md`
-- **Ticket**: `instructions/tickets/JDG-016_work-ticket_2025-12-09_19-59-40.md`
+- **Análisis de Arquitectura**: `instructions/analysis/JDG-021-architecture-analysis_2025-12-10_09-58-53.md`
+- **Ticket**: `instructions/tickets/JDG-021_work-ticket_2025-12-10_09-58-53.md`
+- **Plan de Acción**: `instructions/tasks/JDG-021-action-plan_2025-12-10_11-34-53.md`
 - **ECS README**: `../README.md`
 - **AnimationStateSystem**: `../systems/animation-state-system.js`
 - **AnimationMixerSystem**: `../systems/animation-mixer-system.js`
+- **Sistema de Combos**: [combos/README.md](combos/README.md)
 
