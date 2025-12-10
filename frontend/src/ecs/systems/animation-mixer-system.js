@@ -9,28 +9,48 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { getBackendBaseUrl } from '../../utils/config.js';
 import { mapBonesToBodyParts } from '../../renderers/models/bones-utils.js';
+import { ANIMATION_FILES, ANIMATION_STATES } from '../animation/config/animation-config.js';
 
 const gltfLoader = new GLTFLoader();
-
-// Mapeo de estados de animación a archivos de animación
-const ANIMATION_FILES = {
-    'walk': 'animations/Animation_Walking_withSkin.glb',
-    'run': 'animations/Animation_Running_withSkin.glb',
-    'combat_stance': 'animations/Animation_Combat_Stance_withSkin.glb',
-    'attack': 'animations/Animation_Left_Slash_withSkin.glb'
-};
 
 export class AnimationMixerSystem extends System {
     constructor() {
         super();
         this.requiredComponents = ['Render', 'Animation'];
-        this.priority = 2.5; // Entre AnimationSystem (2) y RenderSystem (3)
+        this.priority = 2.5; // Entre AnimationStateSystem (2) y RenderSystem (3)
         
         // Cache de animaciones cargadas
         this.animationCache = new Map();
         
         // Prevenir múltiples inicializaciones simultáneas
         this.initializingMixers = new Set();
+        
+        // Crear mapa de estado → nombre de animación desde configuración
+        this.stateToAnimationMap = new Map();
+        for (const stateConfig of ANIMATION_STATES) {
+            this.stateToAnimationMap.set(stateConfig.id, stateConfig.animation);
+        }
+    }
+    
+    /**
+     * Obtener nombre de animación para un estado
+     * @param {string} stateId - ID del estado
+     * @returns {string|null} Nombre de la animación o null si no hay
+     */
+    getAnimationNameForState(stateId) {
+        // Buscar en el mapa de configuración
+        const animationName = this.stateToAnimationMap.get(stateId);
+        if (animationName) {
+            return animationName;
+        }
+        
+        // Fallback: si el estado es el mismo que la animación, usar directamente
+        if (ANIMATION_FILES[stateId]) {
+            return stateId;
+        }
+        
+        // Fallback final: combat_stance
+        return 'combat_stance';
     }
     
     /**
@@ -141,10 +161,14 @@ export class AnimationMixerSystem extends System {
             
             // Cargar todas las animaciones
             const animations = {};
-            for (const [state, file] of Object.entries(ANIMATION_FILES)) {
-                const clips = await this.loadAnimation(file);
-                if (clips.length > 0) {
-                    animations[state] = clips[0];
+            for (const [animName, file] of Object.entries(ANIMATION_FILES)) {
+                // Si el valor es un string que apunta a otra animación (ej: 'jump': 'combat_stance'),
+                // no cargar, se resolverá más tarde
+                if (typeof file === 'string' && file.startsWith('animations/')) {
+                    const clips = await this.loadAnimation(file);
+                    if (clips.length > 0) {
+                        animations[animName] = clips[0];
+                    }
                 }
             }
             
@@ -296,28 +320,16 @@ export class AnimationMixerSystem extends System {
             // Reproducir animación según estado
             const clips = mesh.userData.animationClips;
             if (clips) {
-                // Mapear estados del juego a estados de animación
-                let animationState = animation.currentState;
+                // Obtener nombre de animación desde configuración
+                const animationName = this.getAnimationNameForState(animation.currentState);
                 
-                // // Si está atacando Y el estado del componente es 'attack', mantener el estado de ataque
-                // // Pero si el estado cambió a 'idle' (transición iniciada), permitir combat_stance
-                // if (mesh.userData.isAttacking && animationState === 'attack') {
-                //     animationState = 'attack';
-                // }
-                // Mapeo de estados (prioridad: attack > run > walk > idle > otros)
-                if (animationState === 'attack' && clips['attack']) {
-                    animationState = 'attack';
-                } else if (animationState === 'run' && clips['run']) {
-                    animationState = 'run';
-                } else if (animationState === 'walk' && clips['walk']) {
-                    animationState = 'walk';
-                } else if (animationState === 'idle' && clips['combat_stance']) {
-                    animationState = 'combat_stance';
+                // Si la animación existe en los clips cargados, reproducirla
+                if (animationName && clips[animationName]) {
+                    this.playAnimation(mixer, clips, animationName, mesh);
                 } else if (clips['combat_stance']) {
-                    animationState = 'combat_stance';
+                    // Fallback: usar combat_stance si no hay animación específica
+                    this.playAnimation(mixer, clips, 'combat_stance', mesh);
                 }
-                
-                this.playAnimation(mixer, clips, animationState, mesh);
             }
         }
     }
