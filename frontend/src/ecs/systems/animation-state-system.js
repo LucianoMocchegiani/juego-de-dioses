@@ -5,7 +5,7 @@
  * finita basada en configuración declarativa.
  */
 import { System } from '../system.js';
-import { ANIMATION_STATES } from '../animation/config/animation-config.js';
+import { ANIMATION_STATES } from '../../config/animation-config.js';
 import { StateRegistry } from '../animation/states/state-registry.js';
 
 export class AnimationStateSystem extends System {
@@ -51,43 +51,41 @@ export class AnimationStateSystem extends System {
             const activeState = this.stateRegistry.determineActiveState(context);
 
             if (activeState) {
-                // Si es combo_attack, resolver animación dinámicamente desde ComboComponent
-                if (activeState.id === 'combo_attack') {
+                // Lógica basada en TIPO de estado, no en ID específico
+
+                // 1. Estados de Combo
+                if (activeState.combatType === 'combo') {
                     if (combo && combo.comboAnimation) {
                         // Usar la animación específica del combo
-                        animation.currentState = 'combo_attack';
+                        animation.currentState = activeState.id;
                         animation.comboAnimationName = combo.comboAnimation;
-                        animation.combatAnimationName = null; // Limpiar animación de combate
+                        animation.combatAnimationName = null;
                     } else {
-                        // Si no hay combo activo, no usar combo_attack
-                        // (esto no debería pasar, pero por seguridad)
+                        // Fallback seguro
                         animation.currentState = activeState.id;
                         animation.comboAnimationName = null;
                         animation.combatAnimationName = null;
                     }
                 }
-                // Si es un estado de combate (heavy_attack, charged_attack, special_attack, parry, dodge)
-                else if (activeState.id === 'heavy_attack' || activeState.id === 'charged_attack' ||
-                    activeState.id === 'special_attack' || activeState.id === 'parry' ||
-                    activeState.id === 'dodge') {
+                // 2. Estados de Combate (Ataque, Defensa, Especial)
+                else if (activeState.type === 'combat') {
                     if (combat && combat.combatAnimation) {
                         // Usar la animación específica del combate
                         animation.currentState = activeState.id;
                         animation.combatAnimationName = combat.combatAnimation;
-                        animation.comboAnimationName = null; // Limpiar animación de combo
+                        animation.comboAnimationName = null;
                     } else {
-                        // Si no hay animación de combate, usar estado normal pero permitir que AnimationMixerSystem resuelva la animación por defecto
+                        // Si no hay animación de combate específica, usar estado normal
                         animation.currentState = activeState.id;
-                        // NO limpiar combatAnimationName si es null, dejar que el sistema de mixer use el default del config
-                        // Pero para special_attack, queremos usar la animación definida en config si no hay override
-                        if (activeState.id === 'special_attack') {
-                            // No hacer nada especial, el mixer usará activeState.animation
-                        }
+
+                        // Para ataques especiales definidos en config, permitimos que el mixer use el default
+                        // Si combatAnimation es null, el mixer usará activeState.animation
                         animation.combatAnimationName = null;
                         animation.comboAnimationName = null;
                     }
-                } else {
-                    // Estados normales: mapear estado interno a estado del componente
+                }
+                // 3. Estados Normales (Movimiento, Idle, etc.)
+                else {
                     animation.currentState = activeState.id;
                     animation.comboAnimationName = null;
                     animation.combatAnimationName = null;

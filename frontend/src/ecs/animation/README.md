@@ -14,11 +14,6 @@ Proporcionar un sistema de animaciones que:
 
 ```
 animation/
-├── config/
-│   ├── animation-config.js           # Configuración declarativa de estados y animaciones
-│   ├── combo-config.js               # Configuración de combos (secuencias de ataques)
-│   ├── input-combinations-config.js  # Configuración de combinaciones de teclas
-│   └── weapon-animations-config.js   # Configuración de animaciones por tipo de arma
 ├── conditions/                        # Sistema de condiciones evaluables
 │   ├── base-condition.js             # Clase base para condiciones
 │   ├── input-condition.js            # Condiciones basadas en InputComponent
@@ -45,7 +40,7 @@ animation/
 
 ### 1. Configuración (`config/`)
 
-**Archivo:** `animation-config.js`
+**Archivo:** `../../config/animation-config.js`
 
 Define de forma declarativa:
 - **ANIMATION_STATES**: Estados de animación con prioridades, condiciones y transiciones
@@ -156,7 +151,7 @@ export const ANIMATION_MIXER = {
 
 ### Agregar un Nuevo Estado de Animación
 
-**1. Agregar estado en `config/animation-config.js`:**
+**1. Agregar estado en `../../config/animation-config.js`:**
 
 ```javascript
 export const ANIMATION_STATES = [
@@ -268,7 +263,7 @@ Este módulo se integra con el sistema ECS a través de:
 
 ## Configuraciones Adicionales
 
-### Sistema de Combos (`config/combo-config.js`)
+### Sistema de Combos (`../../config/combo-config.js`)
 
 Define cadenas de combos (secuencias de ataques):
 
@@ -287,7 +282,7 @@ Define cadenas de combos (secuencias de ataques):
 
 **Ver:** [combos/README.md](combos/README.md)
 
-### Combinaciones de Input (`config/input-combinations-config.js`)
+### Combinaciones de Input (`../../config/input-combinations-config.js`)
 
 Define acciones de combate basadas en combinaciones de teclas:
 
@@ -301,7 +296,7 @@ Define acciones de combate basadas en combinaciones de teclas:
 }
 ```
 
-### Animaciones de Armas (`config/weapon-animations-config.js`)
+### Animaciones de Armas (`../../config/weapon-animations-config.js`)
 
 Mapea tipos de armas a animaciones específicas:
 

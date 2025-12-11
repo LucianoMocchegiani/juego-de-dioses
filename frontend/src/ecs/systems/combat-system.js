@@ -5,7 +5,7 @@
  * Se ejecuta después de InputSystem pero antes de ComboSystem y AnimationStateSystem.
  */
 import { System } from '../system.js';
-import { INPUT_COMBINATIONS } from '../animation/config/input-combinations-config.js';
+import { INPUT_COMBINATIONS } from '../../config/input-combinations-config.js';
 
 export class CombatSystem extends System {
     constructor(inputManager) {
@@ -14,7 +14,7 @@ export class CombatSystem extends System {
         this.requiredComponents = ['Input', 'Combat'];
         this.priority = 1.4; // Después de InputSystem (0) y PhysicsSystem (1), antes de ComboSystem (1.5)
     }
-    
+
     /**
      * Verificar si una combinación de input está activa
      * @param {Object} combination - Configuración de combinación
@@ -23,7 +23,7 @@ export class CombatSystem extends System {
      */
     checkCombination(combination, input) {
         const triggers = combination.triggers;
-        
+
         for (const trigger of triggers) {
             if (trigger === 'click') {
                 // Verificar click izquierdo del mouse
@@ -58,7 +58,7 @@ export class CombatSystem extends System {
         }
         return true;
     }
-    
+
     /**
      * Verificar condiciones de una combinación
      * @param {Object} combination - Configuración de combinación
@@ -68,7 +68,7 @@ export class CombatSystem extends System {
     checkConditions(combination, context) {
         const { conditions } = combination;
         if (!conditions) return true;
-        
+
         // Verificar weaponType
         if (conditions.weaponType) {
             const weaponType = context.weapon ? context.weapon.weaponType : 'generic';
@@ -76,7 +76,7 @@ export class CombatSystem extends System {
                 return false;
             }
         }
-        
+
         // Verificar hasMovement
         if (conditions.hasMovement !== undefined) {
             const hasMovement = context.input.moveDirection.x !== 0 || context.input.moveDirection.y !== 0;
@@ -84,36 +84,36 @@ export class CombatSystem extends System {
                 return false;
             }
         }
-        
+
         // Verificar requiresWeapon
         if (combination.requiresWeapon && !context.weapon) {
             return false;
         }
-        
+
         return true;
     }
-    
+
     /**
      * Actualizar sistema de combate
      * @param {number} deltaTime - Tiempo transcurrido
      */
     update(_deltaTime) {
         const entities = this.getEntities();
-        
+
         for (const entityId of entities) {
             const input = this.ecs.getComponent(entityId, 'Input');
             const combat = this.ecs.getComponent(entityId, 'Combat');
-            
+
             if (!input || !combat) continue;
-            
+
             // Obtener tipo de arma (si existe el componente Weapon)
             let weapon = null;
             if (this.ecs.hasComponent(entityId, 'Weapon')) {
                 weapon = this.ecs.getComponent(entityId, 'Weapon');
             }
-            
+
             const context = { input, weapon };
-            
+
             // Resetear estado de combate antes de verificar nuevas combinaciones
             // (solo si no hay un combo activo, para evitar conflictos)
             const combo = this.ecs.getComponent(entityId, 'Combo');
@@ -121,13 +121,13 @@ export class CombatSystem extends System {
                 // Si no hay combo activo, resetear combate para verificar nuevas combinaciones
                 combat.reset();
             }
-            
+
             // Verificar cada combinación de input
             for (const combination of INPUT_COMBINATIONS) {
                 if (this.checkCombination(combination, input) && this.checkConditions(combination, context)) {
                     // Combinación detectada
                     combat.combatAnimation = combination.animation;
-                    
+
                     if (combination.attackType) {
                         combat.isAttacking = true;
                         combat.attackType = combination.attackType;
@@ -145,7 +145,7 @@ export class CombatSystem extends System {
                         combat.defenseType = null;
                         combat.canCancel = true;
                     }
-                    
+
                     // Salir del loop después de encontrar la primera combinación válida
                     break;
                 }

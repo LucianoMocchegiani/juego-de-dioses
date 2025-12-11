@@ -41,7 +41,6 @@ ecs/
 │   ├── animation-mixer-system.js  # Sistema de reproducción de animaciones GLB
 │   └── index.js            # Exportaciones
 ├── animation/               # Sistema de animaciones escalable
-│   ├── config/             # Configuración declarativa de animaciones
 │   ├── conditions/         # Sistema de condiciones evaluables
 │   ├── states/             # Sistema de estados y registry
 │   └── README.md           # Documentación del sistema de animaciones
@@ -188,7 +187,7 @@ Procesa input del InputManager y actualiza InputComponent. Se ejecuta primero.
 ### CombatSystem (Priority 1.4)
 Procesa combinaciones de teclas para acciones de combate (ataques pesados, cargados, especiales, parry, dodge, grab).
 
-**Ver:** [animation/config/input-combinations-config.js](animation/config/input-combinations-config.js)
+**Ver:** [../config/input-combinations-config.js](../config/input-combinations-config.js)
 
 ### ComboSystem (Priority 1.5)
 Gestiona detección y ejecución de combos (secuencias de ataques consecutivos).
