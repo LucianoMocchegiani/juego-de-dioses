@@ -6,7 +6,7 @@
  */
 import { System } from '../system.js';
 import { ComboManager } from '../animation/combos/combo-manager.js';
-import { COMBO_CHAINS } from '../animation/config/combo-config.js';
+import { COMBO_CHAINS } from '../../config/combo-config.js';
 
 export class ComboSystem extends System {
     constructor(inputManager) {
@@ -14,7 +14,7 @@ export class ComboSystem extends System {
         this.inputManager = inputManager;
         this.requiredComponents = ['Input', 'Combo'];
         this.priority = 1.5; // Después de InputSystem (0) y PhysicsSystem (1), antes de AnimationStateSystem (2)
-        
+
         /**
          * Mapa de entityId -> ComboManager
          * Cada entidad tiene su propio ComboManager
@@ -22,7 +22,7 @@ export class ComboSystem extends System {
          */
         this.comboManagers = new Map();
     }
-    
+
     /**
      * Obtener o crear ComboManager para una entidad
      * @param {number} entityId - ID de la entidad
@@ -35,7 +35,7 @@ export class ComboSystem extends System {
         }
         return this.comboManagers.get(entityId);
     }
-    
+
     /**
      * Actualizar sistema de combos
      * @param {number} deltaTime - Tiempo transcurrido desde el último frame
@@ -43,26 +43,26 @@ export class ComboSystem extends System {
     update(_deltaTime) {
         const entities = this.getEntities();
         const currentTime = performance.now();
-        
+
         for (const entityId of entities) {
             const input = this.ecs.getComponent(entityId, 'Input');
             const combo = this.ecs.getComponent(entityId, 'Combo');
-            
+
             if (!input || !combo) continue;
-            
+
             // Obtener tipo de arma (si existe el componente Weapon)
             let weaponType = null;
             if (this.ecs.hasComponent(entityId, 'Weapon')) {
                 const weapon = this.ecs.getComponent(entityId, 'Weapon');
                 weaponType = weapon ? weapon.weaponType : null;
             }
-            
+
             // Obtener ComboManager para esta entidad
             const comboManager = this.getComboManager(entityId);
-            
+
             // Verificar si hay click reciente (solo procesar cuando se presiona, no mientras está presionado)
             const mouseButtonDown = this.inputManager.isMouseButtonDown(0); // Click izquierdo
-            
+
             // Determinar tipo de input basado en el click y las teclas modificadoras
             let inputType = null;
             if (mouseButtonDown) {
@@ -70,7 +70,7 @@ export class ComboSystem extends System {
                 const isShiftPressed = input.isKeyPressed('ShiftLeft') || input.isKeyPressed('ShiftRight');
                 const isCtrlPressed = input.isKeyPressed('ControlLeft') || input.isKeyPressed('ControlRight');
                 const isAltPressed = input.isKeyPressed('AltLeft') || input.isKeyPressed('AltRight');
-                
+
                 if (isShiftPressed) {
                     inputType = 'click+shift';
                 } else if (isCtrlPressed) {
@@ -81,11 +81,11 @@ export class ComboSystem extends System {
                     inputType = 'click';
                 }
             }
-            
+
             // Procesar input en el ComboManager solo si hay un input nuevo
             if (inputType) {
                 const comboResult = comboManager.processInput(inputType, currentTime, weaponType);
-                
+
                 if (comboResult) {
                     // Actualizar ComboComponent con resultado
                     combo.activeComboId = comboResult.comboId;
@@ -102,7 +102,7 @@ export class ComboSystem extends System {
                 // Si no hay input pero hay un combo activo, verificar si expiró por tiempo
                 const timeSinceLastInput = currentTime - combo.lastComboInputTime;
                 const comboConfig = COMBO_CHAINS.find(c => c.id === combo.activeComboId);
-                
+
                 if (comboConfig && combo.comboStep < comboConfig.steps.length) {
                     const currentStep = comboConfig.steps[combo.comboStep];
                     if (currentStep && timeSinceLastInput > currentStep.timing * 1.5) {

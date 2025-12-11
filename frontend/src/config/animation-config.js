@@ -14,6 +14,8 @@ export const ANIMATION_MIXER = {
 export const ANIMATION_STATES = [
     {
         id: 'combo_attack',
+        type: 'combat',
+        combatType: 'combo',
         priority: 12,  // Mayor prioridad que todos los otros ataques
         conditions: [
             { type: 'combo', operator: 'hasActiveCombo' }
@@ -26,6 +28,8 @@ export const ANIMATION_STATES = [
     },
     {
         id: 'parry',
+        type: 'combat',
+        combatType: 'defense',
         priority: 12,  // Alta prioridad para defensa
         conditions: [
             { type: 'combat', property: 'defenseType', operator: 'equals', value: 'parry' }
@@ -38,6 +42,8 @@ export const ANIMATION_STATES = [
     },
     {
         id: 'dodge',
+        type: 'combat',
+        combatType: 'defense',
         priority: 12,  // Alta prioridad para defensa
         conditions: [
             { type: 'combat', property: 'defenseType', operator: 'equals', value: 'dodge' }
@@ -50,6 +56,8 @@ export const ANIMATION_STATES = [
     },
     {
         id: 'heavy_attack',
+        type: 'combat',
+        combatType: 'attack',
         priority: 11,  // Mayor prioridad que attack normal
         conditions: [
             { type: 'combat', property: 'attackType', operator: 'equals', value: 'heavy' }
@@ -62,6 +70,8 @@ export const ANIMATION_STATES = [
     },
     {
         id: 'charged_attack',
+        type: 'combat',
+        combatType: 'attack',
         priority: 11,  // Mayor prioridad que attack normal
         conditions: [
             { type: 'combat', property: 'attackType', operator: 'equals', value: 'charged' }
@@ -74,6 +84,8 @@ export const ANIMATION_STATES = [
     },
     {
         id: 'special_attack',
+        type: 'combat',
+        combatType: 'special',
         priority: 11,  // Mayor prioridad que attack normal
         conditions: [
             { type: 'input', property: 'wantsToSpecialAttack', operator: 'equals', value: true }
@@ -86,6 +98,8 @@ export const ANIMATION_STATES = [
     },
     {
         id: 'attack',
+        type: 'combat',
+        combatType: 'attack',
         priority: 10,  // Mayor = más prioridad
         conditions: [
             { type: 'input', property: 'wantsToAttack', operator: 'equals', value: true }
@@ -98,6 +112,7 @@ export const ANIMATION_STATES = [
     },
     {
         id: 'jump',
+        type: 'movement',
         priority: 9,
         conditions: [
             { type: 'physics', property: 'velocity.z', operator: 'greaterThan', value: 0.1 }
@@ -107,6 +122,7 @@ export const ANIMATION_STATES = [
     },
     {
         id: 'crouch_walk',
+        type: 'movement',
         priority: 7,
         conditions: [
             { type: 'input', property: 'wantsToCrouch', operator: 'equals', value: true },
@@ -118,6 +134,7 @@ export const ANIMATION_STATES = [
     },
     {
         id: 'crouch_idle',
+        type: 'idle',
         priority: 6,
         conditions: [
             { type: 'input', property: 'wantsToCrouch', operator: 'equals', value: true },
@@ -128,6 +145,7 @@ export const ANIMATION_STATES = [
     },
     {
         id: 'run',
+        type: 'movement',
         priority: 5,
         conditions: [
             { type: 'input', property: 'isRunning', operator: 'equals', value: true },
@@ -140,6 +158,7 @@ export const ANIMATION_STATES = [
     },
     {
         id: 'walk',
+        type: 'movement',
         priority: 4,
         conditions: [
             { type: 'movement', operator: 'hasMovement' },
@@ -151,6 +170,7 @@ export const ANIMATION_STATES = [
     },
     {
         id: 'idle',
+        type: 'idle',
         priority: 1,
         conditions: [],  // Estado por defecto
         animation: 'combat_stance',
