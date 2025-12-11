@@ -14,62 +14,68 @@ export class InputComponent {
          * @type {Set<string>}
          */
         this.keysPressed = new Set();
-        
+
         /**
          * Teclas presionadas en este frame
          * @type {Set<string>}
          */
         this.keysDown = new Set();
-        
+
         /**
          * Teclas soltadas en este frame
          * @type {Set<string>}
          */
         this.keysUp = new Set();
-        
+
         /**
          * Movimiento deseado (normalizado)
          * @type {Object}
          */
         this.moveDirection = { x: 0, y: 0, z: 0 };
-        
+
         /**
          * Si el jugador quiere correr
          * @type {boolean}
          */
         this.isRunning = false;
-        
+
         /**
          * Si el jugador quiere saltar
          * @type {boolean}
          */
         this.wantsToJump = false;
-        
+
         /**
          * Si el jugador quiere agacharse
          * @type {boolean}
          */
         this.wantsToCrouch = false;
-        
+
         /**
          * Si el jugador quiere golpear
          * @type {boolean}
          */
         this.wantsToAttack = false;
-        
+
         /**
          * Si el jugador quiere agarrar
          * @type {boolean}
          */
         this.wantsToGrab = false;
-        
+
+        /**
+         * Si el jugador quiere realizar un ataque especial
+         * @type {boolean}
+         */
+        this.wantsToSpecialAttack = false;
+
         /**
          * Rotación del mouse (para cámara)
          * @type {Object}
          */
         this.mouseRotation = { x: 0, y: 0 };
     }
-    
+
     /**
      * Presionar una tecla
      * @param {string} key - Código de la tecla
@@ -80,7 +86,7 @@ export class InputComponent {
         }
         this.keysPressed.add(key);
     }
-    
+
     /**
      * Soltar una tecla
      * @param {string} key - Código de la tecla
@@ -91,7 +97,7 @@ export class InputComponent {
         }
         this.keysPressed.delete(key);
     }
-    
+
     /**
      * Verificar si una tecla está presionada
      * @param {string} key - Código de la tecla
@@ -100,7 +106,7 @@ export class InputComponent {
     isKeyPressed(key) {
         return this.keysPressed.has(key);
     }
-    
+
     /**
      * Verificar si una tecla fue presionada en este frame
      * @param {string} key - Código de la tecla
@@ -109,7 +115,7 @@ export class InputComponent {
     isKeyDown(key) {
         return this.keysDown.has(key);
     }
-    
+
     /**
      * Verificar si una tecla fue soltada en este frame
      * @param {string} key - Código de la tecla
@@ -118,7 +124,7 @@ export class InputComponent {
     isKeyUp(key) {
         return this.keysUp.has(key);
     }
-    
+
     /**
      * Limpiar estados de frame (llamar al final de cada frame)
      */
@@ -128,6 +134,7 @@ export class InputComponent {
         this.wantsToJump = false;
         this.wantsToAttack = false;
         this.wantsToGrab = false;
+        this.wantsToSpecialAttack = false;
     }
 }
 

@@ -18,7 +18,7 @@ export const INPUT_COMBINATIONS = [
     },
     {
         id: 'charged_attack',
-        triggers: ['click', 'ctrl'],   // Click izquierdo + Ctrl
+        triggers: ['click', 'alt'],   // Click izquierdo + Alt
         animation: 'charged_axe_chop',
         attackType: 'charged',
         chargeTime: 500,  // Tiempo de carga en ms (futuro: implementar sistema de carga)
@@ -28,7 +28,7 @@ export const INPUT_COMBINATIONS = [
     },
     {
         id: 'special_attack',
-        triggers: ['click', 'alt'],    // Click izquierdo + Alt
+        triggers: ['click', 'ctrl'],    // Click izquierdo + Ctrl
         animation: 'sword_judgment',
         attackType: 'special',
         conditions: {
