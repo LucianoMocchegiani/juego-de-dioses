@@ -4,6 +4,7 @@
  * Procesa input del teclado y mouse y actualiza componentes de Input.
  */
 import { System } from '../system.js';
+import { INPUT_MAP } from '../../config/input-map-config.js';
 
 export class InputSystem extends System {
     constructor(inputManager) {
@@ -11,6 +12,56 @@ export class InputSystem extends System {
         this.inputManager = inputManager;
         this.requiredComponents = ['Input', 'Physics'];
         this.priority = 0; // Ejecutar primero
+    }
+
+    /**
+     * Verificar si una acción está activa basada en el mapa de input
+     * @param {string} actionName - Nombre de la acción en INPUT_MAP
+     * @param {Object} input - Componente de input (opcional, para verificar teclas ya procesadas)
+     * @returns {boolean}
+     */
+    checkAction(actionName, input) {
+        const mappings = INPUT_MAP[actionName];
+        if (!mappings) return false;
+
+        for (const mapping of mappings) {
+            // Verificar combinaciones (ej: "Control+ClickLeft")
+            if (mapping.includes('+')) {
+                const keys = mapping.split('+');
+                let allPressed = true;
+
+                for (const key of keys) {
+                    if (key === 'ClickLeft') {
+                        if (!this.inputManager.isMouseButtonDown(0)) allPressed = false;
+                    } else if (key === 'ClickRight') {
+                        if (!this.inputManager.isMouseButtonDown(2)) allPressed = false;
+                    } else if (key === 'Control') {
+                        if (!this.inputManager.isKeyPressed('ControlLeft') && !this.inputManager.isKeyPressed('ControlRight')) allPressed = false;
+                    } else if (key === 'Shift') {
+                        if (!this.inputManager.isKeyPressed('ShiftLeft') && !this.inputManager.isKeyPressed('ShiftRight')) allPressed = false;
+                    } else if (key === 'Alt') {
+                        if (!this.inputManager.isKeyPressed('AltLeft') && !this.inputManager.isKeyPressed('AltRight')) allPressed = false;
+                    } else {
+                        // Tecla normal
+                        if (!this.inputManager.isKeyPressed(key)) allPressed = false;
+                    }
+                }
+
+                if (allPressed) return true;
+            }
+            // Verificar clicks simples
+            else if (mapping === 'ClickLeft') {
+                if (this.inputManager.isMouseButtonDown(0)) return true;
+            } else if (mapping === 'ClickRight') {
+                if (this.inputManager.isMouseButtonDown(2)) return true;
+            }
+            // Verificar teclas normales
+            else {
+                if (this.inputManager.isKeyPressed(mapping)) return true;
+            }
+        }
+
+        return false;
     }
 
     /**
@@ -34,7 +85,7 @@ export class InputSystem extends System {
             const keysDown = this.inputManager.getKeysDown();
             const keysUp = this.inputManager.getKeysUp();
 
-            // Actualizar teclas presionadas
+            // Actualizar teclas presionadas en el componente
             for (const key of keys) {
                 input.pressKey(key);
             }
@@ -57,33 +108,28 @@ export class InputSystem extends System {
             let localX = 0;
             let localY = 0;
 
-            if (input.isKeyPressed('KeyW') || input.isKeyPressed('ArrowUp')) {
+            if (this.checkAction('moveForward')) {
                 localY -= 1; // Adelante (negativo Y en espacio local)
             }
-            if (input.isKeyPressed('KeyS') || input.isKeyPressed('ArrowDown')) {
+            if (this.checkAction('moveBackward')) {
                 localY += 1; // Atrás (positivo Y en espacio local)
             }
-            if (input.isKeyPressed('KeyA') || input.isKeyPressed('ArrowLeft')) {
+            if (this.checkAction('moveLeft')) {
                 localX -= 1; // Izquierda (negativo X en espacio local)
             }
-            if (input.isKeyPressed('KeyD') || input.isKeyPressed('ArrowRight')) {
+            if (this.checkAction('moveRight')) {
                 localX += 1; // Derecha (positivo X en espacio local)
             }
 
             // Rotar dirección local según la rotación de la cámara
-            // La rotación de la cámara es el ángulo alrededor del eje Y (horizontal)
-            // En nuestro sistema: Y negativo = adelante, Y positivo = atrás
-            // El ángulo de la cámara representa la dirección en la que mira
-            // Necesitamos rotar el vector de movimiento para que sea relativo a esa dirección
-            // Como Y negativo es adelante, necesitamos ajustar: el vector (0, -1) rotado por angle
-            // debería resultar en un vector que apunte en la dirección 'angle'
             const cos = Math.cos(cameraRotation);
             const sin = Math.sin(cameraRotation);
+
             // Rotar vector (localX, localY) por el ángulo cameraRotation
-            // Pero invertimos el signo de Y en la rotación porque Y negativo es adelante
+            // Invertimos el signo de Y en la rotación porque Y negativo es adelante
             input.moveDirection.x = localX * cos - (-localY) * sin;
             input.moveDirection.y = localX * sin + (-localY) * cos;
-            // Ahora invertimos Y de vuelta para mantener Y negativo como adelante
+            // Invertimos Y de vuelta
             input.moveDirection.y = -input.moveDirection.y;
             input.moveDirection.z = 0;
 
@@ -92,7 +138,7 @@ export class InputSystem extends System {
                 input.moveDirection.x ** 2 +
                 input.moveDirection.y ** 2
             );
-            if (length > 0.01) { // Umbral pequeño para evitar normalización cuando es casi cero
+            if (length > 0.01) {
                 input.moveDirection.x /= length;
                 input.moveDirection.y /= length;
             } else {
@@ -101,42 +147,50 @@ export class InputSystem extends System {
             }
 
             // Correr
-            input.isRunning = input.isKeyPressed('ShiftLeft') || input.isKeyPressed('ShiftRight');
+            input.isRunning = this.checkAction('run');
 
             // Resetear aceleración horizontal antes de aplicar nuevo input
             physics.acceleration.x = 0;
-            physics.acceleration.y = 0; // Y es adelante/atrás, no Z
-            // Nota: acceleration.z se maneja en PhysicsSystem (gravedad)
+            physics.acceleration.y = 0;
 
             // Aplicar movimiento a física solo si hay dirección de movimiento
             if (input.moveDirection.x !== 0 || input.moveDirection.y !== 0) {
-                const speed = input.isRunning ? 30 : 15; // celdas por segundo (aumentado a 15/30)
+                const speed = input.isRunning ? 30 : 15;
                 physics.acceleration.x = input.moveDirection.x * speed;
-                physics.acceleration.y = input.moveDirection.y * speed; // Y para adelante/atrás
+                physics.acceleration.y = input.moveDirection.y * speed;
             }
 
             // Saltar (solo si está en el suelo)
-            if (input.isKeyDown('Space') && physics.isGrounded) {
+            // Para salto usamos isKeyDown (solo primer frame) que ya está en input.wantsToJump si se procesara así,
+            // pero aquí verificamos la acción directamente.
+            // Nota: checkAction usa isKeyPressed (mantenido) o isMouseButtonDown.
+            // Para salto necesitamos "just pressed".
+            // Podemos verificar si la tecla de salto está en keysDown del inputManager
+            const jumpKeys = INPUT_MAP['jump'];
+            let jumpJustPressed = false;
+            for (const key of jumpKeys) {
+                if (this.inputManager.isKeyDown(key)) jumpJustPressed = true;
+            }
+
+            if (jumpJustPressed && physics.isGrounded) {
                 input.wantsToJump = true;
             }
 
             // Agacharse
-            input.wantsToCrouch = input.isKeyPressed('ControlLeft') ||
-                input.isKeyPressed('ControlRight') ||
-                input.isKeyPressed('KeyC');
+            input.wantsToCrouch = this.checkAction('crouch');
 
-            // Golpear
-            if (this.inputManager.isMouseButtonDown(0)) { // Click izquierdo
-                const isCtrlPressed = input.isKeyPressed('ControlRight') || input.isKeyPressed('ControlLeft');
-                if (isCtrlPressed) {
-                    input.wantsToSpecialAttack = true;
-                } else {
-                    input.wantsToAttack = true;
-                }
+            // Combate
+            // Importante: Verificar ataques especiales primero para que no se solapen con ataques normales
+            // si comparten triggers (ej: Click vs Ctrl+Click)
+
+            if (this.checkAction('specialAttack')) {
+                input.wantsToSpecialAttack = true;
+            } else if (this.checkAction('attack')) {
+                input.wantsToAttack = true;
             }
-            input.wantsToSpecialAttack = input.wantsToSpecialAttack || input.isKeyPressed('KeyR');
+
             // Agarrar
-            if (this.inputManager.isMouseButtonDown(2) || input.isKeyDown('KeyE')) { // Click derecho o E
+            if (this.checkAction('grab')) {
                 input.wantsToGrab = true;
             }
         }

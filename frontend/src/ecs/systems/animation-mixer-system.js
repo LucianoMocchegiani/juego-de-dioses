@@ -9,7 +9,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { getBackendBaseUrl } from '../../utils/config.js';
 import { mapBonesToBodyParts } from '../../renderers/models/bones-utils.js';
-import { ANIMATION_FILES, ANIMATION_STATES, ANIMATION_MIXER } from '../animation/config/animation-config.js';
+import { ANIMATION_FILES, ANIMATION_STATES, ANIMATION_MIXER } from '../../config/animation-config.js';
 import { StateConfig } from '../animation/states/state-config.js';
 
 const gltfLoader = new GLTFLoader();
@@ -176,11 +176,6 @@ export class AnimationMixerSystem extends System {
                     const clips = await this.loadAnimation(file);
                     if (clips.length > 0) {
                         animations[animName] = clips[0];
-                    } else {
-                        // Log solo para animaciones que esperamos que existan (no todos los 42 archivos)
-                        if (animName === 'regular_jump' || animName === 'crouch_walk_forward') {
-                            console.warn(`[AnimationMixer] No se pudo cargar la animación '${animName}' desde '${file}'. El archivo puede no existir o estar vacío.`);
-                        }
                     }
                 }
             }
