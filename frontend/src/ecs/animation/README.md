@@ -50,6 +50,7 @@ animation/
 Define de forma declarativa:
 - **ANIMATION_STATES**: Estados de animación con prioridades, condiciones y transiciones
 - **ANIMATION_FILES**: Mapeo de estados a archivos GLB de animaciones
+- **ANIMATION_MIXER**: Configuración global del sistema (modelo base, transiciones, etc.)
 
 **Ejemplo:**
 ```javascript
@@ -61,8 +62,21 @@ Define de forma declarativa:
     ],
     animation: 'attack',
     canInterrupt: true,
+    isOneShot: true, // Se reproduce una vez
+    preventInterruption: true, // No se puede interrumpir hasta terminar
     transitions: ['combat_stance']
 }
+```
+
+**Configuración Global (`ANIMATION_MIXER`):**
+
+```javascript
+export const ANIMATION_MIXER = {
+    baseModel: 'walk', // Modelo base para inicializar el mixer
+    defaultState: 'combat_stance', // Estado por defecto
+    defaultTransitionDuration: 0.2, // Duración de transiciones en segundos
+    attackCompletionThreshold: 0.85 // Porcentaje para considerar ataque terminado
+};
 ```
 
 ### 2. Condiciones (`conditions/`)
@@ -108,7 +122,7 @@ Define de forma declarativa:
 **Responsabilidad:** Gestionar la configuración de estados y determinar qué estado debe estar activo.
 
 - **StateConfig**: Encapsula la configuración de un estado individual
-  - Propiedades: `id`, `priority`, `conditions`, `animation`, `canInterrupt`, `transitions`
+  - Propiedades: `id`, `priority`, `conditions`, `animation`, `canInterrupt`, `transitions`, `isOneShot`, `preventInterruption`
   - Método: `canActivate(context, conditions)` - Verifica si el estado puede activarse
 
 - **StateRegistry**: Registry que gestiona todos los estados
