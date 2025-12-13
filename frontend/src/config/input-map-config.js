@@ -19,11 +19,16 @@ export const INPUT_MAP = {
 
     // Combate
     attack: ['ClickLeft'], // Click izquierdo
-    specialAttack: ['KeyR', 'Control+ClickLeft'], // Combinación de teclas
-    chargedAttack: ['Alt+ClickLeft'], // Combinación de teclas
+    specialAttack: ['KeyR'], // Solo tecla R para evitar conflicto con Crouch (Control) + Click
+
+    // Acciones avanzadas (anteriormente en input-combinations)
+    heavyAttack: ['Shift+ClickLeft'],
+    chargedAttack: ['Alt+ClickLeft'],
+    parry: ['KeyQ'],
+    dodge: ['KeyE'],
 
     // Interacción
-    grab: ['KeyE', 'ClickRight'],
+    grab: ['KeyF', 'ClickRight'], // KeyF es el nuevo default para grab según combinaciones anteriores
 
     // Debug / Otros
     debug: ['KeyP']

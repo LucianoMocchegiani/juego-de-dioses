@@ -30,7 +30,7 @@ animation/
 │   ├── README.md                     # Documentación del sistema de combos
 │   └── index.js                      # Exportaciones
 ├── states/                            # Sistema de estados
-│   ├── state-config.js               # Configuración de un estado individual
+│   ├── animation-state.js            # Clase que representa un estado de animación individual
 │   ├── state-registry.js             # Registry que gestiona todos los estados
 │   └── index.js                      # Exportaciones
 └── index.js                           # Exportaciones principales
@@ -116,7 +116,7 @@ export const ANIMATION_MIXER = {
 
 **Responsabilidad:** Gestionar la configuración de estados y determinar qué estado debe estar activo.
 
-- **StateConfig**: Encapsula la configuración de un estado individual
+- **AnimationState**: Clase que representa un estado de animación individual
   - Propiedades: `id`, `priority`, `conditions`, `animation`, `canInterrupt`, `transitions`, `isOneShot`, `preventInterruption`
   - Método: `canActivate(context, conditions)` - Verifica si el estado puede activarse
 

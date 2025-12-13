@@ -19,9 +19,9 @@ export const COMBO_CHAINS = [
     {
         id: 'basic_combo_3hit',
         steps: [
-            { input: 'click', animation: 'left_slash', timing: 500 },
-            { input: 'click', animation: 'attack', timing: 400 },
-            { input: 'click', animation: 'double_blade_spin', timing: 600 }
+            { input: 'attack', animation: 'left_slash', timing: 500 },
+            { input: 'attack', animation: 'attack', timing: 400 },
+            { input: 'attack', animation: 'double_blade_spin', timing: 600 }
         ],
         cancelable: false,
         weaponTypes: ['sword', 'generic']
@@ -29,8 +29,8 @@ export const COMBO_CHAINS = [
     {
         id: 'basic_combo_2hit',
         steps: [
-            { input: 'click', animation: 'left_slash', timing: 500 },
-            { input: 'click', animation: 'attack', timing: 400 }
+            { input: 'attack', animation: 'left_slash', timing: 500 },
+            { input: 'attack', animation: 'attack', timing: 400 }
         ],
         cancelable: false,
         weaponTypes: ['generic']
@@ -38,8 +38,8 @@ export const COMBO_CHAINS = [
     {
         id: 'heavy_combo_2hit',
         steps: [
-            { input: 'click+shift', animation: 'charged_slash', timing: 800 },
-            { input: 'click+shift', animation: 'charged_upward_slash', timing: 1000 }
+            { input: 'heavyAttack', animation: 'charged_slash', timing: 800 },
+            { input: 'heavyAttack', animation: 'charged_upward_slash', timing: 1000 }
         ],
         cancelable: true,
         weaponTypes: ['sword', 'axe']
