@@ -80,6 +80,7 @@ export class InputManager {
         this.handleMouseMove = this.handleMouseMove.bind(this);
         this.handleWheel = this.handleWheel.bind(this);
         this.handleContextMenu = this.handleContextMenu.bind(this);
+        this.handleBlur = this.handleBlur.bind(this);
 
         // Agregar event listeners
         this.attachListeners();
@@ -96,6 +97,7 @@ export class InputManager {
         document.addEventListener('mousemove', this.handleMouseMove);
         document.addEventListener('wheel', this.handleWheel, { passive: false });
         document.addEventListener('contextmenu', this.handleContextMenu);
+        window.addEventListener('blur', this.handleBlur);
     }
 
     /**
@@ -109,6 +111,7 @@ export class InputManager {
         document.removeEventListener('mousemove', this.handleMouseMove);
         document.removeEventListener('wheel', this.handleWheel);
         document.removeEventListener('contextmenu', this.handleContextMenu);
+        window.removeEventListener('blur', this.handleBlur);
     }
 
     /**
@@ -116,10 +119,15 @@ export class InputManager {
      * @param {KeyboardEvent} event - Evento de teclado
      */
     handleKeyDown(event) {
-        console.log('Key pressed:', event.code);
+        console.log('Tecla presionada:', event.code);
+        
         // Prevenir comportamiento por defecto para teclas de juego
-        if (['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space', 'ShiftLeft', 'ShiftRight', 'ControlLeft', 'ControlRight', 'KeyC', 'AltLeft', 'AltRight'].includes(event.code)) {
+        const gameKeys = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space', 'ShiftLeft', 'ShiftRight', 
+                         'ControlLeft', 'ControlRight', 'KeyC', 'AltLeft', 'AltRight', 
+                         'KeyR', 'KeyQ', 'KeyE', 'KeyF', 'KeyP', 'keyX'];
+        if (gameKeys.includes(event.code)) {
             event.preventDefault();
+            event.stopPropagation();
         }
 
         if (!this.keysPressed.has(event.code)) {
@@ -212,6 +220,20 @@ export class InputManager {
         // Prevenir menú contextual cuando se usa click derecho para rotar cámara
         // Siempre prevenir en modo juego para mejor experiencia
         event.preventDefault();
+    }
+
+    /**
+     * Manejar pérdida de foco de la ventana
+     * Limpia todas las teclas para evitar que queden "pegadas"
+     */
+    handleBlur() {
+        this.keysPressed.clear();
+        this.keysDown.clear();
+        this.keysUp.clear();
+        this.mouseButtonsPressed.clear();
+        this.mouseButtonsDown.clear();
+        this.mouseButtonsUp.clear();
+        console.log('Window lost focus - Input state cleared');
     }
 
     /**

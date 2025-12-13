@@ -60,26 +60,18 @@ export class ComboSystem extends System {
             // Obtener ComboManager para esta entidad
             const comboManager = this.getComboManager(entityId);
 
-            // Verificar si hay click reciente (solo procesar cuando se presiona, no mientras está presionado)
-            const mouseButtonDown = this.inputManager.isMouseButtonDown(0); // Click izquierdo
-
-            // Determinar tipo de input basado en el click y las teclas modificadoras
+            // Determinar tipo de input basado en las intenciones del InputComponent
+            // Esto asegura consistencia con el InputSystem
             let inputType = null;
-            if (mouseButtonDown) {
-                // Verificar teclas modificadoras
-                const isShiftPressed = input.isKeyPressed('ShiftLeft') || input.isKeyPressed('ShiftRight');
-                const isCtrlPressed = input.isKeyPressed('ControlLeft') || input.isKeyPressed('ControlRight');
-                const isAltPressed = input.isKeyPressed('AltLeft') || input.isKeyPressed('AltRight');
 
-                if (isShiftPressed) {
-                    inputType = 'click+shift';
-                } else if (isCtrlPressed) {
-                    inputType = 'click+ctrl';
-                } else if (isAltPressed) {
-                    inputType = 'click+alt';
-                } else {
-                    inputType = 'click';
-                }
+            if (input.wantsToHeavyAttack) {
+                inputType = 'heavyAttack';
+            } else if (input.wantsToChargedAttack) {
+                inputType = 'chargedAttack';
+            } else if (input.wantsToSpecialAttack) {
+                inputType = 'specialAttack';
+            } else if (input.wantsToAttack) {
+                inputType = 'attack';
             }
 
             // Procesar input en el ComboManager solo si hay un input nuevo
