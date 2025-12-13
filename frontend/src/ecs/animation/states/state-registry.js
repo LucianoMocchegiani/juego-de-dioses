@@ -59,6 +59,19 @@ export class StateRegistry {
             const state = this.states.get(stateId);
             const conditions = this.getConditions(stateId);
             
+            // Para estados de combate, verificar que haya una acción activa
+            // Esto previene reactivación cuando la animación está terminando
+            // (previene loops infinitos en parry/dodge)
+            if (state.type === 'combat') {
+                const combat = context.combat;
+                // Si no hay activeAction, este estado de combate no puede activarse
+                // Esto es crítico para prevenir que estados como parry/dodge se reactiven
+                // cuando su animación termina pero defenseType todavía tiene valor residual
+                if (!combat || !combat.activeAction) {
+                    continue; // Skip este estado, no puede activarse sin activeAction
+                }
+            }
+            
             if (state.canActivate(context, conditions)) {
                 return state;
             }
