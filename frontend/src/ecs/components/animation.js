@@ -21,18 +21,6 @@ export class AnimationComponent {
          * @type {number}
          */
         this.animationSpeed = options.animationSpeed !== undefined ? options.animationSpeed : 1.0;
-        
-        /**
-         * Nombre de animación específica para combos (se resuelve dinámicamente desde ComboComponent)
-         * @type {string|null}
-         */
-        this.comboAnimationName = null;
-        
-        /**
-         * Nombre de animación específica para combate (se resuelve dinámicamente desde CombatComponent)
-         * @type {string|null}
-         */
-        this.combatAnimationName = null;
     }
 }
 
