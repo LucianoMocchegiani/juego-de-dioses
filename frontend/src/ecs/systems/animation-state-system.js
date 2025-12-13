@@ -69,17 +69,25 @@ export class AnimationStateSystem extends System {
                 }
                 // 2. Estados de Combate (Ataque, Defensa, Especial)
                 else if (activeState.type === 'combat') {
-                    if (combat && combat.combatAnimation) {
-                        // Usar la animación específica del combate
-                        animation.currentState = activeState.id;
-                        animation.combatAnimationName = combat.combatAnimation;
-                        animation.comboAnimationName = null;
+                    // CRÍTICO: Solo activar estado de combate si hay una acción activa
+                    // NO usar combatAnimation como condición porque puede tener valor residual
+                    // activeAction es la única fuente de verdad para saber si hay acción en progreso
+                    if (combat && combat.activeAction) {
+                        if (combat.combatAnimation) {
+                            // Usar la animación específica del combate
+                            animation.currentState = activeState.id;
+                            animation.combatAnimationName = combat.combatAnimation;
+                            animation.comboAnimationName = null;
+                        } else {
+                            // Si no hay animación de combate específica, usar estado normal
+                            animation.currentState = activeState.id;
+                            animation.combatAnimationName = null;
+                            animation.comboAnimationName = null;
+                        }
                     } else {
-                        // Si no hay animación de combate específica, usar estado normal
-                        animation.currentState = activeState.id;
-
-                        // Para ataques especiales definidos en config, permitimos que el mixer use el default
-                        // Si combatAnimation es null, el mixer usará activeState.animation
+                        // Si no hay acción activa (activeAction es null), NO activar estado de combate
+                        // Esto permite que otros estados (idle, walk, etc.) se activen
+                        // incluso si defenseType o combatAnimation tienen valores residuales
                         animation.combatAnimationName = null;
                         animation.comboAnimationName = null;
                     }

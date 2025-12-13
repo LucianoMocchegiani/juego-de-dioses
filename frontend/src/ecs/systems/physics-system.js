@@ -2,8 +2,10 @@
  * Sistema de Física
  * 
  * Aplica física (gravedad, velocidad, aceleración) a entidades con componentes Physics y Position.
+ * También maneja movimiento de acciones de combate usando configuración centralizada.
  */
 import { System } from '../system.js';
+import { COMBAT_ACTIONS } from '../../config/combat-actions-config.js';
 
 export class PhysicsSystem extends System {
     constructor(options = {}) {
@@ -66,30 +68,56 @@ export class PhysicsSystem extends System {
                 input.wantsToJump = false; // Resetear
             }
             
-            // Aplicar dodge (esquivar) - Impulso de movimiento horizontal
-            if (input && input.wantsToDodge && physics.isGrounded) {
-                // Velocidad de dodge en celdas/segundo
-                const dodgeSpeed = 20; // Más rápido que correr normal
+            // Aplicar movimiento de acciones de combate
+            const combat = this.ecs.getComponent(entityId, 'Combat');
+            const render = this.ecs.getComponent(entityId, 'Render');
+            
+            if (input && combat && combat.activeAction) {
+                const actionConfig = COMBAT_ACTIONS[combat.activeAction];
                 
-                // Si hay dirección de movimiento, usar esa dirección
-                // Si no, usar dirección hacia adelante (basada en moveDirection que ya está calculada)
-                if (input.moveDirection.x !== 0 || input.moveDirection.y !== 0) {
-                    // Usar la dirección de movimiento actual
-                    physics.velocity.x = input.moveDirection.x * dodgeSpeed;
-                    physics.velocity.y = input.moveDirection.y * dodgeSpeed;
-                } else {
-                    // Si no hay movimiento, esquivar hacia adelante (dirección negativa Y en espacio local)
-                    // Necesitamos obtener la rotación de la cámara para calcular dirección adelante
-                    const render = this.ecs.getComponent(entityId, 'Render');
-                    const cameraRotation = render && render.rotationY !== undefined ? render.rotationY : 0;
-                    const cos = Math.cos(cameraRotation);
-                    const sin = Math.sin(cameraRotation);
-                    // Adelante es negativo Y en espacio local, rotado por la cámara
-                    physics.velocity.x = -sin * dodgeSpeed;
-                    physics.velocity.y = -cos * dodgeSpeed;
+                if (actionConfig && actionConfig.hasMovement) {
+                    const movementSpeed = actionConfig.movementSpeed;
+                    
+                    // Inicializar flag si no existe
+                    if (!render || !render.mesh || !render.mesh.userData) {
+                        // Si no hay render/mesh, no podemos aplicar movimiento
+                        // Esto no debería pasar normalmente
+                    } else {
+                        // Inicializar flag si no existe
+                        if (render.mesh.userData.movementApplied === undefined) {
+                            render.mesh.userData.movementApplied = false;
+                        }
+                        
+                        // Calcular dirección según configuración (solo una vez al inicio)
+                        if (!render.mesh.userData.movementApplied) {
+                            let dirX = 0, dirY = 0;
+                            
+                            if (actionConfig.useMovementInput && 
+                                (input.moveDirection.x !== 0 || input.moveDirection.y !== 0)) {
+                                // Usar dirección de input
+                                dirX = input.moveDirection.x;
+                                dirY = input.moveDirection.y;
+                            } else {
+                                // Usar dirección de cámara (hacia adelante)
+                                const cameraRotation = render?.rotationY || 0;
+                                const cos = Math.cos(cameraRotation);
+                                const sin = Math.sin(cameraRotation);
+                                dirX = -sin;
+                                dirY = -cos;
+                            }
+                            
+                            // Aplicar impulso solo una vez al inicio
+                            physics.velocity.x = dirX * movementSpeed;
+                            physics.velocity.y = dirY * movementSpeed;
+                            render.mesh.userData.movementApplied = true;
+                        }
+                    }
                 }
-                
-                input.wantsToDodge = false; // Resetear para que solo se active una vez
+            } else {
+                // Si no hay acción activa, resetear flag
+                if (render && render.mesh && render.mesh.userData) {
+                    render.mesh.userData.movementApplied = false;
+                }
             }
             
             // Aplicar gravedad (Z es altura)

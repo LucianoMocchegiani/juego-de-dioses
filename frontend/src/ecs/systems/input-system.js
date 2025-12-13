@@ -196,7 +196,10 @@ export class InputSystem extends System {
             // Parry: mantener presionado
             if (this.checkAction('parry')) {
                 input.wantsToParry = true;
+            } else {
+                input.wantsToParry = false;
             }
+            
             // Dodge: solo un press (isKeyDown), no mantener presionado
             const dodgeKeys = INPUT_MAP['dodge'];
             let dodgeJustPressed = false;
@@ -206,9 +209,9 @@ export class InputSystem extends System {
                     break;
                 }
             }
-            if (dodgeJustPressed) {
-                input.wantsToDodge = true;
-            }
+            // IMPORTANTE: Resetear wantsToDodge si no se presiona en este frame
+            // Esto asegura que solo se active una vez por press
+            input.wantsToDodge = dodgeJustPressed;
 
             // 2. Ataques Especiales / Combinados
             // Verificar antes que el ataque normal porque usan modificadores (Shift, Ctrl, Alt)

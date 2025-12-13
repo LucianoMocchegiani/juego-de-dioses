@@ -1,11 +1,12 @@
 /**
  * Sistema de Combate
  * 
- * Procesa combinaciones de input y determina tipo de ataque/defensa.
+ * Procesa combinaciones de input y determina tipo de ataque/defensa usando configuración centralizada.
  * Se ejecuta después de InputSystem pero antes de ComboSystem y AnimationStateSystem.
  */
 import { System } from '../system.js';
-
+import { COMBAT_ACTIONS } from '../../config/combat-actions-config.js';
+import { ANIMATION_STATES } from '../../config/animation-config.js';
 
 export class CombatSystem extends System {
     constructor(inputManager) {
@@ -17,9 +18,9 @@ export class CombatSystem extends System {
 
     /**
      * Actualizar sistema de combate
-     * @param {number} _deltaTime - Tiempo transcurrido
+     * @param {number} deltaTime - Tiempo transcurrido
      */
-    update(_deltaTime) {
+    update(deltaTime) {
         const entities = this.getEntities();
 
         for (const entityId of entities) {
@@ -27,6 +28,26 @@ export class CombatSystem extends System {
             const combat = this.ecs.getComponent(entityId, 'Combat');
 
             if (!input || !combat) continue;
+
+            // Verificar si hay combo activo (prioridad sobre acciones individuales)
+            const combo = this.ecs.getComponent(entityId, 'Combo');
+            if (combo && combo.activeComboId) {
+                continue; // ComboSystem maneja esto
+            }
+
+            // Actualizar cooldowns
+            combat.updateCooldowns(deltaTime);
+
+            // Si hay una acción activa, NO procesar nuevos inputs (incluyendo parry)
+            // Parry solo puede reactivarse cuando activeAction es null (animación terminó)
+            // Esto previene que parry se reactive en cada frame mientras la animación está en progreso
+            if (combat.activeAction) {
+                continue;
+            }
+
+            // Si no hay acción activa, procesar nuevos inputs
+            // Parry puede reactivarse aquí si wantsToParry es true y no hay cooldown
+            combat.reset(); // Esto solo resetea si no hay activeAction (siempre true aquí)
 
             // Obtener tipo de arma (si existe el componente Weapon)
             let weapon = null;
@@ -36,91 +57,110 @@ export class CombatSystem extends System {
                 weaponType = weapon.weaponType;
             }
 
-            // Resetear estado de combate antes de verificar nuevas combinaciones
-            // (solo si no hay un combo activo, para evitar conflictos)
-            const combo = this.ecs.getComponent(entityId, 'Combo');
-            if (combo && combo.activeComboId) {
-                continue; // Si hay combo activo, no procesar inputs de combate aquí (ComboSystem lo hará)
-            }
-
-            // Si no hay combo, resetear para frame actual
-            combat.reset();
-
-            // Mapear intenciones de input a acciones de combate
-            // Esta lógica reemplaza a INPUT_COMBINATIONS y checkCombination
-
-            // 1. Parry (Defensa)
-            if (input.wantsToParry && weapon) {
-                combat.combatAnimation = 'sword_parry_backward';
-                combat.defenseType = 'parry';
-                combat.isAttacking = false;
-                combat.canCancel = true;
-                return; // Prioridad alta
-            }
-
-            // 2. Dodge (Defensa) - Puede usarse con o sin movimiento
-            if (input.wantsToDodge) {
-                combat.combatAnimation = 'roll_dodge';
-                combat.defenseType = 'dodge';
-                combat.isAttacking = false;
-                combat.canCancel = true;
-                return; // Prioridad alta
-            }
-
-            // 3. Special Attack (Ataque Especial) - Espada
-            if (input.wantsToSpecialAttack) {
-                if (weaponType === 'sword') {
-                    combat.combatAnimation = 'sword_judgment';
-                    combat.attackType = 'special';
-                    combat.isAttacking = true;
-                    combat.canCancel = false;
-                    return;
-                } else {
-                    // Fallback: Si no tiene espada, tratar como intento de ataque normal (o fallido)
-                    // Por ahora, permitimos que caiga al bloque de ataque normal abajo
-                    // Para eso NO hacemos return aquí si falla la condición de arma.
+            // Procesar acciones según configuración (en orden de prioridad)
+            for (const [actionId, actionConfig] of Object.entries(COMBAT_ACTIONS)) {
+                // Verificar input usando checkActionInput con el inputAction configurado
+                const wantsAction = this.checkActionInput(input, actionConfig.inputAction);
+                
+                // Verificar condiciones adicionales (arma, etc.)
+                const canExecute = this.canExecuteAction(entityId, actionConfig, weapon, weaponType);
+                
+                if (wantsAction && canExecute && !combat.isOnCooldown(actionId)) {
+                    // Iniciar acción
+                    combat.startAction(actionId);
+                    this.applyActionConfig(combat, actionConfig);
+                    
+                    // Aplicar cooldown
+                    combat.actionCooldowns.set(actionId, actionConfig.cooldown);
+                    
+                    // IMPORTANTE: Resetear wantsToDodge después de procesarlo para evitar reactivación
+                    // Dodge solo se activa una vez por press
+                    if (actionId === 'dodge') {
+                        input.wantsToDodge = false;
+                    }
+                    
+                    return; // Una acción por frame
                 }
             }
-
-            // 4. Charged Attack (Ataque Cargado) - Hacha o Generico
-            if (input.wantsToChargedAttack && (weaponType === 'axe' || weaponType === 'generic')) {
-                combat.combatAnimation = 'charged_axe_chop';
-                combat.attackType = 'charged';
-                combat.isAttacking = true;
-                combat.canCancel = false;
-                return;
-            }
-
-            // 5. Heavy Attack (Ataque Pesado) - Martillo, Hacha o Generico
-            if (input.wantsToHeavyAttack && (weaponType === 'hammer' || weaponType === 'axe' || weaponType === 'generic')) {
-                combat.combatAnimation = 'heavy_hammer_swing';
-                combat.attackType = 'heavy';
-                combat.isAttacking = true;
-                combat.canCancel = false;
-                return;
-            }
-
-            // 6. Grab (Interacción)
-            if (input.wantsToGrab) {
-                combat.combatAnimation = 'collect_object';
-                // Grab no es ataque ni defensa, es acción especial
-                combat.isAttacking = false;
-                combat.canCancel = true;
-                return;
-            }
-
-            // 7. Ataque Normal
-            // Si el sistema de Combos no lo atrapó (o si queremos redundancia),
-            // configuramos el ataque básico aquí.
-            if (input.wantsToAttack) {
-                combat.combatAnimation = 'attack';
-                combat.attackType = 'light';
-                combat.isAttacking = true;
-                combat.canCancel = false; // Generalmente no cancelable al inicio
-                // No retornamos aquí para permitir que lógica posterior (si la hubiera) se ejecute,
-                // aunque es el último paso.
-            }
+            // Nota: Attack ahora está procesado dentro del loop de COMBAT_ACTIONS arriba
         }
+    }
+    
+    /**
+     * Verificar si el input corresponde a la acción
+     * @param {Object} input - InputComponent
+     * @param {string} inputAction - Nombre de la acción de input
+     * @returns {boolean}
+     */
+    checkActionInput(input, inputAction) {
+        switch (inputAction) {
+            case 'dodge':
+                return input.wantsToDodge;
+            case 'specialAttack':
+                return input.wantsToSpecialAttack;
+            case 'parry':
+                return input.wantsToParry;
+            case 'heavyAttack':
+                return input.wantsToHeavyAttack;
+            case 'chargedAttack':
+                return input.wantsToChargedAttack;
+            case 'attack':
+                return input.wantsToAttack;
+            default:
+                return false;
+        }
+    }
+    
+    /**
+     * Verificar si se puede ejecutar una acción (condiciones como tipo de arma requerida)
+     * @param {string} entityId - ID de la entidad
+     * @param {Object} actionConfig - Configuración de la acción
+     * @param {Object|null} weapon - WeaponComponent o null
+     * @param {string} weaponType - Tipo de arma ('sword', 'axe', 'generic', etc.)
+     * @returns {boolean}
+     */
+    canExecuteAction(entityId, actionConfig, weapon, weaponType) {
+        // Por ahora, solo verificamos parry que requiere arma
+        if (actionConfig.id === 'parry' && !weapon) {
+            return false;
+        }
+        
+        // Verificaciones específicas por acción (pueden extenderse en el futuro)
+        if (actionConfig.id === 'specialAttack' && weaponType !== 'sword') {
+            // Special attack solo funciona con espada
+            return false;
+        }
+        
+        return true;
+    }
+    
+    /**
+     * Aplicar configuración de acción al componente de combate
+     * @param {Object} combat - CombatComponent
+     * @param {Object} actionConfig - Configuración de la acción desde COMBAT_ACTIONS
+     */
+    applyActionConfig(combat, actionConfig) {
+        // Buscar estado de animación correspondiente
+        const animationState = ANIMATION_STATES.find(state => state.id === actionConfig.animationStateId);
+        if (!animationState) {
+            console.warn(`Animation state '${actionConfig.animationStateId}' no encontrado para acción: ${actionConfig.id}`);
+            return;
+        }
+        
+        // Setear tipo de ataque/defensa (solo de combat config, no de animation)
+        if (actionConfig.defenseType) {
+            combat.defenseType = actionConfig.defenseType;
+        }
+        if (actionConfig.attackType) {
+            combat.attackType = actionConfig.attackType;
+        }
+        
+        // Setear animación desde animation state
+        combat.combatAnimation = animationState.animation;
+        
+        // Setear flags de protección desde animation state
+        // (preventInterruption ya está en animation state, se maneja automáticamente)
+        combat.isAttacking = actionConfig.attackType !== null;
     }
 }
 
