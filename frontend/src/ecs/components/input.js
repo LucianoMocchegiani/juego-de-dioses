@@ -70,6 +70,30 @@ export class InputComponent {
         this.wantsToSpecialAttack = false;
 
         /**
+         * Si el jugador quiere realizar un ataque pesado
+         * @type {boolean}
+         */
+        this.wantsToHeavyAttack = false;
+
+        /**
+         * Si el jugador quiere realizar un ataque cargado
+         * @type {boolean}
+         */
+        this.wantsToChargedAttack = false;
+
+        /**
+         * Si el jugador quiere hacer parry
+         * @type {boolean}
+         */
+        this.wantsToParry = false;
+
+        /**
+         * Si el jugador quiere esquivar
+         * @type {boolean}
+         */
+        this.wantsToDodge = false;
+
+        /**
          * Rotación del mouse (para cámara)
          * @type {Object}
          */
@@ -135,6 +159,10 @@ export class InputComponent {
         this.wantsToAttack = false;
         this.wantsToGrab = false;
         this.wantsToSpecialAttack = false;
+        this.wantsToHeavyAttack = false;
+        this.wantsToChargedAttack = false;
+        this.wantsToParry = false;
+        this.wantsToDodge = false;
     }
 }
 

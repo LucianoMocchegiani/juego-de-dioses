@@ -88,7 +88,7 @@ export const ANIMATION_STATES = [
         combatType: 'special',
         priority: 11,  // Mayor prioridad que attack normal
         conditions: [
-            { type: 'input', property: 'wantsToSpecialAttack', operator: 'equals', value: true }
+            { type: 'combat', property: 'attackType', operator: 'equals', value: 'special' }
         ],
         animation: 'sword_judgment', // Se sobrescribirá dinámicamente con combatAnimation
         canInterrupt: true,
@@ -102,7 +102,7 @@ export const ANIMATION_STATES = [
         combatType: 'attack',
         priority: 10,  // Mayor = más prioridad
         conditions: [
-            { type: 'input', property: 'wantsToAttack', operator: 'equals', value: true }
+            { type: 'combat', property: 'attackType', operator: 'equals', value: 'light' }
         ],
         animation: 'attack',
         canInterrupt: true,

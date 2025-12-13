@@ -26,15 +26,7 @@ export const INPUT_COMBINATIONS = [
             weaponType: ['axe', 'generic']
         }
     },
-    {
-        id: 'special_attack',
-        triggers: ['click', 'ctrl'],    // Click izquierdo + Ctrl
-        animation: 'sword_judgment',
-        attackType: 'special',
-        conditions: {
-            weaponType: ['sword']
-        }
-    },
+
     {
         id: 'parry',
         triggers: ['keyQ'],             // Tecla Q

@@ -4,7 +4,7 @@
  * Crea una entidad de jugador completa con todos los componentes necesarios.
  */
 import * as THREE from 'three';
-import { PositionComponent, PhysicsComponent, RenderComponent, InputComponent, AnimationComponent, ComboComponent, CombatComponent } from '../components/index.js';
+import { PositionComponent, PhysicsComponent, RenderComponent, InputComponent, AnimationComponent, ComboComponent, CombatComponent, WeaponComponent } from '../components/index.js';
 import { GeometryRegistry } from '../../renderers/geometries/registry.js';
 import { getCharacter, createCharacter } from '../../api/endpoints/characters.js';
 import { loadModel3D } from '../../renderers/models/model-utils.js';
@@ -249,6 +249,12 @@ export class PlayerFactory {
         // Agregar componentes de combate
         ecs.addComponent(playerId, 'Combo', new ComboComponent());
         ecs.addComponent(playerId, 'Combat', new CombatComponent());
+        
+        // Agregar arma por defecto (espada) para que las acciones de combate funcionen
+        ecs.addComponent(playerId, 'Weapon', new WeaponComponent({
+            weaponType: 'sword',
+            hasShield: false
+        }));
         
         return playerId;
     }

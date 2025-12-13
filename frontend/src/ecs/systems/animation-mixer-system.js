@@ -10,7 +10,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { getBackendBaseUrl } from '../../utils/config.js';
 import { mapBonesToBodyParts } from '../../renderers/models/bones-utils.js';
 import { ANIMATION_FILES, ANIMATION_STATES, ANIMATION_MIXER } from '../../config/animation-config.js';
-import { StateConfig } from '../animation/states/state-config.js';
+import { AnimationState } from '../animation/states/animation-state.js';
 
 const gltfLoader = new GLTFLoader();
 
@@ -29,14 +29,14 @@ export class AnimationMixerSystem extends System {
         // Crear mapa de estado → nombre de animación desde configuración
         this.stateToAnimationMap = new Map();
 
-        // Crear mapa de estado → StateConfig para acceder a propiedades de configuración
+        // Crear mapa de estado → AnimationState para acceder a propiedades de configuración
         // (como interruptOnInputRelease) de forma escalable
         this.stateConfigMap = new Map();
 
         for (const stateConfigData of ANIMATION_STATES) {
-            const stateConfig = new StateConfig(stateConfigData);
-            this.stateToAnimationMap.set(stateConfig.id, stateConfig.animation);
-            this.stateConfigMap.set(stateConfig.id, stateConfig);
+            const animationState = new AnimationState(stateConfigData);
+            this.stateToAnimationMap.set(animationState.id, animationState.animation);
+            this.stateConfigMap.set(animationState.id, animationState);
         }
     }
 
@@ -279,6 +279,11 @@ export class AnimationMixerSystem extends System {
 
         action.fadeIn(ANIMATION_MIXER.defaultTransitionDuration);
         action.play();
+
+        // Log de animación reproducida
+        if (stateChanged) {
+            console.log(`🎬 Animación: ${state}`);
+        }
 
         // Guardar referencia a la acción y estado actual
         mesh.userData.currentAction = action;

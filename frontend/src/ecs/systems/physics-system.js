@@ -66,6 +66,32 @@ export class PhysicsSystem extends System {
                 input.wantsToJump = false; // Resetear
             }
             
+            // Aplicar dodge (esquivar) - Impulso de movimiento horizontal
+            if (input && input.wantsToDodge && physics.isGrounded) {
+                // Velocidad de dodge en celdas/segundo
+                const dodgeSpeed = 20; // Más rápido que correr normal
+                
+                // Si hay dirección de movimiento, usar esa dirección
+                // Si no, usar dirección hacia adelante (basada en moveDirection que ya está calculada)
+                if (input.moveDirection.x !== 0 || input.moveDirection.y !== 0) {
+                    // Usar la dirección de movimiento actual
+                    physics.velocity.x = input.moveDirection.x * dodgeSpeed;
+                    physics.velocity.y = input.moveDirection.y * dodgeSpeed;
+                } else {
+                    // Si no hay movimiento, esquivar hacia adelante (dirección negativa Y en espacio local)
+                    // Necesitamos obtener la rotación de la cámara para calcular dirección adelante
+                    const render = this.ecs.getComponent(entityId, 'Render');
+                    const cameraRotation = render && render.rotationY !== undefined ? render.rotationY : 0;
+                    const cos = Math.cos(cameraRotation);
+                    const sin = Math.sin(cameraRotation);
+                    // Adelante es negativo Y en espacio local, rotado por la cámara
+                    physics.velocity.x = -sin * dodgeSpeed;
+                    physics.velocity.y = -cos * dodgeSpeed;
+                }
+                
+                input.wantsToDodge = false; // Resetear para que solo se active una vez
+            }
+            
             // Aplicar gravedad (Z es altura)
             if (physics.useGravity && !physics.isGrounded) {
                 physics.acceleration.z += this.gravity;

@@ -1,7 +1,9 @@
 /**
- * Configuración de un estado de animación
+ * Clase que representa un estado de animación
+ * 
+ * Encapsula la lógica y propiedades de un estado individual de la máquina de estados de animación.
  */
-export class StateConfig {
+export class AnimationState {
     constructor(config) {
         this.id = config.id;
         this.priority = config.priority;
@@ -59,4 +61,5 @@ export class StateConfig {
         });
     }
 }
+
 
