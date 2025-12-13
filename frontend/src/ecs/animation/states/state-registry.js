@@ -1,7 +1,7 @@
 /**
  * Registry de estados de animación
  */
-import { StateConfig } from './state-config.js';
+import { AnimationState } from './animation-state.js';
 import { ConditionFactory } from '../conditions/condition-factory.js';
 
 export class StateRegistry {
@@ -12,9 +12,9 @@ export class StateRegistry {
         // Ordenar estados por prioridad (mayor a menor)
         const sortedStates = [...statesConfig].sort((a, b) => b.priority - a.priority);
         
-        // Crear StateConfig para cada estado y cachear condiciones
+        // Crear AnimationState para cada estado y cachear condiciones
         for (const stateConfig of sortedStates) {
-            const state = new StateConfig(stateConfig);
+            const state = new AnimationState(stateConfig);
             
             // Crear y cachear condiciones para este estado
             const conditions = ConditionFactory.createAll(stateConfig.conditions);
@@ -51,7 +51,7 @@ export class StateRegistry {
     /**
      * Determinar estado activo basado en contexto
      * @param {Object} context - Contexto con input, physics, etc.
-     * @returns {StateConfig|null} Estado que debe estar activo
+     * @returns {AnimationState|null} Estado que debe estar activo
      */
     determineActiveState(context) {
         // Iterar estados en orden de prioridad

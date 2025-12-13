@@ -36,7 +36,15 @@ export class InputSystem extends System {
                     } else if (key === 'ClickRight') {
                         if (!this.inputManager.isMouseButtonDown(2)) allPressed = false;
                     } else if (key === 'Control') {
-                        if (!this.inputManager.isKeyPressed('ControlLeft') && !this.inputManager.isKeyPressed('ControlRight')) allPressed = false;
+                        const isCtrl = this.inputManager.isKeyPressed('ControlLeft') || this.inputManager.isKeyPressed('ControlRight');
+                        if (actionName === 'specialAttack' && !isCtrl) {
+                            // console.log('DEBUG: Control check FAILED. Keys:', Array.from(this.inputManager.keysPressed));
+                        }
+                        if (!isCtrl) {
+                            allPressed = false;
+                        } else if (actionName === 'specialAttack') {
+                            // console.log('DEBUG: Control check PASSED');
+                        }
                     } else if (key === 'Shift') {
                         if (!this.inputManager.isKeyPressed('ShiftLeft') && !this.inputManager.isKeyPressed('ShiftRight')) allPressed = false;
                     } else if (key === 'Alt') {
@@ -47,7 +55,9 @@ export class InputSystem extends System {
                     }
                 }
 
-                if (allPressed) return true;
+                if (allPressed) {
+                    return true;
+                }
             }
             // Verificar clicks simples
             else if (mapping === 'ClickLeft') {
@@ -179,13 +189,37 @@ export class InputSystem extends System {
             // Agacharse
             input.wantsToCrouch = this.checkAction('crouch');
 
-            // Combate
-            // Importante: Verificar ataques especiales primero para que no se solapen con ataques normales
-            // si comparten triggers (ej: Click vs Ctrl+Click)
+            // Combate y Acciones
+            // Importante: Orden de prioridad para evitar solapamiento de teclas
 
+            // 1. Defensas
+            // Parry: mantener presionado
+            if (this.checkAction('parry')) {
+                input.wantsToParry = true;
+            }
+            // Dodge: solo un press (isKeyDown), no mantener presionado
+            const dodgeKeys = INPUT_MAP['dodge'];
+            let dodgeJustPressed = false;
+            for (const key of dodgeKeys) {
+                if (this.inputManager.isKeyDown(key)) {
+                    dodgeJustPressed = true;
+                    break;
+                }
+            }
+            if (dodgeJustPressed) {
+                input.wantsToDodge = true;
+            }
+
+            // 2. Ataques Especiales / Combinados
+            // Verificar antes que el ataque normal porque usan modificadores (Shift, Ctrl, Alt)
             if (this.checkAction('specialAttack')) {
                 input.wantsToSpecialAttack = true;
+            } else if (this.checkAction('chargedAttack')) {
+                input.wantsToChargedAttack = true;
+            } else if (this.checkAction('heavyAttack')) {
+                input.wantsToHeavyAttack = true;
             } else if (this.checkAction('attack')) {
+                // Solo si no hay ninguno de los anteriores
                 input.wantsToAttack = true;
             }
 
