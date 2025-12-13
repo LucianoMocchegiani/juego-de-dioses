@@ -12,6 +12,7 @@ import { mapBonesToBodyParts } from '../../renderers/models/bones-utils.js';
 import { ANIMATION_FILES, ANIMATION_STATES, ANIMATION_MIXER } from '../../config/animation-config.js';
 import { AnimationState } from '../animation/states/animation-state.js';
 import { COMBAT_ACTIONS } from '../../config/combat-actions-config.js';
+import { COMBAT_CONSTANTS } from '../../config/combat-constants.js';
 
 const gltfLoader = new GLTFLoader();
 
@@ -27,18 +28,14 @@ export class AnimationMixerSystem extends System {
         // Prevenir múltiples inicializaciones simultáneas
         this.initializingMixers = new Set();
 
-        // Crear mapa de estado → nombre de animación desde configuración
-        this.stateToAnimationMap = new Map();
-
         // Crear mapa de estado → AnimationState para acceder a propiedades de configuración
-        // (como interruptOnInputRelease) de forma escalable
-        this.stateConfigMap = new Map();
-
-        for (const stateConfigData of ANIMATION_STATES) {
-            const animationState = new AnimationState(stateConfigData);
-            this.stateToAnimationMap.set(animationState.id, animationState.animation);
-            this.stateConfigMap.set(animationState.id, animationState);
-        }
+        // (como interruptOnInputRelease, animation) de forma escalable
+        this.stateConfigMap = new Map(
+            ANIMATION_STATES.map(config => [
+                config.id,
+                new AnimationState(config)
+            ])
+        );
     }
 
     /**
@@ -48,9 +45,9 @@ export class AnimationMixerSystem extends System {
      */
     getAnimationNameForState(stateId) {
         // Buscar en el mapa de configuración
-        const animationName = this.stateToAnimationMap.get(stateId);
-        if (animationName) {
-            return animationName;
+        const stateConfig = this.stateConfigMap.get(stateId);
+        if (stateConfig && stateConfig.animation) {
+            return stateConfig.animation;
         }
 
         // Fallback: si el estado es el mismo que la animación, usar directamente
@@ -60,6 +57,33 @@ export class AnimationMixerSystem extends System {
 
         // Fallback final
         return ANIMATION_MIXER.defaultState;
+    }
+
+    /**
+     * Resolver nombre de animación desde componentes fuente según prioridad
+     * Prioridad: Combo > Combate > Normal (config)
+     * 
+     * @param {number} entityId - ID de la entidad
+     * @param {string} stateId - ID del estado actual
+     * @returns {string|null} Nombre de la animación o null si no se encuentra
+     */
+    resolveAnimationName(entityId, stateId, combo = null, combat = null) {
+        // Prioridad 1: Combo (si hay combo activo)
+        // Usar componente cacheado si está disponible, sino buscarlo
+        const comboComp = combo || this.ecs.getComponent(entityId, 'Combo');
+        if (comboComp?.activeComboId && comboComp?.comboAnimation) {
+            return comboComp.comboAnimation;
+        }
+        
+        // Prioridad 2: Combate (si hay acción activa)
+        // Usar componente cacheado si está disponible, sino buscarlo
+        const combatComp = combat || this.ecs.getComponent(entityId, 'Combat');
+        if (combatComp?.activeAction && combatComp?.combatAnimation) {
+            return combatComp.combatAnimation;
+        }
+        
+        // Prioridad 3: Resolver desde configuración (estado normal)
+        return this.getAnimationNameForState(stateId);
     }
 
     /**
@@ -321,6 +345,99 @@ export class AnimationMixerSystem extends System {
     }
 
     /**
+     * @private
+     * Actualizar acciones de combate en progreso (i-frames, limpieza temprana, limpieza final)
+     * 
+     * @param {number} entityId - ID de la entidad
+     * @param {Object} combat - CombatComponent
+     * @param {Object|null} input - InputComponent o null
+     * @param {Object} anim - AnimationComponent
+     * @param {THREE.Object3D} mesh - Mesh del modelo
+     * @param {THREE.AnimationAction} action - Acción de combate activa
+     * @returns {boolean} true si la animación terminó completamente
+     */
+    updateCombatAction(entityId, combat, input, anim, mesh, action) {
+        const actionDuration = action.getClip().duration;
+        const progress = actionDuration > 0 ? action.time / actionDuration : 1.0;
+        
+        if (!combat || !combat.activeAction) return false;
+        
+        const combatConfig = COMBAT_ACTIONS[combat.activeAction];
+        const finishedActionId = combat.activeAction;
+        
+        // Actualizar i-frames si corresponde
+        if (combatConfig && combatConfig.hasIFrames) {
+            combat.hasIFrames = progress >= combatConfig.iFrameStart && 
+                               progress <= combatConfig.iFrameEnd;
+        }
+        
+        // Early cleanup: Limpiar defenseType antes de que termine completamente
+        const shouldEarlyCleanup = progress >= COMBAT_CONSTANTS.EARLY_CLEANUP_THRESHOLD && progress < 1.0;
+        if (shouldEarlyCleanup && (finishedActionId === COMBAT_CONSTANTS.ACTION_IDS.PARRY || 
+                                   finishedActionId === COMBAT_CONSTANTS.ACTION_IDS.DODGE)) {
+            combat.cleanupDefenseType(finishedActionId, input);
+        }
+        
+        // Verificar si la animación terminó completamente
+        const animationFinished = progress >= 1.0 || (!action.isRunning() && action.time >= actionDuration);
+        
+        if (animationFinished) {
+            this.cleanupFinishedCombatAction(entityId, finishedActionId, combat, input, anim, mesh);
+            return true;
+        }
+        
+        return false;
+    }
+
+    /**
+     * @private
+     * Limpiar estado cuando termina una animación de combate
+     * 
+     * @param {number} entityId - ID de la entidad
+     * @param {string} finishedActionId - ID de la acción que terminó
+     * @param {Object} combat - CombatComponent
+     * @param {Object|null} input - InputComponent o null
+     * @param {Object} anim - AnimationComponent
+     * @param {THREE.Object3D} mesh - Mesh del modelo
+     */
+    cleanupFinishedCombatAction(entityId, finishedActionId, combat, input, anim, mesh) {
+        // Guardar si parry todavía se quiere (para reactivación)
+        const parryStillWanted = finishedActionId === COMBAT_CONSTANTS.ACTION_IDS.PARRY && 
+                                 input && input.wantsToParry;
+        
+        // Limpiar todo el estado de combate
+        combat.clearCombatState();
+        
+        // Lógica especial por tipo de acción usando el helper centralizado
+        if (parryStillWanted) {
+            // Mantener defenseType para reactivación
+            combat.defenseType = COMBAT_CONSTANTS.ACTION_IDS.PARRY;
+        } else {
+            // Limpiar defenseType según tipo de acción (usando helper)
+            combat.cleanupDefenseType(finishedActionId, input);
+        }
+        
+        // Resetear wantsToDodge para evitar reactivación
+        if (finishedActionId === COMBAT_CONSTANTS.ACTION_IDS.DODGE && input) {
+            input.wantsToDodge = false;
+        }
+        
+        // Cambiar estado de animación a idle
+        if (anim) {
+            anim.currentState = 'idle';
+        }
+        
+        // Limpiar referencias en mesh
+        mesh.userData.combatAction = null;
+        mesh.userData.isAttacking = false;
+        
+        // Resetear flag de movimiento aplicado
+        if (mesh.userData.movementApplied !== undefined) {
+            mesh.userData.movementApplied = false;
+        }
+    }
+
+    /**
      * Actualizar sistema de animaciones
      * @param {number} deltaTime - Tiempo transcurrido desde el último frame
      */
@@ -328,9 +445,13 @@ export class AnimationMixerSystem extends System {
         const entities = this.getEntities();
 
         for (const entityId of entities) {
+            // Cachear componentes una sola vez al inicio del loop
             const render = this.ecs.getComponent(entityId, 'Render');
             const animation = this.ecs.getComponent(entityId, 'Animation');
-
+            const combat = this.ecs.getComponent(entityId, 'Combat');
+            const input = this.ecs.getComponent(entityId, 'Input');
+            const combo = this.ecs.getComponent(entityId, 'Combo');
+            
             if (!render || !render.mesh || !animation) continue;
 
             const mesh = render.mesh;
@@ -357,162 +478,21 @@ export class AnimationMixerSystem extends System {
             const mixer = mesh.userData.animationMixer;
             mixer.update(deltaTime);
 
-            // Verificar si acciones de combate terminaron
+            // Verificar si acciones de combate terminaron (usando método extraído)
             if (mesh.userData.combatAction) {
                 const action = mesh.userData.combatAction;
-                const actionDuration = action.getClip().duration;
-                const progress = actionDuration > 0 ? action.time / actionDuration : 1.0;
-                
-                // Obtener configuración de la acción
-                const entityId = mesh.userData.entityId;
-                if (entityId) {
-                    const combat = this.ecs.getComponent(entityId, 'Combat');
-                    if (combat && combat.activeAction) {
-                        const combatConfig = COMBAT_ACTIONS[combat.activeAction];
-                        const finishedActionId = combat.activeAction;
-                        
-                        // Constante para threshold de limpieza temprana (95% de progreso)
-                        const EARLY_CLEANUP_THRESHOLD = 0.95;
-                        
-                        // Actualizar i-frames si corresponde (propiedad específica de combate)
-                        if (combatConfig && combatConfig.hasIFrames) {
-                            combat.hasIFrames = progress >= combatConfig.iFrameStart && 
-                                               progress <= combatConfig.iFrameEnd;
-                        }
-                        
-                        // LIMPIEZA TEMPRANA: Limpiar defenseType antes de que termine completamente
-                        // Esto previene que AnimationStateSystem (prioridad 2) vea defenseType con valor
-                        // cuando AnimationMixerSystem (prioridad 2.5) todavía no ha limpiado
-                        // Solo para acciones que usan defenseType (parry, dodge)
-                        const shouldEarlyCleanup = progress >= EARLY_CLEANUP_THRESHOLD && progress < 1.0;
-                        if (shouldEarlyCleanup && (finishedActionId === 'parry' || finishedActionId === 'dodge')) {
-                            // Limpiar defenseType antes de que termine para prevenir race condition
-                            // Pero mantener activeAction hasta que termine completamente
-                            const input = this.ecs.getComponent(entityId, 'Input');
-                            
-                            // Para parry: solo limpiar si la tecla NO está presionada
-                            // Si está presionada, mantener defenseType para reactivación
-                            if (finishedActionId === 'parry') {
-                                if (!input || !input.wantsToParry) {
-                                    combat.defenseType = null;
-                                }
-                            } else if (finishedActionId === 'dodge') {
-                                // Para dodge: siempre limpiar (no debe reactivarse)
-                                combat.defenseType = null;
-                            }
-                        }
-                    }
-                }
-                
-                // Cuando la animación termine completamente
-                // Verificar si terminó: ha alcanzado o superado la duración O ya no está corriendo
-                // Para LoopOnce con clampWhenFinished=false, la animación debería terminar cuando time >= duration
-                // También verificar si la animación ya terminó pero aún está en el mixer
-                const animationFinished = progress >= 1.0 || (!action.isRunning() && action.time >= actionDuration);
-                
-                if (animationFinished) {
-                    const entityId = mesh.userData.entityId;
-                    if (!entityId) {
-                        mesh.userData.combatAction = null;
-                        return;
-                    }
-                    
-                    const combat = this.ecs.getComponent(entityId, 'Combat');
-                    const input = this.ecs.getComponent(entityId, 'Input');
-                    const anim = this.ecs.getComponent(entityId, 'Animation');
-                    
-                    if (!combat) {
-                        mesh.userData.combatAction = null;
-                        return;
-                    }
-                    
-                    // Guardar qué acción terminó para lógica especial
-                    const finishedActionId = combat.activeAction;
-                    
-                    // CRÍTICO: Limpiar activeAction PRIMERO antes que cualquier otra cosa
-                    // Esto previene que AnimationStateSystem active el estado en el siguiente frame
-                    combat.endAction(); // Esto limpia activeAction a null
-                    
-                    // Ahora limpiar el resto de flags
-                    combat.attackType = null;
-                    combat.combatAnimation = null;
-                    combat.isAttacking = false;
-                    
-                    // LÓGICA ESPECIAL POR TIPO DE ACCIÓN:
-                    // - Parry: Si la tecla sigue presionada, permitir que se reactive (CombatSystem lo manejará)
-                    // - Dodge: Limpiar completamente y asegurar que no se reactive
-                    if (finishedActionId === 'parry') {
-                        // Para parry, solo limpiar si la tecla NO está presionada
-                        // Si la tecla sigue presionada, CombatSystem lo reactivará en el siguiente frame
-                        if (!input || !input.wantsToParry) {
-                            combat.defenseType = null;
-                            if (anim) {
-                                anim.currentState = 'idle';
-                                anim.combatAnimationName = null;
-                            }
-                        } else {
-                            // La tecla sigue presionada, mantener defenseType para que se reactive
-                            // CombatSystem verificará wantsToParry y lo reactivará
-                        }
-                    } else if (finishedActionId === 'dodge') {
-                        // Para dodge, limpiar completamente - no debe reactivarse automáticamente
-                        combat.defenseType = null;
-                        if (anim) {
-                            anim.currentState = 'idle';
-                            anim.combatAnimationName = null;
-                        }
-                        // Resetear wantsToDodge si existe para evitar reactivación
-                        if (input) {
-                            input.wantsToDodge = false;
-                        }
-                    } else {
-                        // Otras acciones (ataques): limpiar normalmente
-                        combat.defenseType = null;
-                        if (anim) {
-                            anim.currentState = 'idle';
-                            anim.combatAnimationName = null;
-                        }
-                    }
-                    
-                    // Limpiar referencia a la acción de combate
-                    mesh.userData.combatAction = null;
-                    mesh.userData.isAttacking = false;
-                    
-                    // Resetear flag de movimiento aplicado
-                    if (mesh.userData.movementApplied !== undefined) {
-                        mesh.userData.movementApplied = false;
-                    }
-                }
+                // Usar componentes ya cacheados
+                this.updateCombatAction(entityId, combat, input, animation, mesh, action);
             }
-            // Nota: El código legacy de attackAction fue eliminado - todas las acciones de combate
-            // (incluyendo attack) ahora usan combatAction y se manejan en la sección de arriba
 
             // Reproducir animación según estado
             const clips = mesh.userData.animationClips;
             if (clips) {
-                // Prioridad 1: Animación de combo (si hay combo activo)
-                // Prioridad 2: Animación de combate (si hay acción de combate)
-                // Prioridad 3: Resolver por estado normal
-                let animationName = null;
-                let stateToUse = animation.currentState; // Estado a usar para configuración
-                
-                if (animation.comboAnimationName) {
-                    animationName = animation.comboAnimationName;
-                    // Para combos, el estado ya está en currentState
-                } else if (animation.combatAnimationName) {
-                    animationName = animation.combatAnimationName;
-                    // IMPORTANTE: Para animaciones de combate, usar currentState (ej: 'parry', 'dodge')
-                    // NO usar animationName como estado porque es el nombre de la animación (ej: 'sword_parry_backward')
-                    // currentState tiene el ID del estado (ej: 'parry') que tiene la configuración correcta
-                    stateToUse = animation.currentState; // Ya está configurado por AnimationStateSystem
-                } else {
-                    // Obtener nombre de animación desde configuración
-                    animationName = this.getAnimationNameForState(animation.currentState);
-                    stateToUse = animation.currentState;
-                }
+                // Resolver nombre de animación usando componentes cacheados cuando sea posible
+                const animationName = this.resolveAnimationName(entityId, animation.currentState, combo, combat);
+                const stateToUse = animation.currentState;
 
                 // Si la animación existe en los clips cargados, reproducirla
-                // Pasar stateToUse para que playAnimation pueda encontrar la configuración correcta
                 if (animationName && clips[animationName]) {
                     this.playAnimation(mixer, clips, stateToUse, mesh);
                 } else if (clips[ANIMATION_MIXER.defaultState]) {

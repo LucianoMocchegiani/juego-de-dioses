@@ -3,6 +3,8 @@
  * 
  * Almacena el estado de combate de una entidad (tipo de ataque, defensa, etc.)
  */
+import { COMBAT_CONSTANTS } from '../../config/combat-constants.js';
+
 export class CombatComponent {
     constructor() {
         /**
@@ -72,11 +74,14 @@ export class CombatComponent {
     
     /**
      * Finalizar la acción actual
+     * Limpia solo los campos relacionados con la acción activa, no todo el estado de combate
      */
     endAction() {
         this.activeAction = null;
         this.actionStartTime = null;
         this.hasIFrames = false;
+        // Nota: NO limpia defenseType, attackType, combatAnimation aquí
+        // porque pueden necesitar persistir para transiciones o reactivación
     }
     
     /**
@@ -119,6 +124,44 @@ export class CombatComponent {
         
         this.canCancel = false;
         this.combatAnimation = null;
+    }
+    
+    /**
+     * Limpiar completamente el estado de combate
+     * Útil para limpieza centralizada cuando termina una animación
+     */
+    clearCombatState() {
+        this.activeAction = null;
+        this.actionStartTime = null;
+        this.defenseType = null;
+        this.attackType = null;
+        this.combatAnimation = null;
+        this.isAttacking = false;
+        this.hasIFrames = false;
+    }
+    
+    /**
+     * Limpiar defenseType según tipo de acción y estado del input
+     * Centraliza la lógica especial para parry (mantener si tecla presionada) y dodge (siempre limpiar)
+     * 
+     * @param {string} actionId - ID de la acción que terminó
+     * @param {Object|null} input - InputComponent o null
+     */
+    cleanupDefenseType(actionId, input) {
+        if (actionId === COMBAT_CONSTANTS.ACTION_IDS.PARRY) {
+            // Parry: Solo limpiar si la tecla NO está presionada
+            // Si está presionada, mantener para reactivación
+            if (!input || !input.wantsToParry) {
+                this.defenseType = null;
+            }
+            // Si está presionada, mantener defenseType = 'parry' para reactivación
+        } else if (actionId === COMBAT_CONSTANTS.ACTION_IDS.DODGE) {
+            // Dodge: Siempre limpiar (no debe reactivarse automáticamente)
+            this.defenseType = null;
+        } else {
+            // Para otras acciones, limpiar normalmente
+            this.defenseType = null;
+        }
     }
 }
 
