@@ -7,6 +7,7 @@
 import { System } from '../system.js';
 import { COMBAT_ACTIONS } from '../../config/combat-actions-config.js';
 import { ANIMATION_STATES } from '../../config/animation-config.js';
+import { COMBAT_CONSTANTS } from '../../config/combat-constants.js';
 
 export class CombatSystem extends System {
     constructor(inputManager) {
@@ -14,6 +15,12 @@ export class CombatSystem extends System {
         this.inputManager = inputManager;
         this.requiredComponents = ['Input', 'Combat'];
         this.priority = 1.4; // Después de InputSystem (0) y PhysicsSystem (1), antes de ComboSystem (1.5)
+        
+        // Cachear mapeo de animationStateId → AnimationState (O(1) lookup)
+        this.animationStateCache = new Map();
+        for (const state of ANIMATION_STATES) {
+            this.animationStateCache.set(state.id, state);
+        }
     }
 
     /**
@@ -75,7 +82,7 @@ export class CombatSystem extends System {
                     
                     // IMPORTANTE: Resetear wantsToDodge después de procesarlo para evitar reactivación
                     // Dodge solo se activa una vez por press
-                    if (actionId === 'dodge') {
+                    if (actionId === COMBAT_CONSTANTS.ACTION_IDS.DODGE) {
                         input.wantsToDodge = false;
                     }
                     
@@ -121,12 +128,13 @@ export class CombatSystem extends System {
      */
     canExecuteAction(entityId, actionConfig, weapon, weaponType) {
         // Por ahora, solo verificamos parry que requiere arma
-        if (actionConfig.id === 'parry' && !weapon) {
+        if (actionConfig.id === COMBAT_CONSTANTS.ACTION_IDS.PARRY && !weapon) {
             return false;
         }
         
         // Verificaciones específicas por acción (pueden extenderse en el futuro)
-        if (actionConfig.id === 'specialAttack' && weaponType !== 'sword') {
+        if (actionConfig.id === COMBAT_CONSTANTS.ACTION_IDS.SPECIAL_ATTACK && 
+            weaponType !== COMBAT_CONSTANTS.WEAPON_TYPES.SWORD) {
             // Special attack solo funciona con espada
             return false;
         }
@@ -140,8 +148,8 @@ export class CombatSystem extends System {
      * @param {Object} actionConfig - Configuración de la acción desde COMBAT_ACTIONS
      */
     applyActionConfig(combat, actionConfig) {
-        // Buscar estado de animación correspondiente
-        const animationState = ANIMATION_STATES.find(state => state.id === actionConfig.animationStateId);
+        // Buscar estado de animación correspondiente (O(1) lookup usando cache)
+        const animationState = this.animationStateCache.get(actionConfig.animationStateId);
         if (!animationState) {
             console.warn(`Animation state '${actionConfig.animationStateId}' no encontrado para acción: ${actionConfig.id}`);
             return;

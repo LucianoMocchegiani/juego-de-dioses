@@ -51,52 +51,17 @@ export class AnimationStateSystem extends System {
             const activeState = this.stateRegistry.determineActiveState(context);
 
             if (activeState) {
-                // Lógica basada en TIPO de estado, no en ID específico
-
-                // 1. Estados de Combo
-                if (activeState.combatType === 'combo') {
-                    if (combo && combo.comboAnimation) {
-                        // Usar la animación específica del combo
-                        animation.currentState = activeState.id;
-                        animation.comboAnimationName = combo.comboAnimation;
-                        animation.combatAnimationName = null;
-                    } else {
-                        // Fallback seguro
-                        animation.currentState = activeState.id;
-                        animation.comboAnimationName = null;
-                        animation.combatAnimationName = null;
-                    }
-                }
-                // 2. Estados de Combate (Ataque, Defensa, Especial)
-                else if (activeState.type === 'combat') {
-                    // CRÍTICO: Solo activar estado de combate si hay una acción activa
-                    // NO usar combatAnimation como condición porque puede tener valor residual
-                    // activeAction es la única fuente de verdad para saber si hay acción en progreso
+                // Para estados de combate, solo activar si hay una acción activa
+                // NO usar combatAnimation como condición porque puede tener valor residual
+                // activeAction es la única fuente de verdad para saber si hay acción en progreso
+                if (activeState.type === 'combat') {
                     if (combat && combat.activeAction) {
-                        if (combat.combatAnimation) {
-                            // Usar la animación específica del combate
-                            animation.currentState = activeState.id;
-                            animation.combatAnimationName = combat.combatAnimation;
-                            animation.comboAnimationName = null;
-                        } else {
-                            // Si no hay animación de combate específica, usar estado normal
-                            animation.currentState = activeState.id;
-                            animation.combatAnimationName = null;
-                            animation.comboAnimationName = null;
-                        }
-                    } else {
-                        // Si no hay acción activa (activeAction es null), NO activar estado de combate
-                        // Esto permite que otros estados (idle, walk, etc.) se activen
-                        // incluso si defenseType o combatAnimation tienen valores residuales
-                        animation.combatAnimationName = null;
-                        animation.comboAnimationName = null;
+                        animation.currentState = activeState.id;
                     }
-                }
-                // 3. Estados Normales (Movimiento, Idle, etc.)
-                else {
+                    // Si no hay acción activa, no hacer nada (no activar estado de combate)
+                } else {
+                    // Todos los demás estados (combo, normales) se activan directamente
                     animation.currentState = activeState.id;
-                    animation.comboAnimationName = null;
-                    animation.combatAnimationName = null;
                 }
             }
         }
