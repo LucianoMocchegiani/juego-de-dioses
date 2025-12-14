@@ -8,12 +8,16 @@ import { System } from '../system.js';
 import { COMBAT_ACTIONS } from '../../config/combat-actions-config.js';
 import { ANIMATION_STATES } from '../../config/animation-config.js';
 import { COMBAT_CONSTANTS } from '../../config/combat-constants.js';
+import { ECS_CONSTANTS } from '../../config/ecs-constants.js';
 
 export class CombatSystem extends System {
     constructor(inputManager) {
         super();
         this.inputManager = inputManager;
-        this.requiredComponents = ['Input', 'Combat'];
+        this.requiredComponents = [
+            ECS_CONSTANTS.COMPONENT_NAMES.INPUT,
+            ECS_CONSTANTS.COMPONENT_NAMES.COMBAT
+        ];
         this.priority = 1.4; // Después de InputSystem (0) y PhysicsSystem (1), antes de ComboSystem (1.5)
         
         // Cachear mapeo de animationStateId → AnimationState (O(1) lookup)
@@ -31,13 +35,13 @@ export class CombatSystem extends System {
         const entities = this.getEntities();
 
         for (const entityId of entities) {
-            const input = this.ecs.getComponent(entityId, 'Input');
-            const combat = this.ecs.getComponent(entityId, 'Combat');
+            const input = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.INPUT);
+            const combat = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.COMBAT);
 
             if (!input || !combat) continue;
 
             // Verificar si hay combo activo (prioridad sobre acciones individuales)
-            const combo = this.ecs.getComponent(entityId, 'Combo');
+            const combo = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.COMBO);
             if (combo && combo.activeComboId) {
                 continue; // ComboSystem maneja esto
             }
@@ -58,9 +62,9 @@ export class CombatSystem extends System {
 
             // Obtener tipo de arma (si existe el componente Weapon)
             let weapon = null;
-            let weaponType = 'generic';
-            if (this.ecs.hasComponent(entityId, 'Weapon')) {
-                weapon = this.ecs.getComponent(entityId, 'Weapon');
+            let weaponType = COMBAT_CONSTANTS.WEAPON_TYPES.GENERIC;
+            if (this.ecs.hasComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.WEAPON)) {
+                weapon = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.WEAPON);
                 weaponType = weapon.weaponType;
             }
 
@@ -96,22 +100,22 @@ export class CombatSystem extends System {
     /**
      * Verificar si el input corresponde a la acción
      * @param {Object} input - InputComponent
-     * @param {string} inputAction - Nombre de la acción de input
+     * @param {string} inputAction - Nombre de la acción de input (de INPUT_MAP, ej: 'attack', 'dodge', 'parry')
      * @returns {boolean}
      */
     checkActionInput(input, inputAction) {
         switch (inputAction) {
-            case 'dodge':
+            case COMBAT_CONSTANTS.ACTION_IDS.DODGE:
                 return input.wantsToDodge;
-            case 'specialAttack':
+            case COMBAT_CONSTANTS.ACTION_IDS.SPECIAL_ATTACK:
                 return input.wantsToSpecialAttack;
-            case 'parry':
+            case COMBAT_CONSTANTS.ACTION_IDS.PARRY:
                 return input.wantsToParry;
-            case 'heavyAttack':
+            case COMBAT_CONSTANTS.ACTION_IDS.HEAVY_ATTACK:
                 return input.wantsToHeavyAttack;
-            case 'chargedAttack':
+            case COMBAT_CONSTANTS.ACTION_IDS.CHARGED_ATTACK:
                 return input.wantsToChargedAttack;
-            case 'attack':
+            case COMBAT_CONSTANTS.ACTION_IDS.ATTACK:
                 return input.wantsToAttack;
             default:
                 return false;

@@ -13,13 +13,18 @@ import { ANIMATION_FILES, ANIMATION_STATES, ANIMATION_MIXER } from '../../config
 import { AnimationState } from '../animation/states/animation-state.js';
 import { COMBAT_ACTIONS } from '../../config/combat-actions-config.js';
 import { COMBAT_CONSTANTS } from '../../config/combat-constants.js';
+import { ECS_CONSTANTS } from '../../config/ecs-constants.js';
+import { ANIMATION_CONSTANTS } from '../../config/animation-constants.js';
 
 const gltfLoader = new GLTFLoader();
 
 export class AnimationMixerSystem extends System {
     constructor() {
         super();
-        this.requiredComponents = ['Render', 'Animation'];
+        this.requiredComponents = [
+            ECS_CONSTANTS.COMPONENT_NAMES.RENDER,
+            ECS_CONSTANTS.COMPONENT_NAMES.ANIMATION
+        ];
         this.priority = 2.5; // Entre AnimationStateSystem (2) y RenderSystem (3)
 
         // Cache de animaciones cargadas
@@ -70,14 +75,14 @@ export class AnimationMixerSystem extends System {
     resolveAnimationName(entityId, stateId, combo = null, combat = null) {
         // Prioridad 1: Combo (si hay combo activo)
         // Usar componente cacheado si está disponible, sino buscarlo
-        const comboComp = combo || this.ecs.getComponent(entityId, 'Combo');
+        const comboComp = combo || this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.COMBO);
         if (comboComp?.activeComboId && comboComp?.comboAnimation) {
             return comboComp.comboAnimation;
         }
         
         // Prioridad 2: Combate (si hay acción activa)
         // Usar componente cacheado si está disponible, sino buscarlo
-        const combatComp = combat || this.ecs.getComponent(entityId, 'Combat');
+        const combatComp = combat || this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.COMBAT);
         if (combatComp?.activeAction && combatComp?.combatAnimation) {
             return combatComp.combatAnimation;
         }
@@ -172,8 +177,16 @@ export class AnimationMixerSystem extends System {
             animatedModel.scale.copy(originalScale);
 
             // Preservar userData importante
-            animatedModel.userData.modelOffset = originalUserData.modelOffset || { x: 0, y: 0, z: 0 };
-            animatedModel.userData.modelRotation = originalUserData.modelRotation || { x: 0, y: 0, z: 0 };
+            animatedModel.userData.modelOffset = originalUserData.modelOffset || {
+                x: ANIMATION_CONSTANTS.NUMERIC.DEFAULT_OFFSET_X,
+                y: ANIMATION_CONSTANTS.NUMERIC.DEFAULT_OFFSET_Y,
+                z: ANIMATION_CONSTANTS.NUMERIC.DEFAULT_OFFSET_Z
+            };
+            animatedModel.userData.modelRotation = originalUserData.modelRotation || {
+                x: ANIMATION_CONSTANTS.NUMERIC.DEFAULT_ROTATION_X,
+                y: ANIMATION_CONSTANTS.NUMERIC.DEFAULT_ROTATION_Y,
+                z: ANIMATION_CONSTANTS.NUMERIC.DEFAULT_ROTATION_Z
+            };
 
             // Re-mapear bones del nuevo modelo (importante para sistema de daño)
             const bodyPartsMap = mapBonesToBodyParts(animatedModel);
@@ -187,7 +200,7 @@ export class AnimationMixerSystem extends System {
             }
 
             // Actualizar referencia en Render component
-            const render = this.ecs.getComponent(entityId, 'Render');
+            const render = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.RENDER);
             if (render) {
                 render.setMesh(animatedModel);
             }
@@ -322,7 +335,7 @@ export class AnimationMixerSystem extends System {
             // Verificar si es acción de combate (del nuevo sistema)
             // Todas las acciones de combate (attack, parry, dodge, etc.) ahora usan activeAction
             const entityId = mesh.userData.entityId;
-            const combat = entityId ? this.ecs.getComponent(entityId, 'Combat') : null;
+            const combat = entityId ? this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.COMBAT) : null;
             
             if (combat && combat.activeAction) {
                 // Acción del nuevo sistema (attack, parry, dodge, heavy, charged, special)
@@ -379,7 +392,7 @@ export class AnimationMixerSystem extends System {
         }
         
         // Verificar si la animación terminó completamente
-        const animationFinished = progress >= 1.0 || (!action.isRunning() && action.time >= actionDuration);
+        const animationFinished = progress >= ANIMATION_CONSTANTS.NUMERIC.PROGRESS_COMPLETE || (!action.isRunning() && action.time >= actionDuration);
         
         if (animationFinished) {
             this.cleanupFinishedCombatAction(entityId, finishedActionId, combat, input, anim, mesh);
@@ -424,7 +437,7 @@ export class AnimationMixerSystem extends System {
         
         // Cambiar estado de animación a idle
         if (anim) {
-            anim.currentState = 'idle';
+            anim.currentState = ANIMATION_CONSTANTS.STATE_IDS.IDLE;
         }
         
         // Limpiar referencias en mesh
@@ -446,11 +459,11 @@ export class AnimationMixerSystem extends System {
 
         for (const entityId of entities) {
             // Cachear componentes una sola vez al inicio del loop
-            const render = this.ecs.getComponent(entityId, 'Render');
-            const animation = this.ecs.getComponent(entityId, 'Animation');
-            const combat = this.ecs.getComponent(entityId, 'Combat');
-            const input = this.ecs.getComponent(entityId, 'Input');
-            const combo = this.ecs.getComponent(entityId, 'Combo');
+            const render = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.RENDER);
+            const animation = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.ANIMATION);
+            const combat = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.COMBAT);
+            const input = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.INPUT);
+            const combo = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.COMBO);
             
             if (!render || !render.mesh || !animation) continue;
 
