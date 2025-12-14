@@ -15,6 +15,8 @@ import { COMBAT_ACTIONS } from '../../config/combat-actions-config.js';
 import { COMBAT_CONSTANTS } from '../../config/combat-constants.js';
 import { ECS_CONSTANTS } from '../../config/ecs-constants.js';
 import { ANIMATION_CONSTANTS } from '../../config/animation-constants.js';
+import { debugLogger } from '../../debug/logger.js';
+import { stateValidator } from '../../debug/validator.js';
 
 const gltfLoader = new GLTFLoader();
 
@@ -61,6 +63,10 @@ export class AnimationMixerSystem extends System {
         }
 
         // Fallback final
+        debugLogger.debug('AnimationMixer', 'Using default animation state', {
+            stateId,
+            defaultState: ANIMATION_MIXER.defaultState
+        });
         return ANIMATION_MIXER.defaultState;
     }
 
@@ -73,10 +79,24 @@ export class AnimationMixerSystem extends System {
      * @returns {string|null} Nombre de la animación o null si no se encuentra
      */
     resolveAnimationName(entityId, stateId, combo = null, combat = null) {
+        // Validar estado antes de procesar
+        if (!stateValidator.validateAnimationState(
+            stateId,
+            this.stateConfigMap,
+            `AnimationMixer.resolveAnimationName(${entityId})`
+        )) {
+            return null;
+        }
+        
         // Prioridad 1: Combo (si hay combo activo)
         // Usar componente cacheado si está disponible, sino buscarlo
         const comboComp = combo || this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.COMBO);
         if (comboComp?.activeComboId && comboComp?.comboAnimation) {
+            debugLogger.debug('AnimationMixer', 'Resolved animation from combo', {
+                entityId,
+                comboId: comboComp.activeComboId,
+                animationName: comboComp.comboAnimation
+            });
             return comboComp.comboAnimation;
         }
         
@@ -84,11 +104,22 @@ export class AnimationMixerSystem extends System {
         // Usar componente cacheado si está disponible, sino buscarlo
         const combatComp = combat || this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.COMBAT);
         if (combatComp?.activeAction && combatComp?.combatAnimation) {
+            debugLogger.debug('AnimationMixer', 'Resolved animation from combat', {
+                entityId,
+                actionId: combatComp.activeAction,
+                animationName: combatComp.combatAnimation
+            });
             return combatComp.combatAnimation;
         }
         
         // Prioridad 3: Resolver desde configuración (estado normal)
-        return this.getAnimationNameForState(stateId);
+        const animationName = this.getAnimationNameForState(stateId);
+        debugLogger.debug('AnimationMixer', 'Resolved animation from state', {
+            entityId,
+            stateId,
+            animationName
+        });
+        return animationName;
     }
 
     /**
@@ -110,12 +141,25 @@ export class AnimationMixerSystem extends System {
 
             if (gltf.animations && gltf.animations.length > 0) {
                 this.animationCache.set(animationFile, gltf.animations);
+                debugLogger.debug('AnimationMixer', 'Animation loaded successfully', {
+                    animationFile,
+                    animationCount: gltf.animations.length
+                });
                 return gltf.animations;
             } else {
+                debugLogger.warn('AnimationMixer', 'Animation file has no animations', {
+                    animationFile,
+                    url
+                });
                 return [];
             }
         } catch (error) {
             // Error cargando animación, retornar array vacío
+            debugLogger.error('AnimationMixer', 'Error loading animation', {
+                animationFile,
+                url,
+                error: error.message
+            });
             return [];
         }
     }
