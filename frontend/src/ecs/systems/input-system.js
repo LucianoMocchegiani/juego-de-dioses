@@ -5,12 +5,17 @@
  */
 import { System } from '../system.js';
 import { INPUT_MAP } from '../../config/input-map-config.js';
+import { ECS_CONSTANTS } from '../../config/ecs-constants.js';
+import { ANIMATION_CONSTANTS } from '../../config/animation-constants.js';
 
 export class InputSystem extends System {
     constructor(inputManager) {
         super();
         this.inputManager = inputManager;
-        this.requiredComponents = ['Input', 'Physics'];
+        this.requiredComponents = [
+            ECS_CONSTANTS.COMPONENT_NAMES.INPUT,
+            ECS_CONSTANTS.COMPONENT_NAMES.PHYSICS
+        ];
         this.priority = 0; // Ejecutar primero
     }
 
@@ -32,9 +37,9 @@ export class InputSystem extends System {
 
                 for (const key of keys) {
                     if (key === 'ClickLeft') {
-                        if (!this.inputManager.isMouseButtonDown(0)) allPressed = false;
+                        if (!this.inputManager.isMouseButtonDown(ANIMATION_CONSTANTS.INPUT.MOUSE_BUTTONS.LEFT)) allPressed = false;
                     } else if (key === 'ClickRight') {
-                        if (!this.inputManager.isMouseButtonDown(2)) allPressed = false;
+                        if (!this.inputManager.isMouseButtonDown(ANIMATION_CONSTANTS.INPUT.MOUSE_BUTTONS.RIGHT)) allPressed = false;
                     } else if (key === 'Control') {
                         const isCtrl = this.inputManager.isKeyPressed('ControlLeft') || this.inputManager.isKeyPressed('ControlRight');
                         if (actionName === 'specialAttack' && !isCtrl) {
@@ -61,9 +66,9 @@ export class InputSystem extends System {
             }
             // Verificar clicks simples
             else if (mapping === 'ClickLeft') {
-                if (this.inputManager.isMouseButtonDown(0)) return true;
+                if (this.inputManager.isMouseButtonDown(ANIMATION_CONSTANTS.INPUT.MOUSE_BUTTONS.LEFT)) return true;
             } else if (mapping === 'ClickRight') {
-                if (this.inputManager.isMouseButtonDown(2)) return true;
+                if (this.inputManager.isMouseButtonDown(ANIMATION_CONSTANTS.INPUT.MOUSE_BUTTONS.RIGHT)) return true;
             }
             // Verificar teclas normales
             else {
@@ -82,8 +87,8 @@ export class InputSystem extends System {
         const entities = this.getEntities();
 
         for (const entityId of entities) {
-            const input = this.ecs.getComponent(entityId, 'Input');
-            const physics = this.ecs.getComponent(entityId, 'Physics');
+            const input = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.INPUT);
+            const physics = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.PHYSICS);
 
             if (!input || !physics) continue;
 
@@ -110,7 +115,7 @@ export class InputSystem extends System {
             }
 
             // Obtener rotación de la cámara desde RenderComponent
-            const render = this.ecs.getComponent(entityId, 'Render');
+            const render = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.RENDER);
             const cameraRotation = render && render.rotationY !== undefined ? render.rotationY : 0;
 
             // Calcular dirección de movimiento en espacio local (relativo a la cámara)
@@ -119,16 +124,16 @@ export class InputSystem extends System {
             let localY = 0;
 
             if (this.checkAction('moveForward')) {
-                localY -= 1; // Adelante (negativo Y en espacio local)
+                localY += ANIMATION_CONSTANTS.INPUT.DIRECTION.FORWARD; // Adelante (negativo Y en espacio local)
             }
             if (this.checkAction('moveBackward')) {
-                localY += 1; // Atrás (positivo Y en espacio local)
+                localY += ANIMATION_CONSTANTS.INPUT.DIRECTION.BACKWARD; // Atrás (positivo Y en espacio local)
             }
             if (this.checkAction('moveLeft')) {
-                localX -= 1; // Izquierda (negativo X en espacio local)
+                localX += ANIMATION_CONSTANTS.INPUT.DIRECTION.LEFT; // Izquierda (negativo X en espacio local)
             }
             if (this.checkAction('moveRight')) {
-                localX += 1; // Derecha (positivo X en espacio local)
+                localX += ANIMATION_CONSTANTS.INPUT.DIRECTION.RIGHT; // Derecha (positivo X en espacio local)
             }
 
             // Rotar dirección local según la rotación de la cámara
@@ -141,31 +146,31 @@ export class InputSystem extends System {
             input.moveDirection.y = localX * sin + (-localY) * cos;
             // Invertimos Y de vuelta
             input.moveDirection.y = -input.moveDirection.y;
-            input.moveDirection.z = 0;
+            input.moveDirection.z = ANIMATION_CONSTANTS.INPUT.DIRECTION.NONE;
 
             // Normalizar dirección solo si hay movimiento
             const length = Math.sqrt(
                 input.moveDirection.x ** 2 +
                 input.moveDirection.y ** 2
             );
-            if (length > 0.01) {
+            if (length > ANIMATION_CONSTANTS.INPUT.DIRECTION_NORMALIZE_THRESHOLD) {
                 input.moveDirection.x /= length;
                 input.moveDirection.y /= length;
             } else {
-                input.moveDirection.x = 0;
-                input.moveDirection.y = 0;
+                input.moveDirection.x = ANIMATION_CONSTANTS.INPUT.DIRECTION.NONE;
+                input.moveDirection.y = ANIMATION_CONSTANTS.INPUT.DIRECTION.NONE;
             }
 
             // Correr
             input.isRunning = this.checkAction('run');
 
             // Resetear aceleración horizontal antes de aplicar nuevo input
-            physics.acceleration.x = 0;
-            physics.acceleration.y = 0;
+            physics.acceleration.x = ANIMATION_CONSTANTS.INPUT.DIRECTION.NONE;
+            physics.acceleration.y = ANIMATION_CONSTANTS.INPUT.DIRECTION.NONE;
 
             // Aplicar movimiento a física solo si hay dirección de movimiento
             if (input.moveDirection.x !== 0 || input.moveDirection.y !== 0) {
-                const speed = input.isRunning ? 30 : 15;
+                const speed = input.isRunning ? ANIMATION_CONSTANTS.INPUT.RUN_SPEED : ANIMATION_CONSTANTS.INPUT.WALK_SPEED;
                 physics.acceleration.x = input.moveDirection.x * speed;
                 physics.acceleration.y = input.moveDirection.y * speed;
             }

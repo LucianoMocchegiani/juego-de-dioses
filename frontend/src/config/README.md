@@ -12,6 +12,10 @@ Este directorio contiene todos los archivos de configuración del juego, central
 - **`input-combinations-config.js`**: Define combinaciones de teclas para acciones de combate (ej: Ctrl+Click). (DEPRECATED: siendo reemplazado por `combat-actions-config.js`)
 - **`weapon-animations-config.js`**: Configuración específica de animaciones por tipo de arma.
 
+### Constantes del Sistema
+- **`ecs-constants.js`**: Constantes centralizadas para sistema ECS (nombres de componentes). Evita typos y facilita refactoring.
+- **`animation-constants.js`**: Constantes centralizadas para sistema de animaciones, física, input, combos y colisiones. Centraliza valores mágicos y strings para evitar errores de tipeo.
+
 ### Input
 - **`input-map-config.js`**: Mapeo de teclas físicas a acciones abstractas (ej: `moveForward` -> `KeyW`).
 

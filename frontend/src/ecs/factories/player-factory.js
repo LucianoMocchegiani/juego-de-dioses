@@ -9,6 +9,9 @@ import { GeometryRegistry } from '../../renderers/geometries/registry.js';
 import { getCharacter, createCharacter } from '../../api/endpoints/characters.js';
 import { loadModel3D } from '../../renderers/models/model-utils.js';
 import { listBones, mapBonesToBodyParts, hasSkeleton } from '../../renderers/models/bones-utils.js';
+import { ECS_CONSTANTS } from '../../config/ecs-constants.js';
+import { ANIMATION_CONSTANTS } from '../../config/animation-constants.js';
+import { COMBAT_CONSTANTS } from '../../config/combat-constants.js';
 
 /**
  * Construir mesh Three.js desde geometria_agrupacion
@@ -61,9 +64,9 @@ function buildMeshFromGeometry(geometria_agrupacion, cellSize) {
         
         // Crear material (temporal, puede mejorarse con estilos de BD)
         const material = new THREE.MeshStandardMaterial({
-            color: 0x8B4513, // Color temporal
-            metalness: 0.1,
-            roughness: 0.8
+            color: ANIMATION_CONSTANTS.DEFAULT_MESH.BODY.COLOR,
+            metalness: ANIMATION_CONSTANTS.DEFAULT_MESH.MATERIAL.METALNESS,
+            roughness: ANIMATION_CONSTANTS.DEFAULT_MESH.MATERIAL.ROUGHNESS
         });
         
         // Crear mesh
@@ -109,19 +112,36 @@ function createDefaultMesh(cellSize) {
     const group = new THREE.Group();
     
     // Cuerpo (cilindro)
-    const bodyGeometry = new THREE.CylinderGeometry(0.3, 0.3, 1.0, 8);
-    const bodyMaterial = new THREE.MeshStandardMaterial({ color: 0x8B4513 });
+    const bodyGeometry = new THREE.CylinderGeometry(
+        ANIMATION_CONSTANTS.DEFAULT_MESH.BODY.RADIUS,
+        ANIMATION_CONSTANTS.DEFAULT_MESH.BODY.RADIUS,
+        ANIMATION_CONSTANTS.DEFAULT_MESH.BODY.HEIGHT,
+        ANIMATION_CONSTANTS.DEFAULT_MESH.BODY.SEGMENTS
+    );
+    const bodyMaterial = new THREE.MeshStandardMaterial({
+        color: ANIMATION_CONSTANTS.DEFAULT_MESH.BODY.COLOR,
+        metalness: ANIMATION_CONSTANTS.DEFAULT_MESH.MATERIAL.METALNESS,
+        roughness: ANIMATION_CONSTANTS.DEFAULT_MESH.MATERIAL.ROUGHNESS
+    });
     const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
-    body.position.y = 0.5;
+    body.position.y = ANIMATION_CONSTANTS.DEFAULT_MESH.BODY.POSITION_Y;
     body.castShadow = true;
     body.receiveShadow = true;
     group.add(body);
     
     // Cabeza (esfera)
-    const headGeometry = new THREE.SphereGeometry(0.25, 8, 8);
-    const headMaterial = new THREE.MeshStandardMaterial({ color: 0xFFDBB3 });
+    const headGeometry = new THREE.SphereGeometry(
+        ANIMATION_CONSTANTS.DEFAULT_MESH.HEAD.RADIUS,
+        ANIMATION_CONSTANTS.DEFAULT_MESH.HEAD.SEGMENTS,
+        ANIMATION_CONSTANTS.DEFAULT_MESH.HEAD.SEGMENTS
+    );
+    const headMaterial = new THREE.MeshStandardMaterial({
+        color: ANIMATION_CONSTANTS.DEFAULT_MESH.HEAD.COLOR,
+        metalness: ANIMATION_CONSTANTS.DEFAULT_MESH.MATERIAL.METALNESS,
+        roughness: ANIMATION_CONSTANTS.DEFAULT_MESH.MATERIAL.ROUGHNESS
+    });
     const head = new THREE.Mesh(headGeometry, headMaterial);
-    head.position.y = 1.25;
+    head.position.y = ANIMATION_CONSTANTS.DEFAULT_MESH.HEAD.POSITION_Y;
     head.castShadow = true;
     head.receiveShadow = true;
     group.add(head);
@@ -150,10 +170,10 @@ export class PlayerFactory {
         const { 
             ecs, 
             scene, 
-            x = 80, 
-            y = 80, 
-            z = 1, 
-            cellSize = 0.25,
+            x = ANIMATION_CONSTANTS.DEFAULT_SPAWN.X, 
+            y = ANIMATION_CONSTANTS.DEFAULT_SPAWN.Y, 
+            z = ANIMATION_CONSTANTS.DEFAULT_SPAWN.Z, 
+            cellSize = ANIMATION_CONSTANTS.DEFAULT_SPAWN.CELL_SIZE,
             characterId = null,
             templateId = null,
             dimensionId = null
@@ -217,16 +237,20 @@ export class PlayerFactory {
         const finalZ = character?.posicion?.z ?? z;
         
         // Agregar componentes
-        ecs.addComponent(playerId, 'Position', new PositionComponent(finalX, finalY, finalZ));
+        ecs.addComponent(playerId, ECS_CONSTANTS.COMPONENT_NAMES.POSITION, new PositionComponent(finalX, finalY, finalZ));
         
-        ecs.addComponent(playerId, 'Physics', new PhysicsComponent({
-            velocity: { x: 0, y: 0, z: 0 },
-            mass: 70,
+        ecs.addComponent(playerId, ECS_CONSTANTS.COMPONENT_NAMES.PHYSICS, new PhysicsComponent({
+            velocity: {
+                x: ANIMATION_CONSTANTS.COLLISION.POSITION_CORRECTION.VELOCITY_RESET,
+                y: ANIMATION_CONSTANTS.COLLISION.POSITION_CORRECTION.VELOCITY_RESET,
+                z: ANIMATION_CONSTANTS.COLLISION.POSITION_CORRECTION.VELOCITY_RESET
+            },
+            mass: ANIMATION_CONSTANTS.PLAYER_PHYSICS.MASS,
             useGravity: true,
             isGrounded: false,
-            groundFriction: 0.8,
-            airFriction: 0.95,
-            maxVelocity: { x: 5, y: 10, z: 5 } // Velocidad máxima en celdas/segundo
+            groundFriction: ANIMATION_CONSTANTS.PLAYER_PHYSICS.GROUND_FRICTION,
+            airFriction: ANIMATION_CONSTANTS.PLAYER_PHYSICS.AIR_FRICTION,
+            maxVelocity: ANIMATION_CONSTANTS.PLAYER_PHYSICS.MAX_VELOCITY
         }));
         
         // IMPORTANTE: Crear RenderComponent y luego asignar el mesh
@@ -237,22 +261,22 @@ export class PlayerFactory {
             receiveShadow: true
         });
         renderComponent.setMesh(mesh); // Esto guardará la escala original del mesh
-        ecs.addComponent(playerId, 'Render', renderComponent);
+        ecs.addComponent(playerId, ECS_CONSTANTS.COMPONENT_NAMES.RENDER, renderComponent);
         
-        ecs.addComponent(playerId, 'Input', new InputComponent());
+        ecs.addComponent(playerId, ECS_CONSTANTS.COMPONENT_NAMES.INPUT, new InputComponent());
         
-        ecs.addComponent(playerId, 'Animation', new AnimationComponent({
-            currentState: 'idle',
-            animationSpeed: 1.0
+        ecs.addComponent(playerId, ECS_CONSTANTS.COMPONENT_NAMES.ANIMATION, new AnimationComponent({
+            currentState: ANIMATION_CONSTANTS.STATE_IDS.IDLE,
+            animationSpeed: ANIMATION_CONSTANTS.PLAYER_PHYSICS.ANIMATION_SPEED
         }));
         
         // Agregar componentes de combate
-        ecs.addComponent(playerId, 'Combo', new ComboComponent());
-        ecs.addComponent(playerId, 'Combat', new CombatComponent());
+        ecs.addComponent(playerId, ECS_CONSTANTS.COMPONENT_NAMES.COMBO, new ComboComponent());
+        ecs.addComponent(playerId, ECS_CONSTANTS.COMPONENT_NAMES.COMBAT, new CombatComponent());
         
         // Agregar arma por defecto (espada) para que las acciones de combate funcionen
-        ecs.addComponent(playerId, 'Weapon', new WeaponComponent({
-            weaponType: 'sword',
+        ecs.addComponent(playerId, ECS_CONSTANTS.COMPONENT_NAMES.WEAPON, new WeaponComponent({
+            weaponType: COMBAT_CONSTANTS.WEAPON_TYPES.SWORD,
             hasShield: false
         }));
         

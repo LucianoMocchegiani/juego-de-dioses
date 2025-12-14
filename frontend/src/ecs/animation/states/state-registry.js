@@ -3,6 +3,7 @@
  */
 import { AnimationState } from './animation-state.js';
 import { ConditionFactory } from '../conditions/condition-factory.js';
+import { ANIMATION_CONSTANTS } from '../../../config/animation-constants.js';
 
 export class StateRegistry {
     constructor(statesConfig) {
@@ -62,7 +63,7 @@ export class StateRegistry {
             // Para estados de combate, verificar que haya una acción activa
             // Esto previene reactivación cuando la animación está terminando
             // (previene loops infinitos en parry/dodge)
-            if (state.type === 'combat') {
+            if (state.type === ANIMATION_CONSTANTS.STATE_TYPES.COMBAT) {
                 const combat = context.combat;
                 // Si no hay activeAction, este estado de combate no puede activarse
                 // Esto es crítico para prevenir que estados como parry/dodge se reactiven
@@ -78,7 +79,7 @@ export class StateRegistry {
         }
         
         // Fallback: retornar estado idle si existe
-        return this.states.get('idle') || null;
+        return this.states.get(ANIMATION_CONSTANTS.STATE_IDS.IDLE) || null;
     }
 }
 

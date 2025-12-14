@@ -7,12 +7,18 @@
 import { System } from '../system.js';
 import { ComboManager } from '../animation/combos/combo-manager.js';
 import { COMBO_CHAINS } from '../../config/combo-config.js';
+import { ECS_CONSTANTS } from '../../config/ecs-constants.js';
+import { COMBAT_CONSTANTS } from '../../config/combat-constants.js';
+import { ANIMATION_CONSTANTS } from '../../config/animation-constants.js';
 
 export class ComboSystem extends System {
     constructor(inputManager) {
         super();
         this.inputManager = inputManager;
-        this.requiredComponents = ['Input', 'Combo'];
+        this.requiredComponents = [
+            ECS_CONSTANTS.COMPONENT_NAMES.INPUT,
+            ECS_CONSTANTS.COMPONENT_NAMES.COMBO
+        ];
         this.priority = 1.5; // Después de InputSystem (0) y PhysicsSystem (1), antes de AnimationStateSystem (2)
 
         /**
@@ -45,15 +51,15 @@ export class ComboSystem extends System {
         const currentTime = performance.now();
 
         for (const entityId of entities) {
-            const input = this.ecs.getComponent(entityId, 'Input');
-            const combo = this.ecs.getComponent(entityId, 'Combo');
+            const input = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.INPUT);
+            const combo = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.COMBO);
 
             if (!input || !combo) continue;
 
             // Obtener tipo de arma (si existe el componente Weapon)
             let weaponType = null;
-            if (this.ecs.hasComponent(entityId, 'Weapon')) {
-                const weapon = this.ecs.getComponent(entityId, 'Weapon');
+            if (this.ecs.hasComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.WEAPON)) {
+                const weapon = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.WEAPON);
                 weaponType = weapon ? weapon.weaponType : null;
             }
 
@@ -65,13 +71,13 @@ export class ComboSystem extends System {
             let inputType = null;
 
             if (input.wantsToHeavyAttack) {
-                inputType = 'heavyAttack';
+                inputType = COMBAT_CONSTANTS.ACTION_IDS.HEAVY_ATTACK;
             } else if (input.wantsToChargedAttack) {
-                inputType = 'chargedAttack';
+                inputType = COMBAT_CONSTANTS.ACTION_IDS.CHARGED_ATTACK;
             } else if (input.wantsToSpecialAttack) {
-                inputType = 'specialAttack';
+                inputType = COMBAT_CONSTANTS.ACTION_IDS.SPECIAL_ATTACK;
             } else if (input.wantsToAttack) {
-                inputType = 'attack';
+                inputType = COMBAT_CONSTANTS.ACTION_IDS.ATTACK;
             }
 
             // Procesar input en el ComboManager solo si hay un input nuevo
@@ -97,7 +103,7 @@ export class ComboSystem extends System {
 
                 if (comboConfig && combo.comboStep < comboConfig.steps.length) {
                     const currentStep = comboConfig.steps[combo.comboStep];
-                    if (currentStep && timeSinceLastInput > currentStep.timing * 1.5) {
+                    if (currentStep && timeSinceLastInput > currentStep.timing * ANIMATION_CONSTANTS.COMBO.TIMING_MULTIPLIER) {
                         // Combo expirado (timing window excedido), resetear
                         combo.reset();
                         comboManager.resetCombo();
