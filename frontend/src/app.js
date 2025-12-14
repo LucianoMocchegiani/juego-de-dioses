@@ -20,6 +20,13 @@ import { PlayerFactory } from './ecs/factories/player-factory.js';
 import { InputManager } from './systems/input-manager.js';
 import { CollisionDetector } from './systems/collision-detector.js';
 import { CameraController } from './systems/camera-controller.js';
+import { debugLogger } from './debug/logger.js';
+import { ECSInspector } from './debug/inspector.js';
+import { DebugMetrics } from './debug/metrics.js';
+import { stateValidator } from './debug/validator.js';
+import { debugEvents } from './debug/events.js';
+import { DebugPanel } from './debug/ui/debug-panel.js';
+import { DebugInterface } from './debug/ui/debug-interface.js';
 
 /**
  * @typedef {import('./types.js').Particle} Particle
@@ -105,8 +112,70 @@ export class App {
         // Para calcular deltaTime en animate
         this.lastTime = null;
         
+        // Inicializar herramientas de debugging (solo en desarrollo)
+        this.initDebugTools();
+        
         // Suscribirse a cambios de estado
         this.setupStateListeners();
+    }
+    
+    /**
+     * Inicializar herramientas de debugging
+     */
+    initDebugTools() {
+        // Detectar modo desarrollo: localhost o NODE_ENV === 'development'
+        const isDevelopment = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) ||
+                              (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development');
+        
+        if (isDevelopment) {
+            // Logger (ya es singleton, solo habilitar)
+            debugLogger.setEnabled(true);
+            
+            // Inspector
+            this.inspector = new ECSInspector(this.ecs);
+            this.inspector.setEnabled(true);
+            
+            // Métricas
+            this.debugMetrics = new DebugMetrics(this.ecs);
+            this.debugMetrics.setEnabled(true);
+            this.ecs.setDebugMetrics(this.debugMetrics);
+            
+            // Validador (ya es singleton, solo habilitar)
+            stateValidator.setEnabled(true);
+            
+            // Eventos (ya es singleton, solo habilitar)
+            debugEvents.setEnabled(true);
+            
+            // Panel de debugging (opcional)
+            this.debugPanel = new DebugPanel(this, this.ecs);
+            this.debugPanel.setTools(this.inspector, this.debugMetrics);
+            
+            // Interfaz GUI de debugging (F4)
+            this.debugInterface = new DebugInterface(this, this.ecs);
+            
+            // Exponer herramientas globalmente para consola del navegador
+            if (typeof window !== 'undefined') {
+                window.debugTools = {
+                    logger: debugLogger,
+                    inspector: this.inspector,
+                    metrics: this.debugMetrics,
+                    validator: stateValidator,
+                    events: debugEvents,
+                    panel: this.debugPanel,
+                    interface: this.debugInterface
+                };
+                
+                // Log de confirmación
+                console.log('[DebugTools] Herramientas de debugging inicializadas. Usa window.debugTools para acceder.');
+                console.log('[DebugTools] Interface disponible:', this.debugInterface ? 'Sí' : 'No');
+                console.log('[DebugTools] Interface enabled:', this.debugInterface?.enabled);
+            }
+        } else {
+            // Log si no está en desarrollo
+            if (typeof window !== 'undefined' && window.console) {
+                console.log('[DebugTools] Modo desarrollo no detectado. Debugging deshabilitado.');
+            }
+        }
     }
     
     /**

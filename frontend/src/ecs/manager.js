@@ -220,17 +220,42 @@ export class ECSManager {
     }
     
     /**
+     * Establecer métricas de debugging
+     * @param {DebugMetrics} debugMetrics - Instancia de DebugMetrics
+     */
+    setDebugMetrics(debugMetrics) {
+        this.debugMetrics = debugMetrics;
+    }
+    
+    /**
      * Actualizar todos los sistemas registrados
      * @param {number} deltaTime - Tiempo transcurrido desde el último frame (en segundos)
      */
     update(deltaTime) {
+        // Iniciar medición de frame
+        if (this.debugMetrics) {
+            this.debugMetrics.startFrame();
+        }
+        
         // Ordenar sistemas por prioridad (menor número = mayor prioridad)
         const sortedSystems = [...this.systems].sort((a, b) => a.priority - b.priority);
         
         for (const system of sortedSystems) {
             if (system.enabled) {
-                system.update(deltaTime);
+                if (this.debugMetrics) {
+                    const entityCount = system.getEntities().size;
+                    this.debugMetrics.startSystem(system.constructor.name);
+                    system.update(deltaTime);
+                    this.debugMetrics.endSystem(system.constructor.name, entityCount);
+                } else {
+                    system.update(deltaTime);
+                }
             }
+        }
+        
+        // Finalizar medición de frame
+        if (this.debugMetrics) {
+            this.debugMetrics.endFrame();
         }
     }
     
@@ -250,6 +275,22 @@ export class ECSManager {
             systems: this.systems.length,
             queries: this.queryCache.size
         };
+    }
+    
+    /**
+     * Obtener tipos de componentes disponibles
+     * @returns {Array<string>} Array de tipos de componentes
+     */
+    getComponentTypes() {
+        return Array.from(this.components.keys());
+    }
+    
+    /**
+     * Obtener sistemas registrados
+     * @returns {Array<System>} Array de sistemas
+     */
+    getSystems() {
+        return [...this.systems];
     }
 }
 
