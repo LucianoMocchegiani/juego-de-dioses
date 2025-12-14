@@ -7,11 +7,19 @@
 import { System } from '../system.js';
 import { ANIMATION_STATES } from '../../config/animation-config.js';
 import { StateRegistry } from '../animation/states/state-registry.js';
+import { ECS_CONSTANTS } from '../../config/ecs-constants.js';
+import { ANIMATION_CONSTANTS } from '../../config/animation-constants.js';
 
 export class AnimationStateSystem extends System {
     constructor() {
         super();
-        this.requiredComponents = ['Animation', 'Input', 'Physics', 'Combo', 'Combat'];
+        this.requiredComponents = [
+            ECS_CONSTANTS.COMPONENT_NAMES.ANIMATION,
+            ECS_CONSTANTS.COMPONENT_NAMES.INPUT,
+            ECS_CONSTANTS.COMPONENT_NAMES.PHYSICS,
+            ECS_CONSTANTS.COMPONENT_NAMES.COMBO,
+            ECS_CONSTANTS.COMPONENT_NAMES.COMBAT
+        ];
         this.priority = 2;
 
         // Crear registry de estados
@@ -31,11 +39,11 @@ export class AnimationStateSystem extends System {
         const entities = this.getEntities();
 
         for (const entityId of entities) {
-            const animation = this.ecs.getComponent(entityId, 'Animation');
-            const input = this.ecs.getComponent(entityId, 'Input');
-            const physics = this.ecs.getComponent(entityId, 'Physics');
-            const combo = this.ecs.getComponent(entityId, 'Combo');
-            const combat = this.ecs.getComponent(entityId, 'Combat');
+            const animation = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.ANIMATION);
+            const input = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.INPUT);
+            const physics = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.PHYSICS);
+            const combo = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.COMBO);
+            const combat = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.COMBAT);
 
             if (!animation || !input || !physics || !combo || !combat) continue;
 
@@ -54,7 +62,7 @@ export class AnimationStateSystem extends System {
                 // Para estados de combate, solo activar si hay una acción activa
                 // NO usar combatAnimation como condición porque puede tener valor residual
                 // activeAction es la única fuente de verdad para saber si hay acción en progreso
-                if (activeState.type === 'combat') {
+                if (activeState.type === ANIMATION_CONSTANTS.STATE_TYPES.COMBAT) {
                     if (combat && combat.activeAction) {
                         animation.currentState = activeState.id;
                     }

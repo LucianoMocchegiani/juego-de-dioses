@@ -303,7 +303,7 @@ Mapea tipos de armas a animaciones específicas:
 ```javascript
 {
     sword: {
-        lightAttack: 'sword_slash',
+        attack: 'sword_slash',
         heavyAttack: 'sword_heavy_slash',
         // ...
     }

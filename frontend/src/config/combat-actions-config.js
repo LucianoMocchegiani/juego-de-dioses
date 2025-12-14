@@ -98,8 +98,8 @@ export const COMBAT_ACTIONS = {
         hasIFrames: false,
     },
     
-    lightAttack: {
-        id: 'lightAttack',
+    attack: {
+        id: 'attack',
         inputAction: 'attack',
         animationStateId: 'attack',  // Referencia a ANIMATION_STATES[id='attack']
         attackType: 'light',

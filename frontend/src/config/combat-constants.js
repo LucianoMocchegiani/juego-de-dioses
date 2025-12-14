@@ -10,13 +10,14 @@ export const COMBAT_CONSTANTS = {
     EARLY_CLEANUP_THRESHOLD: 0.95,
     
     // IDs de acciones de combate (para evitar strings hardcodeados)
+    // Estos son los IDs en COMBAT_ACTIONS (ej: 'attack', 'dodge')
     ACTION_IDS: {
+        ATTACK: 'attack',
         PARRY: 'parry',
         DODGE: 'dodge',
         SPECIAL_ATTACK: 'specialAttack',
         HEAVY_ATTACK: 'heavyAttack',
         CHARGED_ATTACK: 'chargedAttack',
-        LIGHT_ATTACK: 'lightAttack',
     },
     
     // Tipos de armas (para validaciones)

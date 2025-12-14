@@ -6,24 +6,29 @@
  */
 import { System } from '../system.js';
 import { COMBAT_ACTIONS } from '../../config/combat-actions-config.js';
+import { ECS_CONSTANTS } from '../../config/ecs-constants.js';
+import { ANIMATION_CONSTANTS } from '../../config/animation-constants.js';
 
 export class PhysicsSystem extends System {
     constructor(options = {}) {
         super();
-        this.requiredComponents = ['Physics', 'Position'];
+        this.requiredComponents = [
+            ECS_CONSTANTS.COMPONENT_NAMES.PHYSICS,
+            ECS_CONSTANTS.COMPONENT_NAMES.POSITION
+        ];
         this.priority = 1; // Ejecutar después de InputSystem (priority 0)
         
         /**
          * Gravedad (en celdas por segundo²)
          * @type {number}
          */
-        this.gravity = options.gravity !== undefined ? options.gravity : -9.8;
+        this.gravity = options.gravity !== undefined ? options.gravity : ANIMATION_CONSTANTS.PHYSICS.GRAVITY;
         
         /**
          * Timestep fijo para física (en segundos)
          * @type {number}
          */
-        this.fixedTimestep = options.fixedTimestep !== undefined ? options.fixedTimestep : 1/60;
+        this.fixedTimestep = options.fixedTimestep !== undefined ? options.fixedTimestep : ANIMATION_CONSTANTS.PHYSICS.FIXED_TIMESTEP;
         
         /**
          * Acumulador para timestep fijo
@@ -54,23 +59,23 @@ export class PhysicsSystem extends System {
         const entities = this.getEntities();
         
         for (const entityId of entities) {
-            const physics = this.ecs.getComponent(entityId, 'Physics');
-            const position = this.ecs.getComponent(entityId, 'Position');
-            const input = this.ecs.getComponent(entityId, 'Input');
+            const physics = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.PHYSICS);
+            const position = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.POSITION);
+            const input = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.INPUT);
             
             if (!physics || !position) continue;
             
             // Aplicar salto (si tiene componente Input)
             // Z es altura, Y es adelante/atrás, X es izquierda/derecha
             if (input && input.wantsToJump && physics.isGrounded) {
-                physics.velocity.z = 5; // Velocidad de salto en celdas/segundo (Z es altura)
+                physics.velocity.z = ANIMATION_CONSTANTS.PLAYER_PHYSICS.JUMP_VELOCITY; // Velocidad de salto en celdas/segundo (Z es altura)
                 physics.isGrounded = false;
                 input.wantsToJump = false; // Resetear
             }
             
             // Aplicar movimiento de acciones de combate
-            const combat = this.ecs.getComponent(entityId, 'Combat');
-            const render = this.ecs.getComponent(entityId, 'Render');
+            const combat = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.COMBAT);
+            const render = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.RENDER);
             
             if (input && combat && combat.activeAction) {
                 const actionConfig = COMBAT_ACTIONS[combat.activeAction];
