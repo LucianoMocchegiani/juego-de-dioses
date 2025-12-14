@@ -9,6 +9,9 @@ import { COMBAT_ACTIONS } from '../../config/combat-actions-config.js';
 import { ANIMATION_STATES } from '../../config/animation-config.js';
 import { COMBAT_CONSTANTS } from '../../config/combat-constants.js';
 import { ECS_CONSTANTS } from '../../config/ecs-constants.js';
+import { debugLogger } from '../../debug/logger.js';
+import { stateValidator } from '../../debug/validator.js';
+import { debugEvents } from '../../debug/events.js';
 
 export class CombatSystem extends System {
     constructor(inputManager) {
@@ -84,6 +87,22 @@ export class CombatSystem extends System {
                     // Aplicar cooldown
                     combat.actionCooldowns.set(actionId, actionConfig.cooldown);
                     
+                    debugLogger.info('CombatSystem', 'Action started', {
+                        entityId,
+                        actionId,
+                        cooldown: actionConfig.cooldown
+                    });
+                    
+                    // Emitir evento
+                    debugEvents.emit('combat:action:started', {
+                        entityId,
+                        actionId,
+                        actionConfig: {
+                            id: actionConfig.id,
+                            animationStateId: actionConfig.animationStateId
+                        }
+                    });
+                    
                     // IMPORTANTE: Resetear wantsToDodge después de procesarlo para evitar reactivación
                     // Dodge solo se activa una vez por press
                     if (actionId === COMBAT_CONSTANTS.ACTION_IDS.DODGE) {
@@ -152,10 +171,23 @@ export class CombatSystem extends System {
      * @param {Object} actionConfig - Configuración de la acción desde COMBAT_ACTIONS
      */
     applyActionConfig(combat, actionConfig) {
+        // Validar que la acción existe
+        if (!stateValidator.validateCombatAction(
+            actionConfig.id,
+            COMBAT_ACTIONS,
+            `CombatSystem.applyActionConfig(${actionConfig.id})`
+        )) {
+            return;
+        }
+        
         // Buscar estado de animación correspondiente (O(1) lookup usando cache)
         const animationState = this.animationStateCache.get(actionConfig.animationStateId);
         if (!animationState) {
-            console.warn(`Animation state '${actionConfig.animationStateId}' no encontrado para acción: ${actionConfig.id}`);
+            debugLogger.warn('CombatSystem', 'Animation state not found for action', {
+                actionId: actionConfig.id,
+                animationStateId: actionConfig.animationStateId,
+                availableStates: Array.from(this.animationStateCache.keys())
+            });
             return;
         }
         
@@ -173,6 +205,13 @@ export class CombatSystem extends System {
         // Setear flags de protección desde animation state
         // (preventInterruption ya está en animation state, se maneja automáticamente)
         combat.isAttacking = actionConfig.attackType !== null;
+        
+        debugLogger.info('CombatSystem', 'Action config applied', {
+            actionId: actionConfig.id,
+            animationStateId: actionConfig.animationStateId,
+            attackType: actionConfig.attackType,
+            defenseType: actionConfig.defenseType
+        });
     }
 }
 

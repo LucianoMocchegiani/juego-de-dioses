@@ -10,8 +10,6 @@
  * 
  */
 
-import { ANIMATION_STATES } from './animation-config.js';
-
 export const COMBAT_ACTIONS = {
     dodge: {
         id: 'dodge',

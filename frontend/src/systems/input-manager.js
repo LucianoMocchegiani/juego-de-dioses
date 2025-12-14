@@ -4,8 +4,16 @@
  * Gestor centralizado de input (teclado y mouse).
  * Proporciona una interfaz única para capturar eventos de input.
  */
+import { debugLogger } from '../debug/logger.js';
+
 export class InputManager {
     constructor() {
+        /**
+         * Si el InputManager está habilitado
+         * @type {boolean}
+         */
+        this.enabled = true;
+        
         /**
          * Teclas actualmente presionadas
          * @type {Set<string>}
@@ -119,7 +127,16 @@ export class InputManager {
      * @param {KeyboardEvent} event - Evento de teclado
      */
     handleKeyDown(event) {
-        console.log('Tecla presionada:', event.code);
+        // Si está deshabilitado, no procesar
+        if (!this.enabled) {
+            return;
+        }
+        
+        debugLogger.debug('InputManager', 'Key pressed', {
+            keyCode: event.code,
+            key: event.key,
+            repeat: event.repeat
+        });
         
         // Prevenir comportamiento por defecto para teclas de juego
         const gameKeys = ['KeyW', 'KeyA', 'KeyS', 'KeyD', 'Space', 'ShiftLeft', 'ShiftRight', 
@@ -141,6 +158,10 @@ export class InputManager {
      * @param {KeyboardEvent} event - Evento de teclado
      */
     handleKeyUp(event) {
+        if (!this.enabled) {
+            return;
+        }
+        
         if (this.keysPressed.has(event.code)) {
             this.keysUp.add(event.code);
         }
@@ -152,6 +173,10 @@ export class InputManager {
      * @param {MouseEvent} event - Evento de mouse
      */
     handleMouseDown(event) {
+        if (!this.enabled) {
+            return;
+        }
+        
         if (!this.mouseButtonsPressed.has(event.button)) {
             this.mouseButtonsDown.add(event.button);
         }
@@ -163,6 +188,10 @@ export class InputManager {
      * @param {MouseEvent} event - Evento de mouse
      */
     handleMouseUp(event) {
+        if (!this.enabled) {
+            return;
+        }
+        
         if (this.mouseButtonsPressed.has(event.button)) {
             this.mouseButtonsUp.add(event.button);
         }
@@ -174,6 +203,10 @@ export class InputManager {
      * @param {MouseEvent} event - Evento de mouse
      */
     handleMouseMove(event) {
+        if (!this.enabled) {
+            return;
+        }
+        
         const newX = event.clientX;
         const newY = event.clientY;
 
@@ -198,6 +231,10 @@ export class InputManager {
      * @param {WheelEvent} event - Evento de rueda
      */
     handleWheel(event) {
+        if (!this.enabled) {
+            return;
+        }
+        
         // Prevenir scroll de página
         event.preventDefault();
 
@@ -233,7 +270,7 @@ export class InputManager {
         this.mouseButtonsPressed.clear();
         this.mouseButtonsDown.clear();
         this.mouseButtonsUp.clear();
-        console.log('Window lost focus - Input state cleared');
+        debugLogger.info('InputManager', 'Window lost focus - Input state cleared');
     }
 
     /**
