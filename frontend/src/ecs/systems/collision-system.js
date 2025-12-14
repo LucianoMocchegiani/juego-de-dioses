@@ -5,6 +5,8 @@
  * Verifica colisiones laterales y suelo para entidades con componentes Position y Physics.
  */
 import { System } from '../system.js';
+import { ECS_CONSTANTS } from '../../config/ecs-constants.js';
+import { ANIMATION_CONSTANTS } from '../../config/animation-constants.js';
 
 export class CollisionSystem extends System {
     /**
@@ -15,7 +17,10 @@ export class CollisionSystem extends System {
      */
     constructor(collisionDetector, dimensionId, dimension = null, particles = null) {
         super();
-        this.requiredComponents = ['Position', 'Physics'];
+        this.requiredComponents = [
+            ECS_CONSTANTS.COMPONENT_NAMES.POSITION,
+            ECS_CONSTANTS.COMPONENT_NAMES.PHYSICS
+        ];
         this.collisionDetector = collisionDetector;
         this.dimensionId = dimensionId;
         this.dimension = dimension;
@@ -38,7 +43,7 @@ export class CollisionSystem extends System {
          * Umbral de movimiento para invalidar cache (en celdas)
          * @type {number}
          */
-        this.cacheInvalidationThreshold = 2;
+        this.cacheInvalidationThreshold = ANIMATION_CONSTANTS.COLLISION.CACHE_INVALIDATION_THRESHOLD;
         
         /**
          * Mapa de celdas ocupadas basado en partículas cargadas
@@ -60,7 +65,7 @@ export class CollisionSystem extends System {
         
         this.loadedOccupiedCells = new Set();
         for (const particle of this.particles) {
-            if (particle.estado_nombre === 'solido') {
+            if (particle.estado_nombre === ANIMATION_CONSTANTS.COLLISION.PARTICLE_STATE_SOLID) {
                 const key = `${particle.celda_x},${particle.celda_y},${particle.celda_z}`;
                 this.loadedOccupiedCells.add(key);
             }
@@ -86,8 +91,8 @@ export class CollisionSystem extends System {
         const entities = this.getEntities();
         
         for (const entityId of entities) {
-            const position = this.ecs.getComponent(entityId, 'Position');
-            const physics = this.ecs.getComponent(entityId, 'Physics');
+            const position = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.POSITION);
+            const physics = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.PHYSICS);
             
             if (!position || !physics) continue;
             
@@ -121,12 +126,12 @@ export class CollisionSystem extends System {
             
             // Verificar colisión lateral X (izquierda/derecha)
             if (occupiedCells && this.collisionDetector.isCellOccupied(occupiedCells, nextX, position.y, position.z)) {
-                physics.velocity.x = 0;
+                physics.velocity.x = ANIMATION_CONSTANTS.COLLISION.POSITION_CORRECTION.VELOCITY_RESET;
             }
             
             // Verificar colisión lateral Y (adelante/atrás)
             if (occupiedCells && this.collisionDetector.isCellOccupied(occupiedCells, position.x, nextY, position.z)) {
-                physics.velocity.y = 0;
+                physics.velocity.y = ANIMATION_CONSTANTS.COLLISION.POSITION_CORRECTION.VELOCITY_RESET;
             }
             
             // Verificar suelo (debajo en Z)
@@ -145,26 +150,26 @@ export class CollisionSystem extends System {
                 // Si no hay suelo debajo, verificar si estamos dentro de una partícula sólida (ajustar hacia arriba)
                 if (!hasGround && this.collisionDetector.isCellOccupied(occupiedCells, currentX, currentY, currentZ)) {
                     // Estamos dentro de una partícula sólida, mover hacia arriba
-                    position.z = currentZ + 1;
+                    position.z = currentZ + ANIMATION_CONSTANTS.COLLISION.POSITION_CORRECTION.MIN_Z;
                     hasGround = false; // Aún no estamos en el suelo
                 }
             } else {
                 // Si no hay partículas cargadas, verificar límites del terreno
                 // Si estamos muy abajo (z <= 1), asumir que hay suelo para prevenir caída infinita
-                if (this.dimension && position.z <= 1) {
+                if (this.dimension && position.z <= ANIMATION_CONSTANTS.COLLISION.POSITION_CORRECTION.MIN_Z) {
                     hasGround = true;
-                    position.z = 1;
-                    physics.velocity.z = 0;
+                    position.z = ANIMATION_CONSTANTS.COLLISION.POSITION_CORRECTION.MIN_Z;
+                    physics.velocity.z = ANIMATION_CONSTANTS.COLLISION.POSITION_CORRECTION.VELOCITY_RESET;
                 }
             }
             
             if (hasGround) {
                 physics.isGrounded = true;
-                if (physics.velocity.z < 0) { // Z es altura, negativo es hacia abajo
-                    physics.velocity.z = 0;
+                if (physics.velocity.z < ANIMATION_CONSTANTS.COLLISION.POSITION_CORRECTION.VELOCITY_RESET) { // Z es altura, negativo es hacia abajo
+                    physics.velocity.z = ANIMATION_CONSTANTS.COLLISION.POSITION_CORRECTION.VELOCITY_RESET;
                     // Ajustar posición a superficie (arriba del suelo)
                     // Asegurar que esté exactamente arriba del suelo
-                    position.z = groundZ + 1;
+                    position.z = groundZ + ANIMATION_CONSTANTS.COLLISION.POSITION_CORRECTION.MIN_Z;
                 }
             } else {
                 physics.isGrounded = false;
@@ -174,8 +179,8 @@ export class CollisionSystem extends System {
             if (this.dimension) {
                 const maxX = this.dimension.ancho_metros / this.dimension.tamano_celda;
                 const maxY = this.dimension.alto_metros / this.dimension.tamano_celda;
-                const minZ = this.dimension.profundidad_maxima || -10;
-                const maxZ = this.dimension.altura_maxima || 40;
+                const minZ = this.dimension.profundidad_maxima || ANIMATION_CONSTANTS.COLLISION.DEFAULT_DIMENSION.MIN_Z;
+                const maxZ = this.dimension.altura_maxima || ANIMATION_CONSTANTS.COLLISION.DEFAULT_DIMENSION.MAX_Z;
                 
                 // Limitar posición
                 position.x = Math.max(0, Math.min(maxX - 1, position.x));
@@ -184,10 +189,14 @@ export class CollisionSystem extends System {
                 
                 // Si cae fuera del terreno, teleportar a superficie
                 if (position.z < minZ) {
-                    position.z = 1;
-                    position.x = 80;
-                    position.y = 80;
-                    physics.velocity = { x: 0, y: 0, z: 0 };
+                    position.z = ANIMATION_CONSTANTS.COLLISION.DEFAULT_RESPAWN.Z;
+                    position.x = ANIMATION_CONSTANTS.COLLISION.DEFAULT_RESPAWN.X;
+                    position.y = ANIMATION_CONSTANTS.COLLISION.DEFAULT_RESPAWN.Y;
+                    physics.velocity = {
+                        x: ANIMATION_CONSTANTS.COLLISION.POSITION_CORRECTION.VELOCITY_RESET,
+                        y: ANIMATION_CONSTANTS.COLLISION.POSITION_CORRECTION.VELOCITY_RESET,
+                        z: ANIMATION_CONSTANTS.COLLISION.POSITION_CORRECTION.VELOCITY_RESET
+                    };
                 }
             }
             

@@ -3,6 +3,8 @@
  * 
  * Almacena el estado de animación de una entidad.
  */
+import { ANIMATION_CONSTANTS } from '../../config/animation-constants.js';
+
 export class AnimationComponent {
     /**
      * Crear componente de animación
@@ -14,7 +16,7 @@ export class AnimationComponent {
          * @type {string}
          * @values 'idle', 'walk', 'run', 'jump', 'crouch', 'combo_attack'
          */
-        this.currentState = options.currentState || 'idle';
+        this.currentState = options.currentState || ANIMATION_CONSTANTS.STATE_IDS.IDLE;
         
         /**
          * Velocidad de animación (multiplicador)

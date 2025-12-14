@@ -6,21 +6,22 @@ import { PhysicsCondition } from './physics-condition.js';
 import { MovementCondition } from './movement-condition.js';
 import { ComboCondition } from './combo-condition.js';
 import { CombatCondition } from './combat-condition.js';
+import { ANIMATION_CONSTANTS } from '../../../config/animation-constants.js';
 
 export class ConditionFactory {
     static create(conditionConfig) {
         const { type } = conditionConfig;
         
         switch (type) {
-            case 'input':
+            case ANIMATION_CONSTANTS.CONDITION_TYPES.INPUT:
                 return new InputCondition(conditionConfig);
-            case 'physics':
+            case ANIMATION_CONSTANTS.CONDITION_TYPES.PHYSICS:
                 return new PhysicsCondition(conditionConfig);
-            case 'movement':
+            case ANIMATION_CONSTANTS.CONDITION_TYPES.MOVEMENT:
                 return new MovementCondition(conditionConfig);
-            case 'combo':
+            case ANIMATION_CONSTANTS.CONDITION_TYPES.COMBO:
                 return new ComboCondition(conditionConfig);
-            case 'combat':
+            case ANIMATION_CONSTANTS.CONDITION_TYPES.COMBAT:
                 return new CombatCondition(conditionConfig);
             default:
                 console.warn(`Tipo de condición desconocido: ${type}`);
