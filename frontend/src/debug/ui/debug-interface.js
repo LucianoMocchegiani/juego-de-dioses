@@ -209,7 +209,14 @@ export class DebugInterface {
             font-family: 'Courier New', monospace;
             font-size: 11px;
             line-height: 1.4;
+            display: flex;
+            align-items: center;
+            gap: 10px;
         `;
+        
+        // Contenedor para el contenido del log
+        const logContent = document.createElement('div');
+        logContent.style.cssText = 'flex: 1;';
         
         // Color según nivel
         const levelColors = {
@@ -228,7 +235,7 @@ export class DebugInterface {
             `<span style="color: #9C27B0; font-weight: bold;">[Entity:${entityId}]</span>` : 
             '';
         
-        logElement.innerHTML = `
+        logContent.innerHTML = `
             <span style="color: #666;">[${time}]</span>
             <span style="color: #888;">[${logEntry.system}]</span>
             ${entityIdDisplay}
@@ -239,6 +246,26 @@ export class DebugInterface {
                 ''}
         `;
         
+        // Botón para copiar este log
+        const copyBtn = document.createElement('button');
+        copyBtn.textContent = 'Copiar';
+        copyBtn.style.cssText = `
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 4px 8px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 10px;
+            white-space: nowrap;
+        `;
+        copyBtn.onclick = () => {
+            this.copyLogToClipboard(logEntry);
+        };
+        
+        logElement.appendChild(logContent);
+        logElement.appendChild(copyBtn);
+        
         this.logContainer.appendChild(logElement);
         
         // Auto-scroll al final si está cerca del final
@@ -246,6 +273,69 @@ export class DebugInterface {
         if (isNearBottom) {
             this.logContainer.scrollTop = this.logContainer.scrollHeight;
         }
+    }
+    
+    /**
+     * Copiar un log individual al portapapeles
+     * @param {Object} logEntry - Entrada de log
+     */
+    copyLogToClipboard(logEntry) {
+        const time = new Date(logEntry.timestampISO).toLocaleTimeString();
+        const entityId = logEntry.data?.entityId;
+        const entityIdText = entityId !== undefined ? `[Entity:${entityId}] ` : '';
+        const dataText = logEntry.data && Object.keys(logEntry.data).length > 0 ? 
+            ` ${JSON.stringify(logEntry.data)}` : '';
+        
+        const logText = `[${time}] [${logEntry.system}] ${entityIdText}[${logEntry.level.toUpperCase()}] ${logEntry.message}${dataText}`;
+        
+        navigator.clipboard.writeText(logText).then(() => {
+            this.showInfo(this.logContainer.parentElement, 'Log copiado al portapapeles');
+        }).catch(err => {
+            console.error('Error al copiar log:', err);
+            this.showError(this.logContainer.parentElement, 'Error al copiar log');
+        });
+    }
+    
+    /**
+     * Copiar todos los logs al portapapeles
+     */
+    copyAllLogsToClipboard() {
+        if (!this.logHistory || this.logHistory.length === 0) {
+            this.showInfo(this.logContainer.parentElement, 'No hay logs para copiar');
+            return;
+        }
+        
+        // Filtrar logs si hay filtro de entidad activo
+        let logsToCopy = this.logHistory;
+        if (this.entityFilterId !== null) {
+            logsToCopy = this.logHistory.filter(logEntry => {
+                const logEntityId = logEntry.data?.entityId;
+                return logEntityId !== undefined && logEntityId === this.entityFilterId;
+            });
+        }
+        
+        if (logsToCopy.length === 0) {
+            this.showInfo(this.logContainer.parentElement, 'No hay logs para copiar con el filtro actual');
+            return;
+        }
+        
+        // Formatear todos los logs
+        const logsText = logsToCopy.map(logEntry => {
+            const time = new Date(logEntry.timestampISO).toLocaleTimeString();
+            const entityId = logEntry.data?.entityId;
+            const entityIdText = entityId !== undefined ? `[Entity:${entityId}] ` : '';
+            const dataText = logEntry.data && Object.keys(logEntry.data).length > 0 ? 
+                ` ${JSON.stringify(logEntry.data)}` : '';
+            
+            return `[${time}] [${logEntry.system}] ${entityIdText}[${logEntry.level.toUpperCase()}] ${logEntry.message}${dataText}`;
+        }).join('\n');
+        
+        navigator.clipboard.writeText(logsText).then(() => {
+            this.showInfo(this.logContainer.parentElement, `${logsToCopy.length} logs copiados al portapapeles`);
+        }).catch(err => {
+            console.error('Error al copiar logs:', err);
+            this.showError(this.logContainer.parentElement, 'Error al copiar logs');
+        });
     }
     
     /**
@@ -879,6 +969,26 @@ export class DebugInterface {
         logsTitle.style.cssText = 'margin: 0; color: #4CAF50; font-size: 14px;';
         logsHeader.appendChild(logsTitle);
         
+        // Contenedor para botones
+        const buttonsContainer = document.createElement('div');
+        buttonsContainer.style.cssText = 'display: flex; gap: 10px;';
+        
+        const copyAllBtn = document.createElement('button');
+        copyAllBtn.textContent = 'Copiar todos';
+        copyAllBtn.style.cssText = `
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 5px 15px;
+            cursor: pointer;
+            border-radius: 3px;
+            font-size: 12px;
+        `;
+        copyAllBtn.onclick = () => {
+            this.copyAllLogsToClipboard();
+        };
+        buttonsContainer.appendChild(copyAllBtn);
+        
         const clearLogsBtn = document.createElement('button');
         clearLogsBtn.textContent = 'Limpiar';
         clearLogsBtn.style.cssText = `
@@ -896,7 +1006,9 @@ export class DebugInterface {
                 this.logContainer.innerHTML = '';
             }
         };
-        logsHeader.appendChild(clearLogsBtn);
+        buttonsContainer.appendChild(clearLogsBtn);
+        
+        logsHeader.appendChild(buttonsContainer);
         logsSection.appendChild(logsHeader);
         
         // Contenedor de logs

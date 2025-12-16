@@ -3,7 +3,7 @@
  */
 import { AnimationState } from './animation-state.js';
 import { ConditionFactory } from '../conditions/condition-factory.js';
-import { ANIMATION_CONSTANTS } from '../../../config/animation-constants.js';
+import { ANIMATION_CONSTANTS } from '../../config/animation-constants.js';
 
 export class StateRegistry {
     constructor(statesConfig) {
