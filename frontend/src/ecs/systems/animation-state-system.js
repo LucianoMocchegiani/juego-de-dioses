@@ -6,7 +6,7 @@
  */
 import { System } from '../system.js';
 import { ANIMATION_STATES } from '../../config/animation-config.js';
-import { StateRegistry } from '../animation/states/state-registry.js';
+import { StateRegistry } from '../states/state-registry.js';
 import { ECS_CONSTANTS } from '../../config/ecs-constants.js';
 import { ANIMATION_CONSTANTS } from '../../config/animation-constants.js';
 

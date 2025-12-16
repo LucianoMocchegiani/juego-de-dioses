@@ -8,10 +8,11 @@ import { PositionComponent, PhysicsComponent, RenderComponent, InputComponent, A
 import { GeometryRegistry } from '../../renderers/geometries/registry.js';
 import { getCharacter, createCharacter } from '../../api/endpoints/characters.js';
 import { loadModel3D } from '../../renderers/models/model-utils.js';
-import { listBones, mapBonesToBodyParts, hasSkeleton } from '../../renderers/models/bones-utils.js';
+import { listBones, mapBonesToBodyParts, hasSkeleton, listBonesFormatted } from '../../renderers/models/bones-utils.js';
 import { ECS_CONSTANTS } from '../../config/ecs-constants.js';
 import { ANIMATION_CONSTANTS } from '../../config/animation-constants.js';
 import { COMBAT_CONSTANTS } from '../../config/combat-constants.js';
+import { debugLogger } from '../../debug/logger.js';
 
 /**
  * Construir mesh Three.js desde geometria_agrupacion
@@ -164,6 +165,7 @@ export class PlayerFactory {
      * @param {string} [options.characterId] - ID del personaje existente en BD
      * @param {string} [options.templateId] - ID del template para crear personaje (ej: 'humano')
      * @param {string} [options.dimensionId] - ID de la dimensión (necesario si se usa characterId o templateId)
+     * @param {string} [options.initialWeapon] - Tipo de arma inicial (ej: 'sword', 'axe', etc.) o null para usar valor por defecto
      * @returns {Promise<number>} ID de la entidad creada
      */
     static async createPlayer(options) {
@@ -176,7 +178,8 @@ export class PlayerFactory {
             cellSize = ANIMATION_CONSTANTS.DEFAULT_SPAWN.CELL_SIZE,
             characterId = null,
             templateId = null,
-            dimensionId = null
+            dimensionId = null,
+            initialWeapon = null
         } = options;
         
         // Crear entidad
@@ -203,11 +206,31 @@ export class PlayerFactory {
                     
                     // Verificar bones (esqueleto) para sistema de daño por partes (JDG-014)
                     if (mesh && hasSkeleton(mesh)) {
+                        // Loguear bones disponibles para debugging
+                        const bonesList = listBones(mesh);
+                        const bonesFormatted = listBonesFormatted(mesh);
+                        
+                        debugLogger.info('PlayerFactory', 'Bones disponibles en el personaje:', {
+                            totalBones: bonesList.length,
+                            bones: bonesList.map(b => ({ name: b.name, index: b.index })),
+                            formatted: bonesFormatted
+                        });
+                        
                         const bodyPartsMap = mapBonesToBodyParts(mesh);
                         if (Object.keys(bodyPartsMap).length > 0) {
                             // Guardar mapeo en userData para sistema de daño
                             mesh.userData.bodyPartsMap = bodyPartsMap;
+                            
+                            debugLogger.debug('PlayerFactory', 'Mapeo de bones a partes del cuerpo:', {
+                                bodyParts: Object.keys(bodyPartsMap).map(part => ({
+                                    part,
+                                    boneName: bodyPartsMap[part].boneName,
+                                    critical: bodyPartsMap[part].critical
+                                }))
+                            });
                         }
+                    } else {
+                        debugLogger.warn('PlayerFactory', 'El personaje no tiene esqueleto (skeleton)');
                     }
                 } catch (error) {
                     // Fallback a geometria_agrupacion
@@ -274,9 +297,11 @@ export class PlayerFactory {
         ecs.addComponent(playerId, ECS_CONSTANTS.COMPONENT_NAMES.COMBO, new ComboComponent());
         ecs.addComponent(playerId, ECS_CONSTANTS.COMPONENT_NAMES.COMBAT, new CombatComponent());
         
-        // Agregar arma por defecto (espada) para que las acciones de combate funcionen
+        // Agregar arma inicial o por defecto (espada) para que las acciones de combate funcionen
+        // El WeaponEquipSystem se encargará de cargar y visualizar el arma automáticamente
+        const weaponType = initialWeapon || COMBAT_CONSTANTS.WEAPON_TYPES.SWORD;
         ecs.addComponent(playerId, ECS_CONSTANTS.COMPONENT_NAMES.WEAPON, new WeaponComponent({
-            weaponType: COMBAT_CONSTANTS.WEAPON_TYPES.SWORD,
+            weaponType: weaponType,
             hasShield: false
         }));
         
