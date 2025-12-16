@@ -2,6 +2,7 @@
  * Punto de entrada principal - Visualizador 3D de partículas
  */
 import { App } from './app.js';
+import { exposeAppOnly } from './debug/dev-exposure.js';
 
 // Elementos del DOM
 const loadingEl = document.getElementById('loading');
@@ -12,6 +13,10 @@ const statusEl = document.getElementById('status');
 // Inicializar aplicación
 const container = document.getElementById('canvas-container');
 const app = new App(container);
+
+// Exponer app básico globalmente (solo desarrollo)
+// Las herramientas completas se exponen después en app.js cuando todo está inicializado
+exposeAppOnly(app);
 
 // Asegurar que el contenedor tenga focus para capturar eventos de teclado
 container.focus();

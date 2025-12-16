@@ -134,6 +134,12 @@ export class CameraController {
             }
         }
         
+        // Verificar si ALT está presionado (cualquier lado)
+        const isAltPressed = this.inputManager && (
+            this.inputManager.isKeyPressed('AltLeft') || 
+            this.inputManager.isKeyPressed('AltRight')
+        );
+        
         // Rotar cámara con click derecho + mouse
         if (this.inputManager && this.inputManager.isMouseButtonPressed(2)) { // Botón derecho (2)
             const mouseDelta = this.inputManager.getMouseDelta();
@@ -156,8 +162,12 @@ export class CameraController {
         
         // Actualizar rotación del personaje para que siempre mire en la dirección de la cámara
         // (se actualiza cada frame, no solo cuando se mueve el mouse)
+        // EXCEPCIÓN: Si ALT + click derecho está activo, NO rotar el personaje
+        const isRightClickPressed = this.inputManager && this.inputManager.isMouseButtonPressed(2);
+        const shouldRotateCharacter = !(isAltPressed && isRightClickPressed);
+        
         const render = ecs.getComponent(this.targetEntityId, 'Render');
-        if (render) {
+        if (render && shouldRotateCharacter) {
             // La rotación horizontal de la cámara es la dirección en la que mira el personaje
             render.rotationY = this.rotation.horizontal;
         }

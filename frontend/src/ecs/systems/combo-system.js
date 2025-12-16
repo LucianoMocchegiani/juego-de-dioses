@@ -5,7 +5,7 @@
  * Se ejecuta antes de AnimationStateSystem para procesar combos y actualizar el estado de animación.
  */
 import { System } from '../system.js';
-import { ComboManager } from '../animation/combos/combo-manager.js';
+import { ComboManager } from '../combos/combo-manager.js';
 import { COMBO_CHAINS } from '../../config/combo-config.js';
 import { ECS_CONSTANTS } from '../../config/ecs-constants.js';
 import { COMBAT_CONSTANTS } from '../../config/combat-constants.js';

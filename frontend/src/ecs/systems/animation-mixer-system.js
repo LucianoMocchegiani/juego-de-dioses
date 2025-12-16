@@ -10,7 +10,7 @@ import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { getBackendBaseUrl } from '../../utils/config.js';
 import { mapBonesToBodyParts } from '../../renderers/models/bones-utils.js';
 import { ANIMATION_FILES, ANIMATION_STATES, ANIMATION_MIXER } from '../../config/animation-config.js';
-import { AnimationState } from '../animation/states/animation-state.js';
+import { AnimationState } from '../states/animation-state.js';
 import { COMBAT_ACTIONS } from '../../config/combat-actions-config.js';
 import { COMBAT_CONSTANTS } from '../../config/combat-constants.js';
 import { ECS_CONSTANTS } from '../../config/ecs-constants.js';

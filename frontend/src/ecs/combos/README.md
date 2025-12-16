@@ -39,7 +39,7 @@ Gestiona detección y ejecución de combos. Procesa inputs del usuario y detecta
 
 ## Uso
 
-Los combos se definen en `../config/combo-config.js` y se procesan automáticamente por `ComboSystem`.
+Los combos se definen en `../../config/combo-config.js` y se procesan automáticamente por `ComboSystem`.
 
 ### Ejemplo de Configuración de Combo
 
@@ -66,8 +66,8 @@ Los combos se definen en `../config/combo-config.js` y se procesan automáticame
 ## Integración
 
 Este módulo se integra con:
-- **ComboSystem** (`../../systems/combo-system.js`): Sistema ECS que usa este módulo
-- **ComboComponent** (`../../components/combo.js`): Componente que almacena estado de combos
+- **ComboSystem** (`../systems/combo-system.js`): Sistema ECS que usa este módulo
+- **ComboComponent** (`../components/combo.js`): Componente que almacena estado de combos
 - **AnimationStateSystem**: Lee ComboComponent para determinar estados de animación
 
 ## Referencias

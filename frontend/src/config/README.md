@@ -11,6 +11,7 @@ Este directorio contiene todos los archivos de configuración del juego, central
 - **`combo-config.js`**: Define las cadenas de combos y sus timings.
 - **`input-combinations-config.js`**: Define combinaciones de teclas para acciones de combate (ej: Ctrl+Click). (DEPRECATED: siendo reemplazado por `combat-actions-config.js`)
 - **`weapon-animations-config.js`**: Configuración específica de animaciones por tipo de arma.
+- **`weapon-models-config.js`**: Configuración de modelos 3D de armas (rutas GLB, puntos de attachment, offsets, rotación, escala). Define cómo se adjuntan las armas al personaje usando bones del esqueleto.
 
 ### Constantes del Sistema
 - **`ecs-constants.js`**: Constantes centralizadas para sistema ECS (nombres de componentes). Evita typos y facilita refactoring.

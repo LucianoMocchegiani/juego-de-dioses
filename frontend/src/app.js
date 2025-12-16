@@ -15,18 +15,13 @@ import { ParticleRenderer } from './renderers/particle-renderer.js';
 import { GeometryRegistry } from './renderers/geometries/registry.js';
 import { DEMO_DIMENSION_NAME } from './constants.js';
 import { ECSManager } from './ecs/index.js';
-import { InputSystem, PhysicsSystem, RenderSystem, CollisionSystem, AnimationStateSystem, AnimationMixerSystem, ComboSystem, CombatSystem } from './ecs/systems/index.js';
+import { InputSystem, PhysicsSystem, RenderSystem, CollisionSystem, AnimationStateSystem, AnimationMixerSystem, ComboSystem, CombatSystem, WeaponEquipSystem } from './ecs/systems/index.js';
 import { PlayerFactory } from './ecs/factories/player-factory.js';
 import { InputManager } from './systems/input-manager.js';
 import { CollisionDetector } from './systems/collision-detector.js';
 import { CameraController } from './systems/camera-controller.js';
-import { debugLogger } from './debug/logger.js';
-import { ECSInspector } from './debug/inspector.js';
-import { DebugMetrics } from './debug/metrics.js';
-import { stateValidator } from './debug/validator.js';
-import { debugEvents } from './debug/events.js';
-import { DebugPanel } from './debug/ui/debug-panel.js';
-import { DebugInterface } from './debug/ui/debug-interface.js';
+// Herramientas de debugging inicializadas centralmente en dev-exposure.js
+import { exposeDevTools, isDevelopment, initDebugTools } from './debug/dev-exposure.js';
 
 /**
  * @typedef {import('./types.js').Particle} Particle
@@ -90,9 +85,10 @@ export class App {
         this.comboSystem = new ComboSystem(this.inputManager);
         this.animationStateSystem = new AnimationStateSystem();
         this.animationMixerSystem = new AnimationMixerSystem();
-        // RenderSystem y CollisionSystem se inicializarán después de cargar la dimensión
+        // RenderSystem, CollisionSystem y WeaponEquipSystem se inicializarán después de cargar la dimensión
         this.renderSystem = null;
         this.collisionSystem = null;
+        this.weaponEquipSystem = null;
         this.collisionDetector = null;
         
         // Registrar sistemas con prioridades correctas (orden de ejecución)
@@ -123,53 +119,20 @@ export class App {
      * Inicializar herramientas de debugging
      */
     initDebugTools() {
-        // Detectar modo desarrollo: localhost o NODE_ENV === 'development'
-        const isDevelopment = (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) ||
-                              (typeof process !== 'undefined' && process.env?.NODE_ENV === 'development');
+        // Inicializar herramientas de debugging (centralizado)
+        const debugToolsResult = initDebugTools(this);
         
-        if (isDevelopment) {
-            // Logger (ya es singleton, solo habilitar)
-            debugLogger.setEnabled(true);
+        if (debugToolsResult) {
+            // Guardar referencias para uso interno si es necesario
+            this.inspector = debugToolsResult.inspector;
+            this.debugMetrics = debugToolsResult.metrics;
+            this.debugPanel = debugToolsResult.panel;
+            this.debugInterface = debugToolsResult.interface;
             
-            // Inspector
-            this.inspector = new ECSInspector(this.ecs);
-            this.inspector.setEnabled(true);
-            
-            // Métricas
-            this.debugMetrics = new DebugMetrics(this.ecs);
-            this.debugMetrics.setEnabled(true);
-            this.ecs.setDebugMetrics(this.debugMetrics);
-            
-            // Validador (ya es singleton, solo habilitar)
-            stateValidator.setEnabled(true);
-            
-            // Eventos (ya es singleton, solo habilitar)
-            debugEvents.setEnabled(true);
-            
-            // Panel de debugging (opcional)
-            this.debugPanel = new DebugPanel(this, this.ecs);
-            this.debugPanel.setTools(this.inspector, this.debugMetrics);
-            
-            // Interfaz GUI de debugging (F4)
-            this.debugInterface = new DebugInterface(this, this.ecs);
-            
-            // Exponer herramientas globalmente para consola del navegador
-            if (typeof window !== 'undefined') {
-                window.debugTools = {
-                    logger: debugLogger,
-                    inspector: this.inspector,
-                    metrics: this.debugMetrics,
-                    validator: stateValidator,
-                    events: debugEvents,
-                    panel: this.debugPanel,
-                    interface: this.debugInterface
-                };
-                
-                // Log de confirmación
-                console.log('[DebugTools] Herramientas de debugging inicializadas. Usa window.debugTools para acceder.');
-                console.log('[DebugTools] Interface disponible:', this.debugInterface ? 'Sí' : 'No');
-                console.log('[DebugTools] Interface enabled:', this.debugInterface?.enabled);
-            }
+            // Exponer todas las herramientas de desarrollo (centralizado)
+            exposeDevTools(this, {
+                debugTools: debugToolsResult
+            });
         } else {
             // Log si no está en desarrollo
             if (typeof window !== 'undefined' && window.console) {
@@ -298,6 +261,12 @@ export class App {
             if (!this.renderSystem) {
                 this.renderSystem = new RenderSystem(demoDimension.tamano_celda);
                 this.ecs.registerSystem(this.renderSystem);
+            }
+            
+            // 15.5. Inicializar WeaponEquipSystem (necesita la escena)
+            if (!this.weaponEquipSystem) {
+                this.weaponEquipSystem = new WeaponEquipSystem(this.scene.scene);
+                this.ecs.registerSystem(this.weaponEquipSystem);
             }
             
             // 16. Crear jugador después de cargar dimensión
