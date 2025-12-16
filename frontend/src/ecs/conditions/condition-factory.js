@@ -6,7 +6,7 @@ import { PhysicsCondition } from './physics-condition.js';
 import { MovementCondition } from './movement-condition.js';
 import { ComboCondition } from './combo-condition.js';
 import { CombatCondition } from './combat-condition.js';
-import { ANIMATION_CONSTANTS } from '../../../config/animation-constants.js';
+import { ANIMATION_CONSTANTS } from '../../config/animation-constants.js';
 
 export class ConditionFactory {
     static create(conditionConfig) {
