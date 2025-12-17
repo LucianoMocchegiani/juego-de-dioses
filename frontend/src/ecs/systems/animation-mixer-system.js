@@ -402,6 +402,100 @@ export class AnimationMixerSystem extends System {
     }
 
     /**
+     * Reproducir animación directamente por nombre
+     * 
+     * Método público para reproducir animaciones por nombre desde interfaces externas
+     * (ej: interfaz de prueba de animaciones).
+     * 
+     * @param {number} entityId - ID de la entidad
+     * @param {string} animationName - Nombre de la animación (key de ANIMATION_FILES)
+     * @returns {boolean} True si se reprodujo correctamente, False si hubo error
+     */
+    playAnimationByName(entityId, animationName) {
+        // Validar parámetros
+        if (entityId === undefined || entityId === null || !animationName) {
+            debugLogger.warn('AnimationMixer', 'playAnimationByName: entityId y animationName son requeridos', {
+                entityId,
+                animationName
+            });
+            return false;
+        }
+        
+        // Obtener componentes necesarios
+        const render = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.RENDER);
+        if (!render || !render.mesh) {
+            debugLogger.warn('AnimationMixer', 'playAnimationByName: Entidad no tiene RenderComponent o mesh', {
+                entityId
+            });
+            return false;
+        }
+        
+        const mesh = render.mesh;
+        const mixer = mesh.userData.animationMixer;
+        const clips = mesh.userData.animationClips;
+        
+        // Verificar que el mixer esté inicializado
+        if (!mixer || !clips) {
+            debugLogger.warn('AnimationMixer', 'playAnimationByName: Mixer no inicializado para entidad', {
+                entityId,
+                hasMixer: !!mixer,
+                hasClips: !!clips
+            });
+            return false;
+        }
+        
+        // Buscar clip por nombre
+        let clip = clips[animationName];
+        
+        // Si no existe, la animación no está cargada
+        if (!clip) {
+            debugLogger.warn('AnimationMixer', 'playAnimationByName: Animación no encontrada en clips', {
+                entityId,
+                animationName,
+                availableAnimations: Object.keys(clips)
+            });
+            return false;
+        }
+        
+        // Detener animación actual si existe
+        const currentAction = mesh.userData.currentAction;
+        if (currentAction && currentAction.isRunning()) {
+            currentAction.fadeOut(ANIMATION_MIXER.defaultTransitionDuration);
+        }
+        
+        // Limpiar referencias de combate si existen
+        if (mesh.userData.combatAction) {
+            mesh.userData.combatAction = null;
+        }
+        mesh.userData.isAttacking = false;
+        
+        // Crear y reproducir nueva animación
+        const action = mixer.clipAction(clip);
+        action.reset();
+        action.setLoop(THREE.LoopOnce);
+        action.clampWhenFinished = true;
+        action.fadeIn(ANIMATION_MIXER.defaultTransitionDuration);
+        action.play();
+        
+        // Marcar que estamos en modo de prueba para evitar que el sistema automático interrumpa
+        mesh.userData.isTestingAnimation = true;
+        mesh.userData.testAnimationName = animationName;
+        
+        // El flag se limpiará automáticamente en el método update() cuando la animación termine
+        
+        // Guardar referencias
+        mesh.userData.currentAction = action;
+        mesh.userData.currentAnimationState = animationName;
+        
+        debugLogger.debug('AnimationMixer', 'playAnimationByName: Animación reproducida', {
+            entityId,
+            animationName
+        });
+        
+        return true;
+    }
+
+    /**
      * @private
      * Actualizar acciones de combate en progreso (i-frames, limpieza temprana, limpieza final)
      * 
@@ -542,6 +636,33 @@ export class AnimationMixerSystem extends System {
                 this.updateCombatAction(entityId, combat, input, animation, mesh, action);
             }
 
+            // Verificar si estamos en modo de prueba y si la animación terminó
+            if (mesh.userData.isTestingAnimation) {
+                const testAction = mesh.userData.currentAction;
+                if (testAction) {
+                    const testClip = testAction.getClip();
+                    const progress = testClip.duration > 0 ? testAction.time / testClip.duration : 1.0;
+                    
+                    // Si la animación terminó, limpiar el flag y volver al estado normal
+                    if (progress >= 1.0 || !testAction.isRunning()) {
+                        mesh.userData.isTestingAnimation = false;
+                        mesh.userData.testAnimationName = null;
+                        
+                        // Volver al estado idle para que el sistema normal retome
+                        if (animation) {
+                            animation.currentState = ANIMATION_MIXER.defaultState;
+                        }
+                    } else {
+                        // Aún se está reproduciendo, no interrumpir
+                        continue;
+                    }
+                } else {
+                    // No hay acción, limpiar flag
+                    mesh.userData.isTestingAnimation = false;
+                    mesh.userData.testAnimationName = null;
+                }
+            }
+            
             // Reproducir animación según estado
             const clips = mesh.userData.animationClips;
             if (clips) {
