@@ -137,6 +137,23 @@ Panel de debugging visual en UI, controlable desde la interfaz F4 o con tecla F3
 - Desde la interfaz: Abrir F4 → tab Logger → checkbox "Mostrar Debug Panel (F3)"
 - Atajo rápido: Presionar `F3` para mostrar/ocultar el panel
 
+### BaseInterface (`ui/base-interface.js`)
+
+Clase base para interfaces de desarrollo que proporciona funcionalidad común.
+
+**Características:**
+- Estructura base reutilizable (header, sidebar, mainContent)
+- Sistema de tabs genérico
+- Helpers reutilizables para creación de UI
+- Sistema de notificaciones fijas (no causan scroll automático)
+- Bloqueo automático de input del juego
+
+**Sistema de Notificaciones:**
+- Notificaciones aparecen en la parte inferior de la pantalla de forma fija
+- No causan scroll automático, ideal para listas grandes
+- Animaciones suaves de entrada y salida
+- Auto-remoción automática
+
 ### DebugInterface (`ui/debug-interface.js`)
 
 Interfaz GUI de debugging, activable con tecla F4.
@@ -148,6 +165,7 @@ Interfaz GUI de debugging, activable con tecla F4.
 - Resultados formateados en JSON con botón para copiar
 - Comandos rápidos predefinidos
 - Área de comandos personalizados (permite copiar/pegar)
+- Notificaciones fijas en la parte inferior (no causan scroll)
 
 **Uso:**
 Presionar `F4` para mostrar/ocultar la interfaz.
