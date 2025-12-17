@@ -16,6 +16,7 @@ import { ECSInspector } from './inspector.js';
 import { DebugMetrics } from './metrics.js';
 import { DebugPanel } from './ui/debug-panel.js';
 import { DebugInterface } from './ui/debug-interface.js';
+import { AnimationTester } from './ui/animation-tester.js';
 
 /**
  * Detectar si estamos en modo desarrollo
@@ -42,6 +43,7 @@ export function isDevelopment() {
  * - Sistema de eventos
  * - Panel de debugging
  * - Interfaz GUI (F4)
+ * - Animation Tester (F6)
  * 
  * @param {Object} app - Instancia de App
  * @returns {Object|null} Objeto con todas las herramientas inicializadas, o null si no está en desarrollo
@@ -76,11 +78,15 @@ export function initDebugTools(app) {
     // Interfaz GUI de debugging (F4)
     const debugInterface = new DebugInterface(app, app.ecs);
     
+    // Animation Tester (F6)
+    const animationTester = new AnimationTester(app, app.ecs);
+    
     return {
         inspector,
         metrics: debugMetrics,
         panel: debugPanel,
-        interface: debugInterface
+        interface: debugInterface,
+        animationTester: animationTester
     };
 }
 
@@ -127,12 +133,17 @@ export function exposeDevTools(app, options = {}) {
             validator: stateValidator,
             events: debugEvents,
             panel: debugTools.panel,
-            interface: debugTools.interface
+            interface: debugTools.interface,
+            animationTester: debugTools.animationTester
         };
+        
+        // También exponer directamente para fácil acceso
+        window.animationTester = debugTools.animationTester;
         
         console.log('[DebugTools] Herramientas de debugging inicializadas. Usa window.debugTools para acceder.');
         console.log('[DebugTools] Interface disponible:', debugTools.interface ? 'Sí' : 'No');
         console.log('[DebugTools] Interface enabled:', debugTools.interface?.enabled);
+        console.log('[DebugTools] Animation Tester disponible: F6 para abrir/cerrar');
     }
     
     // Exponer utilidades de armas (funciones lazy que buscan playerId dinámicamente)
