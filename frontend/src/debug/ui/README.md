@@ -2,6 +2,31 @@
 
 Herramientas visuales para debugging.
 
+## BaseInterface
+
+Clase base para interfaces de desarrollo que proporciona funcionalidad común.
+
+**Características:**
+- Estructura base (header, sidebar, mainContent)
+- Sistema de tabs genérico
+- Helpers reutilizables para creación de UI (botones, inputs, selects, etc.)
+- Sistema de notificaciones fijas en la parte inferior de la pantalla
+- Bloqueo automático de input del juego cuando está abierta
+
+**Sistema de Notificaciones:**
+- Las notificaciones (`showInfo()`, `showError()`) aparecen en la parte inferior de la pantalla
+- Posicionamiento fijo (`position: fixed`) con `z-index: 10002` para aparecer sobre la consola
+- Animaciones suaves de entrada y salida
+- Auto-remoción después de 3 segundos (info) o 5 segundos (error)
+- No causan scroll automático, ideal para listas grandes
+
+**Uso:**
+```javascript
+// En clases que extienden BaseInterface
+this.showInfo(container, 'Operación completada');
+this.showError(container, 'Error al procesar');
+```
+
 ## DebugPanel
 
 Panel de debugging visual en UI, controlable desde la interfaz F4 o con tecla F3.
