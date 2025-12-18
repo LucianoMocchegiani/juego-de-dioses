@@ -46,6 +46,32 @@ Panel de debugging visual en UI, controlable desde la interfaz F4 o con tecla F3
 - **Performance**: FPS actual, frame time promedio/mínimo/máximo, tiempo de ejecución por sistema, número de entidades procesadas por sistema
 - **Recent Logs**: Últimas 10 líneas de logs en tiempo real (F4 para más detalles)
 
+## AnimationTester
+
+Interfaz de prueba de animaciones, activable con tecla F6.
+
+**Características:**
+- Lista todas las animaciones disponibles organizadas por carpetas
+- Vista jerárquica con carpetas expandibles/colapsables
+- Búsqueda por nombre, archivo o carpeta
+- Sección "Sin categorizar" para animaciones sin organización
+- Reproducir animaciones directamente desde la interfaz
+- Refleja la estructura organizacional de `biped/` en el sistema de archivos
+
+**Uso:**
+Presionar `F6` para mostrar/ocultar la interfaz.
+
+**Estructura visual:**
+- Carpetas organizadas por categorías (sword, movement, idle, hit-reactions, etc.)
+- Cada carpeta muestra el número de animaciones contenidas
+- Click en carpeta para expandir/colapsar
+- Botón "Reproducir" en cada animación para probarla en el juego
+
+**Notas:**
+- Las animaciones se organizan automáticamente según su ruta en `ANIMATION_FILES`
+- Las animaciones en la raíz aparecen en la sección "Sin categorizar"
+- La búsqueda funciona por nombre de animación, ruta de archivo o nombre de carpeta
+
 ## DebugInterface
 
 Interfaz GUI de debugging, activable con tecla F4.

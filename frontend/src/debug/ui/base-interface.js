@@ -33,6 +33,11 @@ export class BaseInterface {
         this.inputBlocked = false;
         this.sidebar = null;
         this.mainContent = null;
+        this.resizeHandle = null;
+        this.isResizing = false;
+        this.minHeight = 200;
+        this.maxHeight = window.innerHeight * 0.9;
+        this.resizeWindowHandler = null;
         
         if (this.enabled) {
             try {
@@ -61,12 +66,21 @@ export class BaseInterface {
         this.interfaceElement.id = this.toggleKey === 'F4' && this.title === 'Debug Tools'
             ? 'debug-interface'
             : `interface-${this.toggleKey.toLowerCase()}`;
+        
+        // Obtener altura guardada o usar valor por defecto
+        const storageKey = `${this.interfaceElement.id}-height`;
+        const savedHeight = localStorage.getItem(storageKey);
+        const initialHeight = savedHeight ? parseInt(savedHeight, 10) : 400;
+        
+        // Inicializar altura máxima
+        this.maxHeight = window.innerHeight * 0.9;
+        
         this.interfaceElement.style.cssText = `
             position: fixed;
             bottom: 0;
             left: 0;
             right: 0;
-            height: 400px;
+            height: ${initialHeight}px;
             background: rgba(20, 20, 20, 0.75);
             color: #fff;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -78,6 +92,9 @@ export class BaseInterface {
             box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.5);
             backdrop-filter: blur(4px);
         `;
+        
+        // Crear barra de redimensionamiento
+        this.createResizeHandle();
         
         // Crear header
         this.createHeader();
@@ -109,6 +126,92 @@ export class BaseInterface {
         this.interfaceElement.appendChild(content);
         
         document.body.appendChild(this.interfaceElement);
+        
+        // Actualizar altura máxima cuando cambie el tamaño de la ventana
+        this.resizeWindowHandler = () => {
+            this.maxHeight = window.innerHeight * 0.9;
+            // Ajustar altura actual si excede el nuevo máximo
+            const currentHeight = parseInt(window.getComputedStyle(this.interfaceElement).height, 10);
+            if (currentHeight > this.maxHeight) {
+                this.interfaceElement.style.height = `${this.maxHeight}px`;
+                localStorage.setItem(`${this.interfaceElement.id}-height`, this.maxHeight.toString());
+            }
+        };
+        window.addEventListener('resize', this.resizeWindowHandler);
+    }
+    
+    /**
+     * Crear barra de redimensionamiento
+     */
+    createResizeHandle() {
+        this.resizeHandle = document.createElement('div');
+        this.resizeHandle.style.cssText = `
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            height: 8px;
+            background: ${this.color};
+            cursor: ns-resize;
+            z-index: 10002;
+            opacity: 0.6;
+            transition: opacity 0.2s;
+        `;
+        
+        // Efecto hover
+        this.resizeHandle.onmouseenter = () => {
+            this.resizeHandle.style.opacity = '1';
+            this.resizeHandle.style.height = '10px';
+        };
+        
+        this.resizeHandle.onmouseleave = () => {
+            if (!this.isResizing) {
+                this.resizeHandle.style.opacity = '0.6';
+                this.resizeHandle.style.height = '8px';
+            }
+        };
+        
+        // Eventos de redimensionamiento
+        this.resizeHandle.onmousedown = (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.isResizing = true;
+            this.resizeHandle.style.opacity = '1';
+            this.resizeHandle.style.height = '10px';
+            
+            const startY = e.clientY;
+            const startHeight = parseInt(window.getComputedStyle(this.interfaceElement).height, 10);
+            
+            const onMouseMove = (e) => {
+                if (!this.isResizing) return;
+                
+                const deltaY = startY - e.clientY; // Invertido porque está en la parte inferior
+                let newHeight = startHeight + deltaY;
+                
+                // Limitar altura
+                newHeight = Math.max(this.minHeight, Math.min(this.maxHeight, newHeight));
+                
+                this.interfaceElement.style.height = `${newHeight}px`;
+            };
+            
+            const onMouseUp = () => {
+                this.isResizing = false;
+                this.resizeHandle.style.opacity = '0.6';
+                this.resizeHandle.style.height = '8px';
+                
+                // Guardar altura en localStorage
+                const currentHeight = parseInt(window.getComputedStyle(this.interfaceElement).height, 10);
+                localStorage.setItem(`${this.interfaceElement.id}-height`, currentHeight.toString());
+                
+                document.removeEventListener('mousemove', onMouseMove);
+                document.removeEventListener('mouseup', onMouseUp);
+            };
+            
+            document.addEventListener('mousemove', onMouseMove);
+            document.addEventListener('mouseup', onMouseUp);
+        };
+        
+        this.interfaceElement.appendChild(this.resizeHandle);
     }
     
     /**
@@ -1360,6 +1463,12 @@ export class BaseInterface {
     destroy() {
         // Desbloquear input antes de destruir
         this.unblockGameInput();
+        
+        // Remover event listener de resize
+        if (this.resizeWindowHandler) {
+            window.removeEventListener('resize', this.resizeWindowHandler);
+            this.resizeWindowHandler = null;
+        }
         
         if (this.interfaceElement && this.interfaceElement.parentNode) {
             this.interfaceElement.parentNode.removeChild(this.interfaceElement);
