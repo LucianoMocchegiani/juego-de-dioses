@@ -15,7 +15,7 @@ services:
       - ./database/init:/docker-entrypoint-initdb.d
       - ./database/migrations:/migrations
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-juegodioses}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-juegodioses} -d ${POSTGRES_DB:-juego_dioses}"]
       interval: 10s
       timeout: 5s
       retries: 5

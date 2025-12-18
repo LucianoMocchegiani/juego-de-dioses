@@ -26,6 +26,7 @@ export class AnimationTester extends BaseInterface {
         
         this.searchTerm = '';
         this.listContainer = null;
+        this.expandedFolders = new Set(); // Carpetas expandidas por defecto
     }
     
     /**
@@ -101,7 +102,7 @@ export class AnimationTester extends BaseInterface {
         
         // Campo de búsqueda
         const searchInput = this.createInput({
-            placeholder: 'Buscar animación por nombre o archivo...',
+            placeholder: 'Buscar animación por nombre, archivo o carpeta...',
             width: '100%',
             maxWidth: '500px',
             onChange: (value) => {
@@ -124,36 +125,182 @@ export class AnimationTester extends BaseInterface {
     }
     
     /**
-     * Renderizar lista de animaciones (filtrada por búsqueda)
+     * Organizar animaciones por carpetas
+     * @param {Object} animations - Objeto con nombre -> ruta
+     * @returns {Object} { organized: { folderName: [{name, path}] }, uncategorized: [{name, path}] }
+     */
+    organizeAnimationsByFolder(animations) {
+        const organized = {};
+        const uncategorized = [];
+        
+        Object.entries(animations).forEach(([name, path]) => {
+            // Extraer estructura de carpetas de la ruta
+            // Ejemplo: 'animations/biped/sword/Animation_XXX.glb' → ['animations', 'biped', 'sword', 'Animation_XXX.glb']
+            const pathParts = path.split('/');
+            const bipedIndex = pathParts.indexOf('biped');
+            
+            if (bipedIndex !== -1 && bipedIndex < pathParts.length - 1) {
+                const category = pathParts[bipedIndex + 1];
+                if (!organized[category]) {
+                    organized[category] = [];
+                }
+                organized[category].push({ name, path });
+            } else {
+                // Animación sin categorizar (en la raíz o fuera de biped/)
+                uncategorized.push({ name, path });
+            }
+        });
+        
+        return { organized, uncategorized };
+    }
+    
+    /**
+     * Crear item de carpeta expandible/colapsable
+     * @param {string} folderName - Nombre de la carpeta
+     * @param {Array} animations - Array de {name, path}
+     * @param {boolean} isExpanded - Si la carpeta está expandida
+     * @returns {HTMLElement} Elemento de carpeta
+     */
+    createFolderItem(folderName, animations, isExpanded = false) {
+        const folderContainer = document.createElement('div');
+        folderContainer.style.cssText = 'margin: 5px 0;';
+        
+        // Botón de carpeta (expandir/colapsar)
+        const folderButton = document.createElement('button');
+        const icon = isExpanded ? '📂' : '📁';
+        folderButton.textContent = `${icon} ${folderName} (${animations.length})`;
+        folderButton.style.cssText = `
+            width: 100%;
+            padding: 10px;
+            background: rgba(45, 45, 45, 0.5);
+            border: 1px solid #444;
+            text-align: left;
+            cursor: pointer;
+            color: #fff;
+            font-weight: bold;
+            border-radius: 4px;
+            transition: background 0.2s;
+        `;
+        
+        // Hover effect
+        folderButton.onmouseenter = () => {
+            folderButton.style.background = 'rgba(55, 55, 55, 0.7)';
+        };
+        folderButton.onmouseleave = () => {
+            folderButton.style.background = 'rgba(45, 45, 45, 0.5)';
+        };
+        
+        // Contenedor de animaciones (inicialmente oculto si no está expandido)
+        const animationsContainer = document.createElement('div');
+        animationsContainer.style.cssText = `
+            margin-left: 20px;
+            margin-top: 5px;
+            display: ${isExpanded ? 'block' : 'none'};
+        `;
+        
+        // Agregar animaciones
+        animations.forEach(({ name, path }) => {
+            const animationItem = this.createListItem({
+                columns: [
+                    { content: name, style: 'flex: 0 0 200px; color: #fff; font-weight: bold; font-size: 13px;' },
+                    { content: path, style: 'flex: 1; color: #aaa; font-family: monospace; font-size: 11px; word-break: break-all;' }
+                ],
+                actions: [{ text: 'Reproducir', onClick: () => this.playAnimation(name), variant: 'small' }]
+            });
+            animationsContainer.appendChild(animationItem);
+        });
+        
+        // Toggle expand/collapse
+        folderButton.onclick = () => {
+            const isCurrentlyExpanded = animationsContainer.style.display !== 'none';
+            animationsContainer.style.display = isCurrentlyExpanded ? 'none' : 'block';
+            const newIcon = isCurrentlyExpanded ? '📁' : '📂';
+            folderButton.textContent = `${newIcon} ${folderName} (${animations.length})`;
+            
+            // Guardar estado
+            if (isCurrentlyExpanded) {
+                this.expandedFolders.delete(folderName);
+            } else {
+                this.expandedFolders.add(folderName);
+            }
+        };
+        
+        folderContainer.appendChild(folderButton);
+        folderContainer.appendChild(animationsContainer);
+        
+        return folderContainer;
+    }
+    
+    /**
+     * Renderizar lista de animaciones (filtrada por búsqueda, organizada por carpetas)
      */
     renderAnimationList() {
         if (!this.listContainer || !this.animations || typeof this.animations !== 'object') return;
         
         this.listContainer.innerHTML = '';
         
-        const filtered = Object.entries(this.animations).filter(([name, file]) => {
-            if (!this.searchTerm) return true;
-            return name.toLowerCase().includes(this.searchTerm) || file.toLowerCase().includes(this.searchTerm);
-        });
+        // Organizar animaciones por carpetas
+        const { organized, uncategorized } = this.organizeAnimationsByFolder(this.animations);
         
-        if (filtered.length === 0) {
+        // Aplicar filtro de búsqueda si existe
+        const searchTerm = this.searchTerm.toLowerCase();
+        const hasSearch = searchTerm.length > 0;
+        
+        // Renderizar carpetas organizadas
+        Object.entries(organized)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .forEach(([folderName, animations]) => {
+                // Filtrar animaciones por búsqueda
+                const filtered = animations.filter(({ name, path }) => {
+                    if (!hasSearch) return true;
+                    return name.toLowerCase().includes(searchTerm) || 
+                           path.toLowerCase().includes(searchTerm) ||
+                           folderName.toLowerCase().includes(searchTerm);
+                });
+                
+                if (filtered.length > 0) {
+                    // Expandir por defecto si no hay búsqueda, o si la búsqueda coincide con la carpeta
+                    const shouldExpand = !hasSearch || this.expandedFolders.has(folderName) || folderName.toLowerCase().includes(searchTerm);
+                    this.listContainer.appendChild(
+                        this.createFolderItem(folderName, filtered, shouldExpand)
+                    );
+                }
+            });
+        
+        // Renderizar sección "Sin categorizar" si hay animaciones
+        if (uncategorized.length > 0) {
+            const filteredUncategorized = uncategorized.filter(({ name, path }) => {
+                if (!hasSearch) return true;
+                return name.toLowerCase().includes(searchTerm) || 
+                       path.toLowerCase().includes(searchTerm);
+            });
+            
+            if (filteredUncategorized.length > 0) {
+                const uncategorizedTitle = document.createElement('div');
+                uncategorizedTitle.textContent = '📁 Sin categorizar';
+                uncategorizedTitle.style.cssText = 'margin: 15px 0 5px 0; color: #ff9800; font-weight: bold; font-size: 14px;';
+                this.listContainer.appendChild(uncategorizedTitle);
+                
+                filteredUncategorized.forEach(({ name, path }) => {
+                    this.listContainer.appendChild(this.createListItem({
+                        columns: [
+                            { content: name, style: 'flex: 0 0 200px; color: #fff; font-weight: bold; font-size: 13px;' },
+                            { content: path, style: 'flex: 1; color: #aaa; font-family: monospace; font-size: 11px; word-break: break-all;' }
+                        ],
+                        actions: [{ text: 'Reproducir', onClick: () => this.playAnimation(name), variant: 'small' }]
+                    }));
+                });
+            }
+        }
+        
+        // Mensaje si no hay resultados
+        if (this.listContainer.children.length === 0) {
             this.listContainer.appendChild(this.createNoResultsMessage(
-                this.searchTerm 
+                hasSearch 
                     ? `No se encontraron animaciones que coincidan con "${this.searchTerm}"`
                     : 'No se encontraron animaciones'
             ));
-            return;
         }
-        
-        filtered.forEach(([name, file]) => {
-            this.listContainer.appendChild(this.createListItem({
-                columns: [
-                    { content: name, style: 'flex: 0 0 200px; color: #fff; font-weight: bold; font-size: 13px;' },
-                    { content: file, style: 'flex: 1; color: #aaa; font-family: monospace; font-size: 11px; word-break: break-all;' }
-                ],
-                actions: [{ text: 'Reproducir', onClick: () => this.playAnimation(name), variant: 'small' }]
-            }));
-        });
     }
     
     /**

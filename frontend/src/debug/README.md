@@ -16,8 +16,10 @@ debug/
 ├── USO-INTERFAZ.md     # Guía de uso de la interfaz F4
 ├── USO-CONSOLA.md      # Guía de comandos en consola
 └── ui/                 # Herramientas visuales
+    ├── base-interface.js # Clase base para interfaces de desarrollo
     ├── debug-panel.js  # Panel de debugging (F3)
     ├── debug-interface.js # Interfaz GUI de debugging (F4)
+    ├── animation-tester.js # Interfaz de prueba de animaciones (F6)
     └── README.md       # Documentación de herramientas UI
 ```
 
