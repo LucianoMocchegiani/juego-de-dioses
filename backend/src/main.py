@@ -51,18 +51,36 @@ async def lifespan(app: FastAPI):
         health = await db_health_check()
         print(f"Base de datos: {health['message']}")
         
-        # Verificar si existe la dimensión demo, si no, ejecutar seed demo
+        # Verificar si existen las dimensiones demo, si no, ejecutar seeds
         from src.database.connection import get_connection
         async with get_connection() as conn:
+            # Verificar terreno test 2 (por defecto)
             demo_exists = await conn.fetchval(
-                "SELECT EXISTS(SELECT 1 FROM juego_dioses.dimensiones WHERE nombre = 'Demo - Terreno con Arboles')"
+                "SELECT EXISTS(SELECT 1 FROM juego_dioses.dimensiones WHERE nombre = 'Terreno Test 2 - Lago y Montaña')"
             )
             if not demo_exists:
-                print("Dimensión demo no encontrada. Ejecutando seed demo...")
-                from src.database.seed_demo import seed_demo
-                await seed_demo()
+                print("Dimensión demo (Terreno Test 2 - Lago y Montaña) no encontrada. Ejecutando seed terrain test 2...")
+                from src.database.seed_terrain_test_2 import seed_terrain_test_2
+                await seed_terrain_test_2()
             else:
-                print("Dimensión demo ya existe.")
+                print("Dimensión demo (Terreno Test 2 - Lago y Montaña) ya existe.")
+            
+            # Verificar terreno test 1 (bosque denso)
+            test1_exists = await conn.fetchval(
+                "SELECT EXISTS(SELECT 1 FROM juego_dioses.dimensiones WHERE nombre = 'Terreno Test 1 - Bosque Denso')"
+            )
+            if not test1_exists:
+                print("Dimensión test 1 (Terreno Test 1 - Bosque Denso) no encontrada. Ejecutando seed terrain test 1...")
+                from src.database.seed_terrain_test_1 import seed_terrain_test_1
+                await seed_terrain_test_1()
+            else:
+                print("Dimensión test 1 (Terreno Test 1 - Bosque Denso) ya existe.")
+            
+            # Actualizar rutas de modelos a estructura biped/male/ si es necesario
+            # Este script es idempotente: solo actualiza registros que necesitan cambios
+            print("Verificando y actualizando rutas de modelos a estructura biped/male/...")
+            from src.database.seed_biped_structure import migrate_model_paths
+            await migrate_model_paths()
     except Exception as e:
         print(f"Error inicializando base de datos: {e}")
     

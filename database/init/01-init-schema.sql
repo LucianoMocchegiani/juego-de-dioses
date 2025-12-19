@@ -200,12 +200,13 @@ COMMENT ON COLUMN juego_dioses.agrupaciones.modelo_3d IS
 'Modelo 3D asociado a la agrupación. Formato JSON:
 {
   "tipo": "gltf|glb|obj",
-  "ruta": "characters/humano.glb",
+  "ruta": "biped/male/characters/biped_male.glb",
   "escala": 1.0,
   "offset": {"x": 0, "y": 0, "z": 0},
   "rotacion": {"x": 0, "y": 0, "z": 0}
 }
 El modelo se almacena en backend/static/models/ y se sirve en /static/models/{ruta}.
+Estructura recomendada: {tipo_entidad}/{variante}/{categoria}/{nombre}.glb (ej: biped/male/characters/biped_male.glb)
 Si este campo está presente, el frontend debe cargar el modelo 3D en lugar de usar geometria_agrupacion.';
 
 -- Mensaje de confirmación

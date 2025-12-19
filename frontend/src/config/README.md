@@ -5,7 +5,7 @@ Este directorio contiene todos los archivos de configuración del juego, central
 ## Archivos de Configuración
 
 ### Animación y Combate
-- **`animation-config.js`**: Define los estados de animación, prioridades, condiciones y transiciones (isOneShot, preventInterruption, animation, etc.). Las rutas de animaciones apuntan a la estructura organizada en `biped/` por categorías (sword, movement, idle, hit-reactions, etc.).
+- **`animation-config.js`**: Define los estados de animación, prioridades, condiciones y transiciones (isOneShot, preventInterruption, animation, etc.). Las rutas de animaciones apuntan a la estructura organizada en `biped/male/animations/` por categorías (shield-and-one-hand-weapon, two-hands-weapon, movement, hit-reactions, transitions, etc.).
 - **`combat-actions-config.js`**: Define acciones de combate con propiedades específicas (cooldown, movimiento, i-frames). **Referencia** estados de animación en `animation-config.js` para evitar duplicación.
 - **`combat-constants.js`**: Constantes centralizadas para sistema de combate (thresholds, IDs de acciones, tipos de armas). Evita strings y valores mágicos hardcodeados.
 - **`combo-config.js`**: Define las cadenas de combos y sus timings.

@@ -24,7 +24,7 @@ export const WEAPON_MODELS = {
         path: 'weapons/sword.glb',
         attachmentPoint: 'RightHand',  // Bone de la mano derecha
         offset: { x: 0, y: 10, z: 0 },  // Sin offset - el origen del modelo está en la empuñadura
-        rotation: { x: 0, y: -50, z: 0 },  // Sin rotación adicional
+        rotation: { x: 0, y: 40, z: 0 },  // Sin rotación adicional
         scale: 50  // Escala normal - ajustar según el tamaño del modelo
     },
     axe: {

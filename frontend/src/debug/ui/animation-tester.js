@@ -135,11 +135,21 @@ export class AnimationTester extends BaseInterface {
         
         Object.entries(animations).forEach(([name, path]) => {
             // Extraer estructura de carpetas de la ruta
-            // Ejemplo: 'animations/biped/sword/Animation_XXX.glb' → ['animations', 'biped', 'sword', 'Animation_XXX.glb']
+            // Nueva estructura: 'biped/male/animations/shield-and-one-hand-weapon/Left_Slash_withSkin.glb'
+            // → ['biped', 'male', 'animations', 'shield-and-one-hand-weapon', 'Left_Slash_withSkin.glb']
             const pathParts = path.split('/');
             const bipedIndex = pathParts.indexOf('biped');
+            const animationsIndex = pathParts.indexOf('animations');
             
-            if (bipedIndex !== -1 && bipedIndex < pathParts.length - 1) {
+            if (animationsIndex !== -1 && animationsIndex < pathParts.length - 1) {
+                // Nueva estructura: biped/male/animations/{category}/
+                const category = pathParts[animationsIndex + 1];
+                if (!organized[category]) {
+                    organized[category] = [];
+                }
+                organized[category].push({ name, path });
+            } else if (bipedIndex !== -1 && bipedIndex < pathParts.length - 1) {
+                // Estructura antigua: animations/biped/{category}/ (compatibilidad)
                 const category = pathParts[bipedIndex + 1];
                 if (!organized[category]) {
                     organized[category] = [];
