@@ -8,8 +8,9 @@ Este módulo contiene toda la lógica relacionada con la base de datos: conexion
 database/
 ├── __init__.py              # Inicialización del módulo
 ├── connection.py            # Gestión de conexiones a PostgreSQL
-├── seed_demo.py             # Script de seed para crear dimensiones demo
-├── seed_character_with_model.py  # Script de seed para crear personajes con modelos 3D
+├── seed_terrain_test_1.py   # Script de seed para terreno test 1: bosque denso con acuífero
+├── seed_terrain_test_2.py   # Script de seed para terreno test 2: lago, montaña y pocos árboles (por defecto)
+├── seed_biped_structure.py  # Script de seed para migrar rutas de modelos 3D
 ├── terrain_builder.py       # Funciones para construir terrenos y límites
 │
 ├── templates/               # Sistema de templates para entidades
@@ -73,30 +74,40 @@ database/
 - Configuración desde variables de entorno
 - Manejo de errores de conexión
 
-### 5. Seed Demo (`seed_demo.py`)
+### 5. Seed Terrain Test 1 (`seed_terrain_test_1.py`)
 
-**Responsabilidad:** Crear dimensiones demo con terrenos y entidades para desarrollo y testing.
+**Responsabilidad:** Crear terreno test 1: bioma bosque denso con acuífero subterráneo.
 
 **Funcionalidad:**
-- Crea dimensión demo (40x40m)
+- Crea dimensión "Terreno Test 1 - Bosque Denso" (40x40m)
 - Genera acuífero subterráneo
-- Genera bioma bosque con árboles
+- Genera bioma bosque con muchos árboles
+- Crea personaje demo con modelo 3D (`biped_male.glb`)
 - Usa el sistema de templates/builders/creators
 
-### 6. Seed Character with Model (`seed_character_with_model.py`)
+### 5.1. Seed Terrain Test 2 (`seed_terrain_test_2.py`)
 
-**Responsabilidad:** Crear personajes con modelos 3D asociados.
+**Responsabilidad:** Crear terreno test 2: lago, montaña y pocos árboles (terreno por defecto).
 
 **Funcionalidad:**
-- Crea personajes usando templates de bípedos
-- Asocia modelos 3D desde archivos GLB
-- Crea agrupaciones con `geometria_agrupacion` para renderizado en frontend
-- Posiciona personajes en dimensiones existentes
+- Crea dimensión "Terreno Test 2 - Lago y Montaña" (40x40m)
+- Genera lago de agua en superficie
+- Genera montaña pequeña con tierra y piedra
+- Crea 10 árboles distribuidos estratégicamente
+- Usa el sistema de templates/builders/creators
 
-**Cómo ejecutar:**
-```bash
-docker-compose exec backend python -m src.database.seed_character_with_model
-```
+**Nota:** Este es el terreno usado por defecto por el frontend (ver `main.py`).
+
+### 6. Seed Biped Structure (`seed_biped_structure.py`)
+
+**Responsabilidad:** Actualizar rutas de modelos 3D a estructura biped/male/
+
+**Funcionalidad:**
+- Migra rutas de modelos desde estructura antigua (`characters/`) a nueva (`biped/male/characters/`)
+- Script idempotente que se ejecuta automáticamente al iniciar el backend
+- Actualiza solo registros que requieren cambios
+
+**Nota:** Este script se ejecuta automáticamente en el startup del backend (ver `main.py`).
 
 ### 7. Terrain Builder (`terrain_builder.py`)
 

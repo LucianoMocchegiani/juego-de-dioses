@@ -167,7 +167,7 @@ export class AnimationMixerSystem extends System {
     /**
      * Inicializar AnimationMixer para una entidad
      * @param {number} entityId - ID de la entidad
-     * @param {THREE.Object3D} mesh - Mesh del modelo (debe ser Character_output.glb con esqueleto)
+     * @param {THREE.Object3D} mesh - Mesh del modelo (debe ser biped_male.glb con esqueleto)
      */
     async initializeMixer(entityId, mesh) {
         // Verificar si ya tiene mixer
@@ -184,8 +184,8 @@ export class AnimationMixerSystem extends System {
         try {
             // Las animaciones de Meshy requieren el modelo que viene con ellas
             const backendBase = getBackendBaseUrl();
-            const baseModelFile = ANIMATION_FILES[ANIMATION_MIXER.baseModel];
-            const baseModelUrl = `${backendBase}/static/models/${baseModelFile}`;
+            const baseModelPath = 'biped/male/characters/biped_male.glb';
+            const baseModelUrl = `${backendBase}/static/models/${baseModelPath}`;
 
             const gltf = await gltfLoader.loadAsync(baseModelUrl);
             const animatedModel = gltf.scene;
@@ -252,9 +252,9 @@ export class AnimationMixerSystem extends System {
             // Cargar todas las animaciones
             const animations = {};
             for (const [animName, file] of Object.entries(ANIMATION_FILES)) {
-                // Si el valor es un string que apunta a otra animación (ej: 'jump': 'combat_stance'),
-                // no cargar, se resolverá más tarde
-                if (typeof file === 'string' && file.startsWith('animations/')) {
+                // Cargar solo si es un string válido (ruta de archivo)
+                // Excluir comentarios o valores que no sean rutas (ej: strings que indican que no existe)
+                if (typeof file === 'string' && file.startsWith('biped/male/animations/')) {
                     const clips = await this.loadAnimation(file);
                     if (clips.length > 0) {
                         animations[animName] = clips[0];
