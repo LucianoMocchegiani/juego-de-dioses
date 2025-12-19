@@ -94,10 +94,10 @@ GET /api/v1/dimensions/{dimension_id}/characters/{character_id}/model
 **Respuesta:**
 ```json
 {
-  "model_url": "/static/models/characters/humano.glb",
+  "model_url": "/static/models/biped/male/characters/biped_male.glb",
   "metadata": {
     "tipo": "glb",
-    "ruta": "characters/humano.glb",
+    "ruta": "biped/male/characters/biped_male.glb",
     "escala": 1.0,
     "offset": {"x": 0, "y": 0, "z": 0},
     "rotacion": {"x": 0, "y": 0, "z": 0}
@@ -112,7 +112,7 @@ GET /api/v1/dimensions/{dimension_id}/characters/{character_id}/model
 - `400` - Error parseando modelo_3d
 
 **Templates disponibles:**
-- `humano` - Personaje humano básico (usa modelo `Human.glb` por defecto)
+- `humano` - Personaje humano básico (usa modelo `biped_male.glb` por defecto)
 
 **Errores (crear personaje):**
 - `404` - Dimensión no encontrada
@@ -144,7 +144,7 @@ El campo `modelo_3d` en `CharacterResponse` es opcional. Si está presente, el f
 3. Mesh por defecto (fallback)
 
 **Modelo principal:**
-- `Human.glb` - Modelo humanoide voxel/low-poly con vertex groups para sistema de daño por partes (JDG-014)
-  - Vertex groups: head, torso, left_arm, right_arm, left_leg, right_leg
-  - Ubicación: `backend/static/models/characters/Human.glb`
+- `biped_male.glb` - Modelo humanoide low-poly con esqueleto (bones) para animaciones y sistema de daño por partes (JDG-014)
+  - Bones: torso, left_arm, right_arm, left_leg, right_leg, head
+  - Ubicación: `backend/static/models/biped/male/characters/biped_male.glb`
 

@@ -11,7 +11,11 @@ from dotenv import load_dotenv
 from uuid import UUID
 from src.database.terrain_builder import create_boundary_layer
 from src.database.templates.trees.registry import get_random_tree_template
+from src.database.templates.bipedos.registry import get_biped_template
 from src.database.creators.entity_creator import EntityCreator
+from src.models.schemas import Model3D
+from src.storage.local_file_storage import LocalFileStorage
+from src.database.utils.terrain_utils import get_terrain_height_area
 
 load_dotenv()
 
@@ -36,13 +40,13 @@ async def seed_demo():
     )
     
     try:
-        print("Iniciando seed de demo - Bioma Bosque 40x40 con Acuífero...")
+        print("Iniciando seed de terreno test 1 - Bosque Denso...")
         
         # 0. Borrar dimensión existente si existe (y todas sus partículas)
-        print("Verificando si existe dimensión demo anterior...")
+        print("Verificando si existe dimensión test 1 anterior...")
         existing_dim_id = await conn.fetchval("""
             SELECT id FROM juego_dioses.dimensiones 
-            WHERE nombre = 'Demo - Bioma Bosque 40x40 con Acuífero'
+            WHERE nombre = 'Terreno Test 1 - Bosque Denso'
         """)
         
         if existing_dim_id:
@@ -93,7 +97,7 @@ async def seed_demo():
         # Profundidad suficiente para acuífero (hasta z=-13) + límite
         # Altura suficiente para árboles muy grandes: tronco hasta z=30 + copa 3 niveles = z=33
         # Agregamos margen: altura_maxima = 40 para seguridad
-        print("Creando dimensión demo...")
+        print("Creando dimensión terreno test 1...")
         dimension_id = await conn.fetchval("""
             INSERT INTO juego_dioses.dimensiones (
                 nombre,
@@ -106,7 +110,7 @@ async def seed_demo():
                 origen_y,
                 origen_z
             ) VALUES (
-                'Demo - Bioma Bosque 40x40 con Acuífero',
+                'Terreno Test 1 - Bosque Denso',
                 40.0,
                 40.0,
                 -15,
@@ -415,7 +419,7 @@ async def seed_demo():
         """, dimension_id)
         
         print("\n" + "="*60)
-        print("Seed de demo completado exitosamente!")
+        print("Seed de terreno test 1 completado exitosamente!")
         print(f"Dimensión ID: {dimension_id}")
         print(f"Tamaño: {max_x}x{max_y} celdas ({dimension_data['ancho_metros']}m x {dimension_data['alto_metros']}m)")
         print(f"Total partículas: {total_particulas}")
@@ -423,6 +427,48 @@ async def seed_demo():
         print("\nDistribución por tipo:")
         for stat in stats:
             print(f"  - {stat['nombre']}: {stat['cantidad']} partículas")
+        
+        # Crear personaje demo con modelo 3D
+        print("\nCreando personaje demo con modelo 3D...")
+        try:
+            storage = LocalFileStorage()
+            model_path = "biped/male/characters/biped_male.glb"
+            
+            if await storage.model_exists(model_path):
+                template = get_biped_template('humano')
+                if template:
+                    # Posición del personaje (centro del mapa)
+                    x, y = max_x // 2, max_y // 2
+                    terrain_height = await get_terrain_height_area(conn, dimension_id, x, y, radius=1)
+                    z = (terrain_height + 1) if terrain_height is not None else 1
+                    offset_z = 0.9
+                    
+                    modelo_3d = Model3D(
+                        tipo="glb",
+                        ruta=model_path,
+                        escala=5.0,
+                        offset={"x": 0, "y": 0, "z": offset_z},
+                        rotacion={"x": 0, "y": 0, "z": 180}
+                    )
+                    
+                    creator = EntityCreator(conn, dimension_id)
+                    await creator.create_entity(
+                        template,
+                        x,
+                        y,
+                        z,
+                        create_agrupacion=True,
+                        modelo_3d=modelo_3d
+                    )
+                    print(f"✓ Personaje demo creado en posición ({x}, {y}, {z})")
+                else:
+                    print("⚠️  Template 'humano' no encontrado, saltando creación de personaje")
+            else:
+                print(f"⚠️  Modelo no encontrado: {model_path}, saltando creación de personaje")
+        except Exception as e:
+            print(f"⚠️  Error al crear personaje demo: {e}")
+            # No fallar todo el seed si falla el personaje
+        
         print("="*60)
         
     except Exception as e:
@@ -435,4 +481,4 @@ async def seed_demo():
 
 
 if __name__ == "__main__":
-    asyncio.run(seed_demo())
+    asyncio.run(seed_terrain_test_1())

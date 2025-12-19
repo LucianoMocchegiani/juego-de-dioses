@@ -29,7 +29,7 @@ Carga modelos 3D usando los loaders de Three.js. Usa Factory pattern para soport
 import { ModelLoader } from './model-loader.js';
 
 const loader = new ModelLoader();
-const model = await loader.loadModel('/static/models/characters/humano.glb', 'glb');
+const model = await loader.loadModel('/static/models/biped/male/characters/biped_male.glb', 'glb');
 ```
 
 ### ModelCache
@@ -59,7 +59,7 @@ import { loadModel3D } from './model-utils.js';
 
 const modelo3d = {
     tipo: 'glb',
-    ruta: 'characters/humano.glb',
+    ruta: 'biped/male/characters/biped_male.glb',
     escala: 1.0,
     offset: { x: 0, y: 0, z: 0 },
     rotacion: { x: 0, y: 0, z: 0 }
@@ -102,7 +102,7 @@ El cache almacena modelos originales (sin transformaciones). Al obtener un model
 
 Los modelos con animaciones incluyen un esqueleto (bones) que permite identificar partes específicas del cuerpo (ej: cabeza, brazos, piernas). Esto se usa tanto para animaciones como para el sistema de daño por partes (JDG-014).
 
-**Modelo principal:** `Character_output.glb` incluye un esqueleto con bones mapeados a:
+**Modelo principal:** `biped_male.glb` incluye un esqueleto con bones mapeados a:
 - `head` - Cabeza
 - `torso` - Torso
 - `left_arm` - Brazo izquierdo

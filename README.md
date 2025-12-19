@@ -50,8 +50,9 @@ docker-compose logs -f backend
 
 **El backend automáticamente:**
 - Crea el pool de conexiones a PostgreSQL
-- Ejecuta el seed demo si no existe la dimensión demo
-- Crea 400 partículas de hierba + 3 árboles
+- Ejecuta el seed terrain test 2 si no existe la dimensión demo
+- Crea terreno con lago, montaña, pocos árboles y personaje demo
+- Actualiza rutas de modelos 3D a estructura biped/male/ (idempotente)
 - Inicia la API en http://localhost:8000
 
 ### 2. Verificar que Todo Está Corriendo
@@ -157,8 +158,11 @@ docker-compose exec postgres psql -U juegodioses -d juego_dioses
 # Ejecutar migraciones (cuando estén implementadas)
 docker-compose exec backend alembic upgrade head
 
-# Ejecutar seed (cuando esté implementado)
-docker-compose exec backend python src/database/seed.py
+# Ejecutar seed terrain test 2 (terreno por defecto: lago, montaña y pocos árboles)
+docker-compose exec backend python -m src.database.seed_terrain_test_2
+
+# Ejecutar seed terrain test 1 (bosque denso con acuífero)
+docker-compose exec backend python -m src.database.seed_terrain_test_1
 ```
 
 ## Puertos
