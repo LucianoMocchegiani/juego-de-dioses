@@ -2,8 +2,8 @@
 Script para crear personaje con modelo 3D
 
 Este script crea un personaje humano con un modelo 3D asociado.
-Modelo principal: Character_output.glb (con esqueleto para animaciones)
-Ubicación: backend/static/models/characters/Character_output.glb
+Modelo principal: biped_male.glb (con esqueleto para animaciones)
+Ubicación: backend/static/models/biped/male/characters/biped_male.glb
 
 El modelo usa bones (esqueleto) para animaciones y sistema de daño por partes.
 - torso
@@ -12,7 +12,9 @@ El modelo usa bones (esqueleto) para animaciones y sistema de daño por partes.
 - left_leg
 - right_leg
 
-Este modelo prepara el terreno para JDG-014 (Sistema de Daño por Partes del Cuerpo).
+NOTA: Este script es opcional. Los scripts seed_terrain_test_1.py y seed_terrain_test_2.py
+pueden crear personajes automáticamente cuando se ejecutan. Este script es útil si
+quieres crear personajes adicionales manualmente en una dimensión existente.
 """
 import asyncio
 import sys
@@ -35,11 +37,11 @@ async def main():
     
     # 1. Verificar que el modelo existe
     storage = LocalFileStorage()
-    model_path = "characters/Character_output.glb"  # Modelo principal con esqueleto para animaciones
+    model_path = "biped/male/characters/biped_male.glb"  # Modelo principal con esqueleto para animaciones
     
     if not await storage.model_exists(model_path):
         print(f"⚠️  Modelo no encontrado: {model_path}")
-        print("Coloca el modelo GLB en backend/static/models/characters/Character_output.glb")
+        print("Coloca el modelo GLB en backend/static/models/biped/male/characters/biped_male.glb")
         print("O modifica 'model_path' en este script para usar otro modelo.")
         return
     
@@ -59,13 +61,13 @@ async def main():
             # Si no hay ninguna, buscar la demo específica
             dimension_id = await conn.fetchval("""
                 SELECT id FROM juego_dioses.dimensiones 
-                WHERE nombre = 'Demo - Terreno con Arboles'
+                WHERE nombre = 'Terreno Test 2 - Lago y Montaña'
                 LIMIT 1
             """)
         
         if not dimension_id:
             print(" No se encontró ninguna dimensión.")
-            print("Ejecuta primero seed_demo.py o crea una dimensión manualmente.")
+            print("Ejecuta primero seed_terrain_test_2.py o crea una dimensión manualmente.")
             return
         
         # Obtener nombre de la dimensión para mostrar
@@ -97,11 +99,11 @@ async def main():
         # Este es un valor fijo basado en la geometría del modelo (dónde está el origen)
         # Si el modelo aparece enterrado, aumentar este valor
         # Si el modelo está flotando, disminuir este valor
-        # Con escala 6.0, ajustado a 0.9m para que los pies estén completamente sobre el suelo
-        offset_z = 0.9  # Ajustar según necesidad
+        # Para el modelo biped_male.glb, el origen está cerca del suelo, usar 0 y dejar que CollisionSystem ajuste
+        offset_z = 0.0  # Eliminar offset adicional - el CollisionSystem ajustará la posición al suelo
         
         # 4. Crear modelo_3d
-        # Character_output.glb: modelo con esqueleto para animaciones de Meshy
+        # biped_male.glb: modelo con esqueleto para animaciones de Meshy
         # El modelo de las animaciones es más pequeño, usar escala 5.0
         modelo_3d = Model3D(
             tipo="glb",

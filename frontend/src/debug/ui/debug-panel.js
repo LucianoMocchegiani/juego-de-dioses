@@ -169,6 +169,33 @@ export class DebugPanel {
             </div>
         `;
         
+        // Player Position
+        let positionHtml = '';
+        if (this.app?.playerId && this.ecs) {
+            try {
+                const PositionComponent = this.ecs.getComponent(this.app.playerId, 'Position');
+                if (PositionComponent) {
+                    const x = PositionComponent.x.toFixed(2);
+                    const y = PositionComponent.y.toFixed(2);
+                    const z = PositionComponent.z.toFixed(2);
+                    positionHtml = `
+                        <div style="margin-bottom: 15px;">
+                            <h4 style="margin: 0 0 5px 0; color: #0f0;">Player Position</h4>
+                            <div style="margin-left: 10px;">
+                                <div>X: <span style="color: #0ff;">${x}</span></div>
+                                <div>Y: <span style="color: #0ff;">${y}</span></div>
+                                <div>Z: <span style="color: #0ff;">${z}</span></div>
+                            </div>
+                        </div>
+                    `;
+                }
+            } catch (e) {
+                // Si no se puede obtener la posición, simplemente no mostrar
+            }
+        }
+        
+        html += positionHtml;
+        
         // Performance
         html += `
             <div style="margin-bottom: 15px;">
