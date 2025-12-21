@@ -96,7 +96,7 @@ export function initDevelopmentTools(app) {
  * Esta función expone en window todas las herramientas útiles para desarrollo
  * y testing, incluyendo:
  * - window.app: Instancia principal de la aplicación
- * - window.debugTools: Herramientas de debugging (logger, inspector, metrics, etc.)
+ * - window.developmentTools: Herramientas de debugging (logger, inspector, metrics, etc.)
  * - window.equipWeapon: Funciones para equipar/desequipar armas
  * - window.getEquippedWeapon: Obtener arma equipada
  * - window.listAvailableWeapons: Listar armas disponibles
@@ -140,7 +140,7 @@ export function exposeDevelopmentTools(app, options = {}) {
         // También exponer directamente para fácil acceso
         window.testInterface = developmentTools.testInterface;
         
-        console.log('[DebugTools] Herramientas de debugging inicializadas. Usa window.debugTools para acceder.');
+        console.log('[DebugTools] Herramientas de debugging inicializadas. Usa window.developmentTools para acceder.');
         console.log('[DebugTools] Interface disponible:', developmentTools.interface ? 'Sí' : 'No');
         console.log('[DebugTools] Interface enabled:', developmentTools.interface?.enabled);
         console.log('[DebugTools] Test Interface disponible: F6 para abrir/cerrar');
