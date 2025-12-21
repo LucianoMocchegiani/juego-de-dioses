@@ -7,7 +7,7 @@
  */
 
 import * as THREE from 'three';
-import { findBone, hasSkeleton, listBones } from '../renderers/models/bones-utils.js';
+import { findBone, hasSkeleton, listBones } from '../ecs/models/bones-utils.js';
 import { debugLogger } from '../debug/logger.js';
 
 

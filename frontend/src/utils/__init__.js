@@ -43,15 +43,6 @@ export {
     defaultValue
 } from './helpers.js';
 
-// Culling
-export {
-    frustumCull,
-    FrustumCache
-} from './culling.js';
-
-// Sorting
-export {
-    sortParticlesByDepth,
-    SortingCache
-} from './sorting.js';
+// Nota: frustumCull, FrustumCache, sortParticlesByDepth y SortingCache
+// fueron migrados a terrain/utils/ como parte de la refactorización JDG-035-2
 

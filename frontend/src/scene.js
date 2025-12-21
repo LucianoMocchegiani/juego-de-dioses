@@ -12,7 +12,7 @@ import {
     MATERIAL_DEFAULT_ROUGHNESS,
     COLOR_MAX_VALUE,
     DEFAULT_CELL_SIZE
-} from './constants.js';
+} from './config/constants.js';
 
 /**
  * @typedef {import('./types.js').ParticleStyle} ParticleStyle
