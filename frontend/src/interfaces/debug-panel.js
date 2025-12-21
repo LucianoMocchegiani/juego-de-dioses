@@ -70,23 +70,23 @@ export class DebugPanel {
      */
     setupLoggerSubscription() {
         // Intentar suscribirse inmediatamente
-        if (window.debugTools?.logger) {
-            window.debugTools.logger.subscribe(this.handleLogEntry.bind(this));
+        if (window.developmentTools?.logger) {
+            window.developmentTools.logger.subscribe(this.handleLogEntry.bind(this));
             return;
         }
         
         // Si no está disponible, intentar después de un breve delay
         setTimeout(() => {
-            if (window.debugTools?.logger) {
-                window.debugTools.logger.subscribe(this.handleLogEntry.bind(this));
+            if (window.developmentTools?.logger) {
+                window.developmentTools.logger.subscribe(this.handleLogEntry.bind(this));
             } else {
                 // Si aún no está disponible, intentar cada 100ms hasta 5 segundos
                 let attempts = 0;
                 const maxAttempts = 50;
                 const checkInterval = setInterval(() => {
                     attempts++;
-                    if (window.debugTools?.logger) {
-                        window.debugTools.logger.subscribe(this.handleLogEntry.bind(this));
+                    if (window.developmentTools?.logger) {
+                        window.developmentTools.logger.subscribe(this.handleLogEntry.bind(this));
                         clearInterval(checkInterval);
                     } else if (attempts >= maxAttempts) {
                         clearInterval(checkInterval);
@@ -293,8 +293,8 @@ export class DebugPanel {
         this.stopAutoUpdate();
         
         // Desuscribirse del logger
-        if (window.debugTools?.logger) {
-            window.debugTools.logger.unsubscribe(this.handleLogEntry.bind(this));
+        if (window.developmentTools?.logger) {
+            window.developmentTools.logger.unsubscribe(this.handleLogEntry.bind(this));
         }
         
         if (this.panel && this.panel.parentNode) {
