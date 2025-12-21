@@ -9,7 +9,7 @@ import {
     CAMERA_POSITION_X,
     CAMERA_POSITION_Y,
     CAMERA_POSITION_Z
-} from '../constants.js';
+} from '../config/constants.js';
 
 export class Camera {
     /**

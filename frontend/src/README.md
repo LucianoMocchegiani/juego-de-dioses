@@ -9,41 +9,26 @@ src/
 ├── main.js                    # Punto de entrada, inicialización mínima
 ├── app.js                     # Aplicación principal (orquestación)
 │
-├── core/                      # Núcleo de Three.js
-│   ├── scene.js              # Escena base (configuración mínima)
+├── core/                      # Infraestructura base compartida
+│   ├── scene.js              # Escena base Three.js
 │   ├── camera.js             # Gestión de cámara
 │   ├── controls.js           # Controles de cámara (OrbitControls wrapper)
 │   ├── renderer.js           # Renderizador WebGL
 │   ├── lights.js             # Gestión de luces
-│   └── helpers.js            # Helpers (grid, axes) con gestión dinámica
-│
-├── renderers/                 # Sistema de renderizadores
-│   ├── base-renderer.js      # Renderizador base abstracto
-│   ├── particle-renderer.js  # Renderizador genérico de partículas
-│   ├── tree-renderer.js      # Renderizador especializado para árboles
-│   ├── geometries/           # Registry de geometrías
-│   │   └── registry.js      # Registry de geometrías (box, sphere, cylinder, etc.)
-│   └── registry.js          # Registry de renderizadores
-│
-├── components/               # Componentes reutilizables
-│   ├── ui/                   # Componentes UI
-│   │   ├── button.js
-│   │   ├── panel.js
-│   │   ├── loading.js
-│   │   └── info-panel.js
-│   └── entities/             # Componentes de entidades
-│       ├── tree-view.js
-│       └── entity-info.js
+│   ├── helpers.js            # Helpers (grid, axes) con gestión dinámica
+│   ├── geometries/           # Registry de geometrías (compartido)
+│   │   └── registry.js      # Registry de geometrías (box, sphere, etc.)
+│   ├── renderers/            # Renderizadores base
+│   │   └── base-renderer.js  # Clase base abstracta
+│   ├── performance/          # Gestión de rendimiento
+│   │   └── performance-manager.js
+│   └── input/                # Input centralizado
+│       └── input-manager.js
 │
 ├── state/                    # Gestión de estado
 │   ├── store.js             # Store centralizado
 │   ├── actions.js           # Acciones para modificar estado
 │   └── selectors.js         # Selectores de estado
-│
-├── managers/                 # Gestores de alto nivel
-│   ├── viewport-manager.js  # Gestión de viewport y carga de datos
-│   ├── style-manager.js     # Gestión de cache de estilos
-│   └── entity-manager.js    # Gestión de entidades y renderizadores
 │
 ├── api/                      # Cliente API modular
 │   ├── client.js            # Cliente base con configuración
@@ -57,12 +42,25 @@ src/
 │   ├── system.js           # Clase base System
 │   ├── components/         # Componentes (Position, Physics, Render, Input, Animation)
 │   ├── systems/            # Sistemas (Input, Physics, Render, Collision, Animation)
-│   └── factories/          # Factories para crear entidades (PlayerFactory)
+│   ├── factories/          # Factories para crear entidades (PlayerFactory)
+│   └── models/             # Sistema de carga de modelos 3D (GLTF/GLB)
+│       ├── model-loader.js
+│       ├── model-cache.js
+│       ├── bones-utils.js
+│       └── ...
 │
-├── systems/                 # Sistemas de juego
-│   ├── input-manager.js   # Gestor centralizado de input
-│   ├── collision-detector.js # Detector de colisiones
-│   └── camera-controller.js  # Controlador de cámara
+├── terrain/                 # Sistema de terreno (JDG-035-2)
+│   ├── manager.js          # TerrainManager
+│   ├── components/         # Componentes de datos
+│   ├── systems/            # Sistemas de procesamiento
+│   ├── renderers/          # Renderizadores
+│   ├── optimizations/      # Optimizaciones (LOD, culling, limiting)
+│   ├── utils/              # Utilidades específicas
+│   └── api/                # Clientes API
+│
+├── world/                   # Servicios de integración del mundo (JDG-035-3)
+│   ├── camera-controller.js # Control de cámara (sigue jugador)
+│   └── collision-detector.js # Colisiones con terreno
 │
 ├── utils/                    # Utilidades organizadas
 │   ├── colors.js           # Utilidades de colores
@@ -81,47 +79,41 @@ src/
    ↓
 2. app.js orquesta el flujo
    ↓
-3. ViewportManager calcula viewport
+3. TerrainManager carga dimensión y partículas
    ↓
-4. ApiClient carga datos (partículas, tipos)
+4. Store actualiza estado
    ↓
-5. StyleManager cachea estilos
-   ↓
-6. EntityManager selecciona renderizadores apropiados
-   ↓
-7. Renderizadores especializados renderizan entidades
-   ↓
-8. Store actualiza estado
-   ↓
-9. Componentes UI se actualizan (reactivos al estado)
+5. Componentes UI se actualizan (reactivos al estado)
 ```
 
 ## Módulos Principales
 
 ### Core (`core/`)
-Configuración base de Three.js: escena, cámara, controles, renderizador, luces, helpers.
+Infraestructura base compartida: configuración Three.js, registry de geometrías, renderizadores base, gestión de performance, input centralizado.
+
+**Contenido:**
+- Configuración Three.js (scene, camera, renderer, controls, lights, helpers)
+- `geometries/registry.js`: Registry compartido usado por terrain y otros sistemas
+- `renderers/base-renderer.js`: Clase base abstracta para renderizadores
+- `performance/performance-manager.js`: Métricas globales de rendimiento
+- `input/input-manager.js`: Input centralizado usado por app y ECS
 
 **Ver:** `core/README.md` para documentación completa.
 
-### Renderers (`renderers/`)
-Sistema de renderizadores especializados por tipo de entidad, con soporte para formas geométricas desde BD.
+### Terrain (`terrain/`)
+Sistema completo de terreno: gestión de partículas, viewports, renderizado, optimizaciones.
 
-**Ver:** `renderers/README.md` para documentación completa.
+**Ver:** `terrain/README.md` para documentación completa.
 
-### Components (`components/`)
-Componentes UI reutilizables y componentes de entidades.
+### World (`world/`)
+Servicios que integran múltiples sistemas para el mundo virtual: control de cámara, detección de colisiones.
 
-**Ver:** `components/README.md` para documentación completa.
+**Ver:** `world/README.md` para documentación completa.
 
 ### State (`state/`)
 Sistema de gestión de estado centralizado (custom store simple).
 
 **Ver:** `state/README.md` para documentación completa.
-
-### Managers (`managers/`)
-Gestores de alto nivel que coordinan múltiples sistemas.
-
-**Ver:** `managers/README.md` para documentación completa.
 
 ### API (`api/`)
 Cliente API modular organizado por recurso.
@@ -135,18 +127,9 @@ Sistema ECS (Entity Component System) para gestionar entidades jugables y del mu
 - Componentes: Position, Physics, Render, Input, Animation
 - Sistemas: InputSystem, PhysicsSystem, RenderSystem, CollisionSystem, AnimationSystem
 - Factories: PlayerFactory para crear jugadores
+- Models: Sistema de carga de modelos 3D (GLTF/GLB) usado solo por ECS
 
 **Ver:** `ecs/README.md` para documentación completa.
-
-### Systems (`systems/`)
-Sistemas de juego que operan sobre entidades del ECS o proporcionan servicios globales.
-
-**Características:**
-- InputManager: Gestión centralizada de input (teclado, mouse)
-- CollisionDetector: Detección de colisiones con partículas sólidas
-- CameraController: Controlador de cámara que sigue al jugador
-
-**Ver:** `systems/README.md` para documentación completa.
 
 ### Utils (`utils/`)
 Funciones de utilidad organizadas por tipo.
@@ -172,19 +155,12 @@ Funciones de utilidad organizadas por tipo.
 ## Extensibilidad
 
 ### Agregar Nuevo Renderizador
-1. Crear archivo en `renderers/` (ej: `plant-renderer.js`)
-2. Extender `BaseRenderer`
-3. Registrar en `renderers/registry.js`
-4. Actualizar `EntityManager` para seleccionarlo
+1. Para terreno: Crear en `terrain/renderers/` (extender `BaseRenderer` de `core/renderers/`)
+2. Para otros: Crear en el módulo correspondiente (ECS, etc.)
 
 ### Agregar Nueva Geometría
-1. Agregar factory en `renderers/geometries/registry.js`
+1. Agregar factory en `core/geometries/registry.js`
 2. Registrar con `registry.register('tipo', factory)`
-
-### Agregar Nuevo Componente UI
-1. Crear archivo en `components/ui/` (ej: `modal.js`)
-2. Implementar métodos `render()`, `update()`, `destroy()`
-3. Exportar en `components/__init__.js`
 
 ## Mantenimiento de READMEs
 

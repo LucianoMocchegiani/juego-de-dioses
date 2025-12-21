@@ -10,7 +10,7 @@ import {
     LUZ_DIRECCIONAL_POS_X,
     LUZ_DIRECCIONAL_POS_Y,
     LUZ_DIRECCIONAL_POS_Z
-} from '../constants.js';
+} from '../config/constants.js';
 
 export class Lights {
     constructor() {
