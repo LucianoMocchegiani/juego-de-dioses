@@ -60,9 +60,9 @@ Inspector de estado ECS para inspeccionar entidades y componentes en tiempo real
 **Uso:**
 ```javascript
 // En consola del navegador
-window.debugTools.inspector.inspectEntity(playerId);
-window.debugTools.inspector.findEntities({ hasComponent: 'Animation' });
-window.debugTools.inspector.getStats();
+window.developmentTools.inspector.inspectEntity(playerId);
+window.developmentTools.inspector.findEntities({ hasComponent: 'Animation' });
+window.developmentTools.inspector.getStats();
 ```
 
 ### DebugMetrics (`metrics.js`)
@@ -78,7 +78,7 @@ Sistema de métricas detalladas de performance por sistema.
 **Uso:**
 ```javascript
 // En consola del navegador
-const stats = window.debugTools.metrics.getStats();
+const stats = window.developmentTools.metrics.getStats();
 console.log(stats);
 ```
 
@@ -225,7 +225,7 @@ exposeDevelopmentTools(app, { developmentTools });
 El módulo `dev-exposure.js` (ubicado en la raíz de `src/`) centraliza:
 - La detección de entorno de desarrollo
 - La inicialización de todas las herramientas
-- La exposición global en `window.debugTools`
+- La exposición global en `window.developmentTools`
 
 ## Acceso desde Consola
 
@@ -233,14 +233,14 @@ Todas las herramientas están disponibles globalmente en desarrollo:
 
 ```javascript
 // En consola del navegador
-window.debugTools.logger       // DebugLogger
-window.debugTools.inspector    // ECSInspector
-window.debugTools.metrics      // DebugMetrics
-window.debugTools.validator    // StateValidator
-window.debugTools.events       // DebugEventEmitter
-window.debugTools.panel        // DebugPanel
-window.debugTools.interface    // DebugInterface
-window.debugTools.testInterface // TestInterface
+window.developmentTools.logger       // DebugLogger
+window.developmentTools.inspector    // ECSInspector
+window.developmentTools.metrics      // DebugMetrics
+window.developmentTools.validator    // StateValidator
+window.developmentTools.events       // DebugEventEmitter
+window.developmentTools.panel        // DebugPanel
+window.developmentTools.interface    // DebugInterface
+window.developmentTools.testInterface // TestInterface
 ```
 
 **O usa la interfaz GUI (F4):**
