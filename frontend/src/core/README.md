@@ -6,13 +6,27 @@ Este módulo contiene la configuración base de Three.js, separada en responsabi
 
 ```
 core/
-├── scene.js      # Escena base (configuración mínima)
-├── camera.js     # Gestión de cámara
-├── controls.js   # Controles de cámara (OrbitControls wrapper)
-├── renderer.js   # Renderizador WebGL
-├── lights.js      # Gestión de luces
-└── helpers.js    # Helpers (grid, axes) con gestión dinámica
+├── scene.js              # Escena base (configuración mínima)
+├── camera.js             # Gestión de cámara
+├── controls.js           # Controles de cámara (OrbitControls wrapper)
+├── renderer.js           # Renderizador WebGL
+├── lights.js             # Gestión de luces
+├── helpers.js            # Helpers (grid, axes) con gestión dinámica
+│
+├── geometries/           # Registry de geometrías (compartido)
+│   └── registry.js       # Registry de geometrías (box, sphere, etc.)
+│
+├── renderers/            # Renderizadores base
+│   └── base-renderer.js  # Clase base abstracta
+│
+├── performance/          # Gestión de rendimiento
+│   └── performance-manager.js
+│
+└── input/                # Input centralizado
+    └── input-manager.js
 ```
+
+**Nota:** Este módulo agrupa toda la infraestructura base compartida. Fue expandido como parte de la refactorización JDG-035-3 para incluir geometrías, renderers base, performance e input que anteriormente estaban dispersos en otros módulos.
 
 ## Componentes
 
@@ -95,8 +109,30 @@ function animate() {
 }
 ```
 
+## Submódulos
+
+### Geometries (`geometries/`)
+Registry de geometrías compartido usado por terrain y otros sistemas.
+
+**Ver:** `geometries/registry.js` para más detalles.
+
+### Renderers (`renderers/`)
+Renderizadores base abstractos.
+
+**Ver:** `renderers/base-renderer.js` y `geometries/registry.js` para más detalles.
+
+### Performance (`performance/`)
+Gestión de métricas de rendimiento globales.
+
+**Ver:** `performance/performance-manager.js` para más detalles.
+
+### Input (`input/`)
+Input centralizado usado por app y ECS.
+
+**Ver:** `input/input-manager.js` para más detalles.
+
 ## Referencias
 
 - Ver `frontend/src/README.md` para información general
-- Ver análisis de arquitectura para más detalles
+- Ver análisis de arquitectura JDG-035-3 para más detalles sobre la reorganización
 

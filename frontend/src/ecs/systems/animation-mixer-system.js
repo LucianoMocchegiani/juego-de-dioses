@@ -8,7 +8,7 @@ import { System } from '../system.js';
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { getBackendBaseUrl } from '../../utils/config.js';
-import { mapBonesToBodyParts } from '../../renderers/models/bones-utils.js';
+import { mapBonesToBodyParts } from '../models/bones-utils.js';
 import { ANIMATION_FILES, ANIMATION_STATES, ANIMATION_MIXER } from '../../config/animation-config.js';
 import { AnimationState } from '../states/animation-state.js';
 import { COMBAT_ACTIONS } from '../../config/combat-actions-config.js';

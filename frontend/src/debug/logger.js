@@ -1,7 +1,7 @@
 /**
  * Sistema de logging estructurado para debugging
  */
-import { DEBUG_CONFIG } from './config.js';
+import { DEBUG_CONFIG } from '../config/debug-config.js';
 
 export class DebugLogger {
     constructor(options = {}) {

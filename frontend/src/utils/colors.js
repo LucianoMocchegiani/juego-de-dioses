@@ -1,7 +1,7 @@
 /**
  * Utilidades de colores
  */
-import { COLOR_MAX_VALUE } from '../constants.js';
+import { COLOR_MAX_VALUE } from '../config/constants.js';
 
 /**
  * Aumentar brillo de un color RGB

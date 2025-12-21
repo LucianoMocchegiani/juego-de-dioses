@@ -6,7 +6,7 @@ import {
     CONTROLS_DAMPING_FACTOR,
     CONTROLS_MIN_DISTANCE,
     CONTROLS_MAX_DISTANCE
-} from '../constants.js';
+} from '../config/constants.js';
 
 export class Controls {
     /**

@@ -5,10 +5,10 @@
  */
 import * as THREE from 'three';
 import { PositionComponent, PhysicsComponent, RenderComponent, InputComponent, AnimationComponent, ComboComponent, CombatComponent, WeaponComponent } from '../components/index.js';
-import { GeometryRegistry } from '../../renderers/geometries/registry.js';
+import { GeometryRegistry } from '../../core/geometries/registry.js';
 import { getCharacter, createCharacter } from '../../api/endpoints/characters.js';
-import { loadModel3D } from '../../renderers/models/model-utils.js';
-import { listBones, mapBonesToBodyParts, hasSkeleton, listBonesFormatted } from '../../renderers/models/bones-utils.js';
+import { loadModel3D } from '../models/model-utils.js';
+import { listBones, mapBonesToBodyParts, hasSkeleton, listBonesFormatted } from '../models/bones-utils.js';
 import { ECS_CONSTANTS } from '../../config/ecs-constants.js';
 import { ANIMATION_CONSTANTS } from '../../config/animation-constants.js';
 import { COMBAT_CONSTANTS } from '../../config/combat-constants.js';
