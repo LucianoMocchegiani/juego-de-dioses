@@ -7,14 +7,14 @@ Guía completa para usar las herramientas de debugging desde la consola del nave
 Abre la consola del navegador (F12) y accede a las herramientas mediante:
 
 ```javascript
-window.debugTools
+window.developmentTools
 ```
 
 Todas las herramientas están disponibles globalmente en modo desarrollo.
 
 ## Herramientas Disponibles
 
-### DebugLogger (`window.debugTools.logger`)
+### DebugLogger (`window.developmentTools.logger`)
 
 Sistema de logging estructurado.
 
@@ -53,7 +53,7 @@ debugTools.logger.warn('CombatSystem', 'Acción inválida detectada', { actionId
 debugTools.logger.setFilters({ system: 'InputManager' });
 ```
 
-### ECSInspector (`window.debugTools.inspector`)
+### ECSInspector (`window.developmentTools.inspector`)
 
 Inspeccionar entidades y componentes del ECS.
 
@@ -113,7 +113,7 @@ const combatEntities = debugTools.inspector.findEntities({
 console.log('Entidades de combate:', combatEntities);
 ```
 
-### DebugMetrics (`window.debugTools.metrics`)
+### DebugMetrics (`window.developmentTools.metrics`)
 
 Métricas detalladas de performance.
 
@@ -147,7 +147,7 @@ console.log('Tiempo de animación:', animationTime.avgTime, 'ms');
 debugTools.metrics.reset();
 ```
 
-### StateValidator (`window.debugTools.validator`)
+### StateValidator (`window.developmentTools.validator`)
 
 Validador de estados del juego.
 
@@ -185,7 +185,7 @@ if (!isValid) {
 }
 ```
 
-### DebugEventEmitter (`window.debugTools.events`)
+### DebugEventEmitter (`window.developmentTools.events`)
 
 Sistema de eventos para debugging.
 
@@ -241,7 +241,7 @@ const allEvents = debugTools.events.getHistory();
 console.log('Total de eventos:', allEvents.length);
 ```
 
-### DebugPanel (`window.debugTools.panel`)
+### DebugPanel (`window.developmentTools.panel`)
 
 Panel visual de debugging (F3).
 
@@ -265,7 +265,7 @@ if (debugTools.panel.visible) {
 }
 ```
 
-### DebugInterface (`window.debugTools.interface`)
+### DebugInterface (`window.developmentTools.interface`)
 
 Interfaz gráfica de debugging (F4).
 
@@ -294,18 +294,18 @@ if (debugTools.interface.visible) {
 También puedes acceder directamente a las instancias principales:
 
 ```javascript
-// Acceso directo (sin window.debugTools)
-const app = window.debugTools.app;        // Instancia de App
-const ecs = window.debugTools.ecs;        // ECS Manager
+// Acceso directo (sin window.developmentTools)
+const app = window.developmentTools.app;        // Instancia de App
+const ecs = window.developmentTools.ecs;        // ECS Manager
 
 // O usar los atajos
-const inspector = window.debugTools.inspector;
-const metrics = window.debugTools.metrics;
-const logger = window.debugTools.logger;
-const validator = window.debugTools.validator;
-const events = window.debugTools.events;
-const panel = window.debugTools.panel;
-const interface = window.debugTools.interface;
+const inspector = window.developmentTools.inspector;
+const metrics = window.developmentTools.metrics;
+const logger = window.developmentTools.logger;
+const validator = window.developmentTools.validator;
+const events = window.developmentTools.events;
+const panel = window.developmentTools.panel;
+const interface = window.developmentTools.interface;
 ```
 
 ## Ejemplos de Uso Avanzado

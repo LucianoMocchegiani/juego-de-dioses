@@ -60,8 +60,8 @@ export class DebugInterface extends BaseInterface {
      */
     setupLoggerSubscription() {
         const subscribe = () => {
-            if (window.debugTools?.logger) {
-                window.debugTools.logger.subscribe(this.handleLogEntry.bind(this));
+            if (window.developmentTools?.logger) {
+                window.developmentTools.logger.subscribe(this.handleLogEntry.bind(this));
                 return true;
             }
             return false;
@@ -190,7 +190,7 @@ export class DebugInterface extends BaseInterface {
             // Botón para obtener estadísticas usando patrón reutilizable
             this.createActionResultPattern({
                 buttonText: 'Obtener Estadísticas del ECS',
-                onAction: () => window.debugTools?.inspector?.getStats(),
+                onAction: () => window.developmentTools?.inspector?.getStats(),
                 resultTitle: 'Estadísticas del ECS',
                 onError: () => 'Inspector no disponible'
             }),
@@ -201,7 +201,7 @@ export class DebugInterface extends BaseInterface {
                 buttonText: 'Buscar',
                 inputWidth: '300px',
                 onSearch: (component) => {
-                    const results = window.debugTools?.inspector?.findEntities({ hasComponent: component });
+                    const results = window.developmentTools?.inspector?.findEntities({ hasComponent: component });
                     if (results) {
                         this.showResult(this.mainContent, `Entidades con componente '${component}'`, results);
                     } else {
@@ -219,7 +219,7 @@ export class DebugInterface extends BaseInterface {
                     onSearch: (value) => {
                         const entityId = parseInt(value);
                         if (!isNaN(entityId)) {
-                            const result = window.debugTools?.inspector?.inspectEntity(entityId);
+                            const result = window.developmentTools?.inspector?.inspectEntity(entityId);
                             if (result) {
                                 this.showResult(this.mainContent, `Entidad ${entityId}`, result);
                             } else {
@@ -246,7 +246,7 @@ export class DebugInterface extends BaseInterface {
             // Botón para obtener métricas usando patrón reutilizable
             const metricsAction = this.createActionResultPattern({
                 buttonText: 'Obtener Métricas',
-                onAction: () => window.debugTools?.metrics?.getStats(),
+                onAction: () => window.developmentTools?.metrics?.getStats(),
                 resultTitle: 'Métricas de Performance',
                 onError: () => 'Métricas no disponibles'
             });
@@ -254,7 +254,7 @@ export class DebugInterface extends BaseInterface {
             
             // Botón para resetear
             const resetBtn = this.createButton('Resetear Métricas', () => {
-                window.debugTools?.metrics?.reset();
+                window.developmentTools?.metrics?.reset();
                 this.showInfo(container, 'Métricas reseteadas');
             }, { variant: 'warning', margin: '0 0 0 10px' });
             elements.push(resetBtn);
@@ -268,7 +268,7 @@ export class DebugInterface extends BaseInterface {
                 onChange: (checked) => {
                     if (checked) {
                         autoRefreshInterval = setInterval(() => {
-                            const metrics = window.debugTools?.metrics?.getStats();
+                            const metrics = window.developmentTools?.metrics?.getStats();
                             if (metrics) {
                                 this.showResult(container, 'Métricas de Performance (Auto-refresh)', metrics, true);
                             }
@@ -298,7 +298,7 @@ export class DebugInterface extends BaseInterface {
             // Ver historial usando patrón reutilizable
             this.createActionResultPattern({
                 buttonText: 'Ver Historial de Eventos',
-                onAction: () => window.debugTools?.events?.getHistory(),
+                onAction: () => window.developmentTools?.events?.getHistory(),
                 resultTitle: 'Historial de Eventos',
                 onError: () => 'Eventos no disponibles'
             }),
@@ -309,7 +309,7 @@ export class DebugInterface extends BaseInterface {
                 buttonText: 'Filtrar',
                 inputWidth: '300px',
                 onSearch: (eventName) => {
-                    const filtered = window.debugTools?.events?.getHistory(eventName);
+                    const filtered = window.developmentTools?.events?.getHistory(eventName);
                     if (filtered) {
                         this.showResult(this.mainContent, `Eventos: ${eventName}`, filtered);
                     } else {
@@ -319,7 +319,7 @@ export class DebugInterface extends BaseInterface {
             }),
             // Limpiar historial
             this.createButton('Limpiar Historial', () => {
-                window.debugTools?.events?.clearHistory();
+                window.developmentTools?.events?.clearHistory();
                 this.showInfo(this.mainContent, 'Historial limpiado');
             }, { variant: 'danger', margin: '15px 0 0 0' })
         ]);
@@ -341,29 +341,29 @@ export class DebugInterface extends BaseInterface {
                 borderRadius: '5px'
             });
             
-            const initialPanelState = window.debugTools?.panel?.visible || false;
+            const initialPanelState = window.developmentTools?.panel?.visible || false;
             const { checkbox: panelCheck, container: panelCheckContainer } = this.createCheckbox({
                 labelText: 'Mostrar Debug Panel (F3)',
                 checked: initialPanelState
             });
             this.panelCheckbox = panelCheck;
             
-            if (window.debugTools?.panel) {
-                const originalToggle = window.debugTools.panel.toggle.bind(window.debugTools.panel);
-                window.debugTools.panel.toggle = () => {
+            if (window.developmentTools?.panel) {
+                const originalToggle = window.developmentTools.panel.toggle.bind(window.developmentTools.panel);
+                window.developmentTools.panel.toggle = () => {
                     originalToggle();
                     if (this.panelCheckbox) {
-                        this.panelCheckbox.checked = window.debugTools.panel.visible;
+                        this.panelCheckbox.checked = window.developmentTools.panel.visible;
                     }
                 };
             }
             
             panelCheck.onchange = (e) => {
-                if (window.debugTools?.panel) {
-                    if (e.target.checked && !window.debugTools.panel.visible) {
-                        window.debugTools.panel.toggle();
-                    } else if (!e.target.checked && window.debugTools.panel.visible) {
-                        window.debugTools.panel.toggle();
+                if (window.developmentTools?.panel) {
+                    if (e.target.checked && !window.developmentTools.panel.visible) {
+                        window.developmentTools.panel.toggle();
+                    } else if (!e.target.checked && window.developmentTools.panel.visible) {
+                        window.developmentTools.panel.toggle();
                     }
                 }
             };
@@ -376,11 +376,11 @@ export class DebugInterface extends BaseInterface {
             levelSection.appendChild(this.createLabel('Nivel de log:'));
             levelSection.appendChild(this.createSelect({
                 options: ['debug', 'info', 'warn', 'error'],
-                selected: window.debugTools?.logger?.level || 'info',
+                selected: window.developmentTools?.logger?.level || 'info',
                 width: '200px',
                 onChange: (value) => {
-                    if (window.debugTools?.logger) {
-                        window.debugTools.logger.level = value;
+                    if (window.developmentTools?.logger) {
+                        window.developmentTools.logger.level = value;
                         this.showInfo(container, `Nivel de log cambiado a: ${value}`);
                     }
                 }
@@ -432,8 +432,8 @@ export class DebugInterface extends BaseInterface {
                 buttonText: 'Probar',
                 inputWidth: '300px',
                 onSearch: (message) => {
-                    if (window.debugTools?.logger) {
-                        window.debugTools.logger.info('DebugInterface', message, { test: true });
+                    if (window.developmentTools?.logger) {
+                        window.developmentTools.logger.info('DebugInterface', message, { test: true });
                         this.showInfo(container, `Mensaje enviado: "${message}"`);
                     }
                 }
@@ -487,7 +487,7 @@ export class DebugInterface extends BaseInterface {
      * @param {HTMLSelectElement} selectElement - Elemento select
      */
     updateEntityList(selectElement) {
-        if (!selectElement || !window.debugTools?.inspector) return;
+        if (!selectElement || !window.developmentTools?.inspector) return;
         
         try {
             const entities = this.ecs.query();
@@ -527,7 +527,7 @@ export class DebugInterface extends BaseInterface {
      * @param {HTMLElement} container - Contenedor donde mostrar el resultado
      */
     showAvailableEntities(container) {
-        if (!window.debugTools?.inspector) {
+        if (!window.developmentTools?.inspector) {
             this.showError(container, 'Inspector no disponible');
             return;
         }
@@ -542,7 +542,7 @@ export class DebugInterface extends BaseInterface {
             }
             
             const entitiesInfo = entityArray.map(id => {
-                const info = window.debugTools.inspector.inspectEntity(id);
+                const info = window.developmentTools.inspector.inspectEntity(id);
                 return {
                     id,
                     components: info ? Object.keys(info.components) : [],
@@ -639,15 +639,15 @@ export class DebugInterface extends BaseInterface {
         const context = {
             window: window,
             console: console,
-            debugTools: window.debugTools,
+            debugTools: window.developmentTools,
             app: this.app,
             ecs: this.ecs,
-            inspector: window.debugTools?.inspector,
-            metrics: window.debugTools?.metrics,
-            logger: window.debugTools?.logger,
-            validator: window.debugTools?.validator,
-            events: window.debugTools?.events,
-            panel: window.debugTools?.panel
+            inspector: window.developmentTools?.inspector,
+            metrics: window.developmentTools?.metrics,
+            logger: window.developmentTools?.logger,
+            validator: window.developmentTools?.validator,
+            events: window.developmentTools?.events,
+            panel: window.developmentTools?.panel
         };
         
         const func = new Function(...Object.keys(context), `return ${command}`);
@@ -675,8 +675,8 @@ export class DebugInterface extends BaseInterface {
      */
     destroy() {
         // Desuscribirse del logger
-        if (window.debugTools?.logger) {
-            window.debugTools.logger.unsubscribe(this.handleLogEntry.bind(this));
+        if (window.developmentTools?.logger) {
+            window.developmentTools.logger.unsubscribe(this.handleLogEntry.bind(this));
         }
         
         // Llamar destroy de la clase base
