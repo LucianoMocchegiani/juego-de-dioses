@@ -9,8 +9,8 @@
 import { System } from '../system.js';
 import { ECS_CONSTANTS } from '../../config/ecs-constants.js';
 import { WEAPON_MODELS } from '../../config/weapon-models-config.js';
-import { ModelLoader } from '../../renderers/models/model-loader.js';
-import { ModelCache } from '../../renderers/models/model-cache.js';
+import { ModelLoader } from '../models/model-loader.js';
+import { ModelCache } from '../models/model-cache.js';
 import { attachWeaponToCharacter, detachWeaponFromCharacter } from '../../utils/weapon-attachment.js';
 import { getBackendBaseUrl } from '../../utils/config.js';
 import { debugLogger } from '../../debug/logger.js';

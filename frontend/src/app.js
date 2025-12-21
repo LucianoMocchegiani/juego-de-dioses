@@ -4,24 +4,21 @@
 import { Store } from './state/store.js';
 import { actions } from './state/actions.js';
 import { selectors } from './state/selectors.js';
-import { ViewportManager } from './managers/viewport-manager.js';
-import { StyleManager } from './managers/style-manager.js';
-import { EntityManager } from './managers/entity-manager.js';
-import { PerformanceManager } from './managers/performance-manager.js';
+import { PerformanceManager } from './core/performance/performance-manager.js';
 import { ApiClient } from './api/client.js';
 import { DimensionsApi, ParticlesApi, CharactersApi, initCharactersApi } from './api/endpoints/__init__.js';
 import { Scene3D } from './core/scene.js';
-import { ParticleRenderer } from './renderers/particle-renderer.js';
-import { GeometryRegistry } from './renderers/geometries/registry.js';
-import { DEMO_DIMENSION_NAME } from './constants.js';
+import { GeometryRegistry } from './core/geometries/registry.js';
+import { TerrainManager } from './terrain/manager.js';
+import { DEMO_DIMENSION_NAME } from './config/constants.js';
 import { ECSManager } from './ecs/index.js';
 import { InputSystem, PhysicsSystem, RenderSystem, CollisionSystem, AnimationStateSystem, AnimationMixerSystem, ComboSystem, CombatSystem, WeaponEquipSystem } from './ecs/systems/index.js';
 import { PlayerFactory } from './ecs/factories/player-factory.js';
-import { InputManager } from './systems/input-manager.js';
-import { CollisionDetector } from './systems/collision-detector.js';
-import { CameraController } from './systems/camera-controller.js';
+import { InputManager } from './core/input/input-manager.js';
+import { CollisionDetector } from './world/collision-detector.js';
+import { CameraController } from './world/camera-controller.js';
 // Herramientas de debugging inicializadas centralmente en dev-exposure.js
-import { exposeDevTools, isDevelopment, initDebugTools } from './debug/dev-exposure.js';
+import { exposeDevelopmentTools, initDevelopmentTools } from './dev-exposure.js';
 
 /**
  * @typedef {import('./types.js').Particle} Particle
@@ -37,9 +34,7 @@ export class App {
         // Inicializar Store
         this.store = new Store();
         
-        // Inicializar Managers
-        this.viewportManager = new ViewportManager();
-        this.styleManager = new StyleManager();
+        // Inicializar Performance Manager
         this.performanceManager = new PerformanceManager();
         
         // Suscribirse a métricas de performance
@@ -52,12 +47,6 @@ export class App {
         // Inicializar Registry de Geometrías
         this.geometryRegistry = new GeometryRegistry();
         
-        // Inicializar Renderizador de Partículas
-        this.particleRenderer = new ParticleRenderer(this.geometryRegistry);
-        
-        // Inicializar Entity Manager
-        this.entityManager = new EntityManager(this.particleRenderer);
-        
         // Inicializar API
         const apiClient = new ApiClient();
         this.dimensionsApi = new DimensionsApi(apiClient);
@@ -69,7 +58,15 @@ export class App {
         // Inicializar escena 3D
         this.scene = new Scene3D(container);
         
-        // Instanced meshes actuales (para limpieza)
+        // Inicializar TerrainManager (nuevo sistema modular)
+        this.terrain = new TerrainManager(
+            this.scene.scene,
+            this.particlesApi,
+            this.dimensionsApi,
+            this.geometryRegistry
+        );
+        
+        // Instanced meshes actuales (para compatibilidad temporal)
         this.currentInstancedMeshes = new Map();
         
         // Inicializar ECS
@@ -109,7 +106,7 @@ export class App {
         this.lastTime = null;
         
         // Inicializar herramientas de debugging (solo en desarrollo)
-        this.initDebugTools();
+        this.initDevelopmentTools();
         
         // Suscribirse a cambios de estado
         this.setupStateListeners();
@@ -118,20 +115,20 @@ export class App {
     /**
      * Inicializar herramientas de debugging
      */
-    initDebugTools() {
+    initDevelopmentTools() {
         // Inicializar herramientas de debugging (centralizado)
-        const debugToolsResult = initDebugTools(this);
+        const developmentToolsResult = initDevelopmentTools(this);
         
-        if (debugToolsResult) {
+        if (developmentToolsResult) {
             // Guardar referencias para uso interno si es necesario
-            this.inspector = debugToolsResult.inspector;
-            this.debugMetrics = debugToolsResult.metrics;
-            this.debugPanel = debugToolsResult.panel;
-            this.debugInterface = debugToolsResult.interface;
+            this.inspector = developmentToolsResult.inspector;
+            this.debugMetrics = developmentToolsResult.metrics;
+            this.debugPanel = developmentToolsResult.panel;
+            this.debugInterface = developmentToolsResult.interface;
             
             // Exponer todas las herramientas de desarrollo (centralizado)
-            exposeDevTools(this, {
-                debugTools: debugToolsResult
+            exposeDevelopmentTools(this, {
+                developmentTools: developmentToolsResult
             });
         } else {
             // Log si no está en desarrollo
@@ -175,71 +172,37 @@ export class App {
             // 3. Establecer dimensión en estado
             actions.setDimension(this.store, demoDimension);
             
-            // 4. Calcular viewport
-            const viewport = this.viewportManager.calculateViewport(demoDimension);
+            // 4. Cargar dimensión usando TerrainManager
+            const terrainResult = await this.terrain.loadDimension(demoDimension);
+            const viewport = terrainResult.viewport;
+            const particlesData = { particles: terrainResult.particles };
+            
+            // 5. Establecer partículas y viewport en estado
+            actions.setParticles(this.store, particlesData.particles);
             actions.setViewport(this.store, viewport);
             
-            // 5. Cargar partículas Y tipos en paralelo
-            const [particlesData, typesData] = await Promise.all([
-                this.particlesApi.getParticles(demoDimension.id, viewport),
-                this.particlesApi.getParticleTypes(demoDimension.id, viewport)
-            ]);
+            // 6. Actualizar instanced meshes para compatibilidad temporal
+            this.currentInstancedMeshes = terrainResult.meshes;
             
-            // 6. Establecer partículas en estado
-            actions.setParticles(this.store, particlesData.particles);
-            
-            // 7. Cachear estilos
-            this.styleManager.cacheStyles(typesData.types);
-            
-            // 8. Preparar datos para renderizado
-            const tiposEstilos = new Map();
-            typesData.types.forEach(tipo => {
-                if (tipo.estilos) {
-                    tiposEstilos.set(tipo.nombre, tipo.estilos);
-                }
-            });
-            
-            // 9. Limpiar partículas anteriores
-            if (this.currentInstancedMeshes.size > 0) {
-                this.entityManager.clearParticles(this.currentInstancedMeshes, this.scene.scene);
-            }
-            
-            // 10. Ajustar grilla y ejes al tamaño del terreno
+            // 7. Ajustar grilla y ejes al tamaño del terreno
             this.scene.updateHelpers(demoDimension.ancho_metros, demoDimension.alto_metros);
             
-            // 11. Centrar cámara PRIMERO (antes de renderizar para que frustum culling funcione correctamente)
+            // 8. Centrar cámara PRIMERO (antes de renderizar para que frustum culling funcione correctamente)
             const centerX = (viewport.x_max + viewport.x_min) / 2 * demoDimension.tamano_celda;
             const centerY = (viewport.y_max + viewport.y_min) / 2 * demoDimension.tamano_celda;
             const centerZ = (viewport.z_max + viewport.z_min) / 2 * demoDimension.tamano_celda;
             this.scene.centerCamera(centerX, centerY, centerZ);
             
-            // 12. Actualizar matrices de la cámara para que frustum culling funcione correctamente
+            // 9. Actualizar matrices de la cámara para que frustum culling funcione correctamente
             this.scene.camera.camera.updateMatrixWorld();
             
-            // 13. Renderizar partículas (con cámara ya centrada para frustum culling correcto)
-            // Deshabilitar frustum culling en renderizado inicial para ver todo el terreno
-            const originalFrustumCulling = this.entityManager.particleRenderer.enableFrustumCulling;
-            this.entityManager.particleRenderer.enableFrustumCulling = false;
-            
-            this.currentInstancedMeshes = this.entityManager.renderParticles(
-                particlesData.particles,
-                tiposEstilos,
-                null, // agrupacionesGeometria (opcional, por ahora null)
-                demoDimension.tamano_celda,
-                this.scene.scene,
-                this.scene.camera.camera // Pasar cámara (aunque frustum culling está deshabilitado inicialmente)
-            );
-            
-            // Restaurar frustum culling para animación
-            this.entityManager.particleRenderer.enableFrustumCulling = originalFrustumCulling;
-            
-            // Contar draw calls después de renderizar
+            // 10. Contar draw calls después de renderizar
             this.performanceManager.countDrawCalls(this.currentInstancedMeshes);
             
-            // 13. Finalizar carga
+            // 11. Finalizar carga
             actions.setLoading(this.store, false);
             
-            // 14. Inicializar CollisionDetector y CollisionSystem
+            // 12. Inicializar CollisionDetector y CollisionSystem
             if (!this.collisionDetector) {
                 this.collisionDetector = new CollisionDetector(
                     this.particlesApi,
@@ -257,19 +220,19 @@ export class App {
                 this.collisionSystem.setParticles(particlesData.particles);
             }
             
-            // 15. Inicializar RenderSystem con cellSize de la dimensión
+            // 13. Inicializar RenderSystem con cellSize de la dimensión
             if (!this.renderSystem) {
                 this.renderSystem = new RenderSystem(demoDimension.tamano_celda);
                 this.ecs.registerSystem(this.renderSystem);
             }
             
-            // 15.5. Inicializar WeaponEquipSystem (necesita la escena)
+            // 14. Inicializar WeaponEquipSystem (necesita la escena)
             if (!this.weaponEquipSystem) {
                 this.weaponEquipSystem = new WeaponEquipSystem(this.scene.scene);
                 this.ecs.registerSystem(this.weaponEquipSystem);
             }
             
-            // 16. Crear jugador después de cargar dimensión
+            // 15. Crear jugador después de cargar dimensión
             if (!this.playerId) {
                 // Primero intentar cargar personaje existente
                 let characterId = null;
@@ -306,7 +269,7 @@ export class App {
                 
                 // console.log(`✓ Jugador creado/cargado. Entity ID: ${this.playerId}, Character ID: ${characterId || 'nuevo'}`);
                 
-                // 17. Inicializar controlador de cámara y configurarlo para seguir al jugador
+                // 16. Inicializar controlador de cámara y configurarlo para seguir al jugador
                 if (!this.cameraController) {
                     this.cameraController = new CameraController(
                         this.scene.camera,
@@ -321,18 +284,18 @@ export class App {
                 }
             }
             
-            // 18. Iniciar profiling de performance
+            // 17. Iniciar profiling de performance
             this.performanceManager.startProfiling();
             // console.log('Performance profiling iniciado. Las métricas aparecerán cada segundo en consola.');
             
-            // 19. Iniciar animación (con medición de FPS y actualización de ECS)
+            // 18. Iniciar animación (con medición de FPS y actualización de ECS)
             // Usar nuestro propio loop de animación que incluye ECS
             this.startAnimation();
             
             // Retornar datos para actualizar UI externa
             return {
                 dimension: demoDimension,
-                particlesCount: particlesData.total,
+                particlesCount: terrainResult.particlesCount,
                 viewport: viewport
             };
             

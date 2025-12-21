@@ -5,22 +5,24 @@ Sistema completo de debugging y herramientas de desarrollo para el juego.
 ## Estructura
 
 ```
-debug/
-├── config.js          # Configuración centralizada
-├── logger.js           # Sistema de logging estructurado
-├── inspector.js         # Inspector de estado ECS
-├── metrics.js           # Métricas detalladas de performance
-├── validator.js         # Validación de estado
-├── events.js           # Sistema de eventos
-├── README.md           # Documentación general
-├── USO-INTERFAZ.md     # Guía de uso de la interfaz F4
-├── USO-CONSOLA.md      # Guía de comandos en consola
-└── ui/                 # Herramientas visuales
-    ├── base-interface.js # Clase base para interfaces de desarrollo
-    ├── debug-panel.js  # Panel de debugging (F3)
-    ├── debug-interface.js # Interfaz GUI de debugging (F4)
-    ├── animation-tester.js # Interfaz de prueba de animaciones (F6)
-    └── README.md       # Documentación de herramientas UI
+src/
+├── dev-exposure.js     # Módulo de exposición de herramientas (raíz)
+├── config/
+│   └── debug-config.js # Configuración centralizada
+├── interfaces/         # Interfaces de desarrollo
+│   ├── base-interface.js # Clase base para interfaces
+│   ├── debug-panel.js    # Panel de debugging (F3)
+│   ├── debug-interface.js # Interfaz GUI de debugging (F4)
+│   └── test-interface.js  # Interfaz de testing (F6)
+└── debug/              # Herramientas de debugging
+    ├── logger.js       # Sistema de logging estructurado
+    ├── inspector.js    # Inspector de estado ECS
+    ├── metrics.js      # Métricas detalladas de performance
+    ├── validator.js    # Validación de estado
+    ├── events.js       # Sistema de eventos
+    ├── README.md       # Documentación general
+    ├── USO-INTERFAZ.md # Guía de uso de la interfaz F4
+    └── USO-CONSOLA.md  # Guía de comandos en consola
 ```
 
 ## Componentes
@@ -124,7 +126,7 @@ debugEvents.on('combat:action:started', (event) => {
 debugEvents.getHistory('combat:action:started');
 ```
 
-### DebugPanel (`ui/debug-panel.js`)
+### DebugPanel (`interfaces/debug-panel.js`)
 
 Panel de debugging visual en UI, controlable desde la interfaz F4 o con tecla F3.
 
@@ -139,7 +141,7 @@ Panel de debugging visual en UI, controlable desde la interfaz F4 o con tecla F3
 - Desde la interfaz: Abrir F4 → tab Logger → checkbox "Mostrar Debug Panel (F3)"
 - Atajo rápido: Presionar `F3` para mostrar/ocultar el panel
 
-### BaseInterface (`ui/base-interface.js`)
+### BaseInterface (`interfaces/base-interface.js`)
 
 Clase base para interfaces de desarrollo que proporciona funcionalidad común.
 
@@ -156,7 +158,7 @@ Clase base para interfaces de desarrollo que proporciona funcionalidad común.
 - Animaciones suaves de entrada y salida
 - Auto-remoción automática
 
-### DebugInterface (`ui/debug-interface.js`)
+### DebugInterface (`interfaces/debug-interface.js`)
 
 Interfaz GUI de debugging, activable con tecla F4.
 
@@ -179,9 +181,21 @@ Presionar `F4` para mostrar/ocultar la interfaz.
 - **Logger**: Cambiar nivel de log, probar logger, controlar Debug Panel (F3), ver logs en tiempo real
 - **Comandos**: Comandos rápidos y área para comandos personalizados
 
+### TestInterface (`interfaces/test-interface.js`)
+
+Interfaz de herramientas de testing, activable con tecla F6.
+
+**Características:**
+- Prueba de animaciones
+- Gestión de armas (equipar/desequipar)
+- Visualización organizada por categorías
+
+**Uso:**
+Presionar `F6` para mostrar/ocultar la interfaz.
+
 ## Configuración
 
-Todas las herramientas se pueden habilitar/deshabilitar desde `debug/config.js` o en runtime:
+Todas las herramientas se pueden habilitar/deshabilitar desde `config/debug-config.js` o en runtime:
 
 ```javascript
 debugLogger.setEnabled(true);
@@ -195,15 +209,23 @@ Todas las herramientas son completamente opcionales y no afectan el performance 
 
 ## Integración
 
-Las herramientas se integran automáticamente en `App` cuando `NODE_ENV === 'development'`:
+Las herramientas se integran automáticamente mediante `dev-exposure.js` cuando estamos en modo desarrollo:
 
 ```javascript
 // En app.js
-if (isDevelopment) {
-    // Herramientas se inicializan automáticamente
-    // Y se exponen en window.debugTools
-}
+import { initDevelopmentTools, exposeDevelopmentTools, isDevelopment } from './dev-exposure.js';
+
+// Inicializar herramientas
+const developmentTools = initDevelopmentTools(app);
+
+// Exponer globalmente
+exposeDevelopmentTools(app, { developmentTools });
 ```
+
+El módulo `dev-exposure.js` (ubicado en la raíz de `src/`) centraliza:
+- La detección de entorno de desarrollo
+- La inicialización de todas las herramientas
+- La exposición global en `window.debugTools`
 
 ## Acceso desde Consola
 
@@ -211,13 +233,14 @@ Todas las herramientas están disponibles globalmente en desarrollo:
 
 ```javascript
 // En consola del navegador
-window.debugTools.logger    // DebugLogger
-window.debugTools.inspector // ECSInspector
-window.debugTools.metrics   // DebugMetrics
-window.debugTools.validator  // StateValidator
-window.debugTools.events     // DebugEventEmitter
-window.debugTools.panel      // DebugPanel
-window.debugTools.interface  // DebugInterface
+window.debugTools.logger       // DebugLogger
+window.debugTools.inspector    // ECSInspector
+window.debugTools.metrics      // DebugMetrics
+window.debugTools.validator    // StateValidator
+window.debugTools.events       // DebugEventEmitter
+window.debugTools.panel        // DebugPanel
+window.debugTools.interface    // DebugInterface
+window.debugTools.testInterface // TestInterface
 ```
 
 **O usa la interfaz GUI (F4):**

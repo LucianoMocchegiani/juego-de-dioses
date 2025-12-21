@@ -1,7 +1,7 @@
 /**
  * Sistema de métricas detalladas para debugging
  */
-import { DEBUG_CONFIG } from './config.js';
+import { DEBUG_CONFIG } from '../config/debug-config.js';
 
 export class DebugMetrics {
     constructor(ecs) {

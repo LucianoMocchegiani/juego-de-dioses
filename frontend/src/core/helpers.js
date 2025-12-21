@@ -5,7 +5,7 @@ import * as THREE from 'three';
 import {
     COLOR_GRID_PRIMARY,
     COLOR_GRID_SECONDARY
-} from '../constants.js';
+} from '../config/constants.js';
 
 export class Helpers {
     constructor() {

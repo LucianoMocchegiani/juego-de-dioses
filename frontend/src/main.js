@@ -2,7 +2,7 @@
  * Punto de entrada principal - Visualizador 3D de partículas
  */
 import { App } from './app.js';
-import { exposeAppOnly } from './debug/dev-exposure.js';
+import { exposeAppOnly } from './dev-exposure.js';
 
 // Elementos del DOM
 const loadingEl = document.getElementById('loading');

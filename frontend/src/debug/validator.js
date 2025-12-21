@@ -1,7 +1,7 @@
 /**
  * Validador de estado para detectar estados inválidos
  */
-import { DEBUG_CONFIG } from './config.js';
+import { DEBUG_CONFIG } from '../config/debug-config.js';
 import { debugLogger } from './logger.js';
 
 export class StateValidator {

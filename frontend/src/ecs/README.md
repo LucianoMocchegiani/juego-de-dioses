@@ -103,6 +103,12 @@ ecs/
 │   └── README.md           # Documentación del sistema de animaciones
 ├── factories/               # Factories para crear entidades
 │   └── player-factory.js   # Factory para crear jugador
+├── models/                  # Sistema de carga de modelos 3D (JDG-035-3)
+│   ├── model-loader.js     # Loader de modelos (GLTF/GLB)
+│   ├── model-cache.js      # Cache de modelos
+│   ├── model-utils.js      # Utilidades de carga y transformación
+│   ├── bones-utils.js      # Utilidades para bones/esqueleto
+│   └── vertex-groups-utils.js # Utilidades para vertex groups (deprecado)
 └── index.js                 # Exportaciones principales
 ```
 

@@ -2,7 +2,7 @@
  * Renderizador WebGL
  */
 import * as THREE from 'three';
-import { COLOR_CIELO } from '../constants.js';
+import { COLOR_CIELO } from '../config/constants.js';
 
 export class Renderer {
     /**
