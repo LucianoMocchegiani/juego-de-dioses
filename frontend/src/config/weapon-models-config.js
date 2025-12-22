@@ -30,36 +30,36 @@ export const WEAPON_MODELS = {
     axe: {
         path: 'weapons/axe.glb',
         attachmentPoint: 'RightHand',  // Bone de la mano derecha
-        offset: { x: 0.05, y: 0, z: 0.1 },
-        rotation: { x: 0, y: 0, z: 0 },  // Rotación en grados (se convierte a radianes)
-        scale: 1.0
+        offset: { x: 0, y: 10, z: 0 },  // Compensar posición del mesh
+        rotation: { x: 0, y: -40, z: 0 },  // Rotación en grados (se convierte a radianes)
+        scale: 50
     },
     'two-handed-axe': {
         path: 'weapons/two-handed-axe.glb',
-        attachmentPoint: 'RightHand',  // Para armas de dos manos, usar RightHand
-        offset: { x: 0, y: 0, z: 0.1 },
-        rotation: { x: 0, y: 0, z: 0 },  // Rotación en grados (se convierte a radianes)
-        scale: 1.0
+        attachmentPoint: 'RightHand',  // Bone de la mano derecha
+        offset: { x: 0, y: 10, z: 0 },  // Compensar posición del mesh
+        rotation: { x: 0, y: 60, z: 0 },  // Rotación en grados (se convierte a radianes)
+        scale: 70
     },
     hammer: {
         path: 'weapons/hammer.glb',
         attachmentPoint: 'RightHand',  // Bone de la mano derecha
-        offset: { x: 0.05, y: 0, z: 0.1 },
-        rotation: { x: 0, y: 0, z: 0 },  // Rotación en grados (se convierte a radianes)
-        scale: 1.0
+        offset: { x: 0, y: 10, z: 0 },  // Compensar posición del mesh
+        rotation: { x: 0, y: -40, z: 0 },  // Rotación en grados (se convierte a radianes)
+        scale: 30
     },
     'two-handed-hammer': {
         path: 'weapons/two-handed-hammer.glb',
-        attachmentPoint: 'RightHand',  // Para armas de dos manos, usar RightHand
-        offset: { x: 0, y: 0, z: 0.1 },
-        rotation: { x: 0, y: 0, z: 0 },  // Rotación en grados (se convierte a radianes)
-        scale: 1.0
+        attachmentPoint: 'RightHand',  // Bone de la mano derecha
+        offset: { x: 0, y: 10, z: 0 },  // Compensar posición del mesh
+        rotation: { x: 0, y: 80, z: 0 },  // Rotación en grados (se convierte a radianes)
+        scale: 70
     },
     spear: {
         path: 'weapons/spear.glb',
         attachmentPoint: 'RightHand',  // Bone de la mano derecha
-        offset: { x: 0.05, y: 0, z: 0.1 },
-        rotation: { x: 0, y: 0, z: 0 },  // Rotación en grados (se convierte a radianes)
-        scale: 1.0
+        offset: { x: 0, y: 10, z: 0 },  // Compensar posición del mesh
+        rotation: { x: 0, y: -40, z: 0 },  // Rotación en grados (se convierte a radianes)
+        scale: 50
     }
 };
