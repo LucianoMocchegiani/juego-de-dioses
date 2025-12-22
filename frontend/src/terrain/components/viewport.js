@@ -10,23 +10,8 @@ import {
 } from '../../config/constants.js';
 
 /**
- * @typedef {Object} Dimension
- * @property {string} id - ID de la dimensión
- * @property {number} ancho_metros - Ancho en metros
- * @property {number} alto_metros - Alto en metros
- * @property {number} tamano_celda - Tamaño de celda en metros
- * @property {number} [profundidad_maxima] - Profundidad máxima en celdas
- * @property {number} [altura_maxima] - Altura máxima en celdas
- */
-
-/**
- * @typedef {Object} Viewport
- * @property {number} x_min - Coordenada X mínima
- * @property {number} x_max - Coordenada X máxima
- * @property {number} y_min - Coordenada Y mínima
- * @property {number} y_max - Coordenada Y máxima
- * @property {number} z_min - Coordenada Z mínima
- * @property {number} z_max - Coordenada Z máxima
+ * @typedef {import('../../types.js').Dimension} Dimension
+ * @typedef {import('../../types.js').Viewport} Viewport
  */
 
 /**
