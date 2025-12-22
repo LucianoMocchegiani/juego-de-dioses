@@ -44,3 +44,12 @@
  * @property {number} z_max - Coordenada Z máxima
  */
 
+/**
+ * @typedef {Object} Dimension
+ * @property {string} id - ID de la dimensión
+ * @property {number} ancho_metros - Ancho en metros
+ * @property {number} alto_metros - Alto en metros
+ * @property {number} tamano_celda - Tamaño de celda en metros
+ * @property {number} [profundidad_maxima] - Profundidad máxima en celdas
+ * @property {number} [altura_maxima] - Altura máxima en celdas
+ */

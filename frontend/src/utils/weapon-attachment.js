@@ -24,24 +24,56 @@ import { debugLogger } from '../debug/logger.js';
  * @returns {boolean} True si se adjuntó correctamente, False si hubo error
  */
 export function attachWeaponToCharacter(weaponModel, characterMesh, attachmentConfig) {
+    debugLogger.debug('WeaponAttachment', `Iniciando attachWeaponToCharacter`, {
+        hasWeaponModel: !!weaponModel,
+        hasCharacterMesh: !!characterMesh,
+        hasAttachmentConfig: !!attachmentConfig,
+        attachmentPoint: attachmentConfig?.point,
+        weaponModelType: weaponModel?.constructor?.name,
+        characterMeshType: characterMesh?.constructor?.name
+    });
+    
     if (!weaponModel || !characterMesh || !attachmentConfig) {
-        debugLogger.error('WeaponAttachment', 'Parámetros inválidos');
+        debugLogger.error('WeaponAttachment', 'Parámetros inválidos', {
+            weaponModel: !!weaponModel,
+            characterMesh: !!characterMesh,
+            attachmentConfig: !!attachmentConfig
+        });
         return false;
     }
     
     // Aplicar escala al mesh
     if (attachmentConfig.scale !== undefined) {
+        debugLogger.debug('WeaponAttachment', `Aplicando escala: ${attachmentConfig.scale}`, {
+            scale: attachmentConfig.scale
+        });
         weaponModel.scale.setScalar(attachmentConfig.scale);
     }
     
-    if (!hasSkeleton(characterMesh)) {
+    const hasSkel = hasSkeleton(characterMesh);
+    debugLogger.debug('WeaponAttachment', `Verificando esqueleto: ${hasSkel}`, {
+        hasSkeleton: hasSkel
+    });
+    
+    if (!hasSkel) {
         debugLogger.error('WeaponAttachment', 'El personaje debe tener esqueleto (skeleton) para adjuntar armas');
         return false;
     }
     
+    const allBones = listBones(characterMesh);
+    debugLogger.debug('WeaponAttachment', `Bones disponibles`, {
+        bones: allBones.map(b => b.name),
+        totalBones: allBones.length
+    });
+    
     const bone = findBone(characterMesh, attachmentConfig.point);
+    debugLogger.debug('WeaponAttachment', `Buscando bone "${attachmentConfig.point}"`, {
+        found: !!bone,
+        boneName: bone?.name,
+        requestedBone: attachmentConfig.point
+    });
+    
     if (!bone) {
-        const allBones = listBones(characterMesh);
         debugLogger.error('WeaponAttachment', `No se encontró el bone "${attachmentConfig.point}" en el personaje`, {
             requestedBone: attachmentConfig.point,
             availableBones: allBones.map(b => b.name)
@@ -51,24 +83,57 @@ export function attachWeaponToCharacter(weaponModel, characterMesh, attachmentCo
     
     // Remover el arma de su parent actual si tiene uno
     if (weaponModel.parent) {
+        debugLogger.debug('WeaponAttachment', `Removiendo arma de parent anterior`, {
+            parentName: weaponModel.parent.name || weaponModel.parent.type
+        });
         weaponModel.parent.remove(weaponModel);
     }
     
     // Adjuntar el mesh directamente al bone
+    debugLogger.debug('WeaponAttachment', `Adjuntando arma al bone "${bone.name}"`, {
+        boneName: bone.name
+    });
     bone.add(weaponModel);
     
     // Aplicar posición y rotación relativas al bone
-    weaponModel.position.set(
-        attachmentConfig.offset?.x || 0,
-        attachmentConfig.offset?.y || 0,
-        attachmentConfig.offset?.z || 0
-    );
+    const offset = {
+        x: attachmentConfig.offset?.x || 0,
+        y: attachmentConfig.offset?.y || 0,
+        z: attachmentConfig.offset?.z || 0
+    };
+    const rotation = {
+        x: attachmentConfig.rotation?.x || 0,
+        y: attachmentConfig.rotation?.y || 0,
+        z: attachmentConfig.rotation?.z || 0
+    };
     
-    weaponModel.rotation.set(
-        attachmentConfig.rotation?.x || 0,
-        attachmentConfig.rotation?.y || 0,
-        attachmentConfig.rotation?.z || 0
-    );
+    debugLogger.debug('WeaponAttachment', `Aplicando offset y rotación`, {
+        offset: offset,
+        rotation: rotation
+    });
+    
+    weaponModel.position.set(offset.x, offset.y, offset.z);
+    weaponModel.rotation.set(rotation.x, rotation.y, rotation.z);
+    
+    debugLogger.debug('WeaponAttachment', `Arma adjuntada exitosamente`, {
+        boneName: bone.name,
+        weaponModelParent: weaponModel.parent?.name || weaponModel.parent?.type,
+        weaponModelPosition: {
+            x: weaponModel.position.x,
+            y: weaponModel.position.y,
+            z: weaponModel.position.z
+        },
+        weaponModelRotation: {
+            x: weaponModel.rotation.x,
+            y: weaponModel.rotation.y,
+            z: weaponModel.rotation.z
+        },
+        weaponModelScale: {
+            x: weaponModel.scale.x,
+            y: weaponModel.scale.y,
+            z: weaponModel.scale.z
+        }
+    });
     
     return true;
 }
