@@ -164,7 +164,7 @@ export class PlayerFactory {
      * @param {number} [options.cellSize] - Tamaño de celda en metros
      * @param {string} [options.characterId] - ID del personaje existente en BD
      * @param {string} [options.templateId] - ID del template para crear personaje (ej: 'humano')
-     * @param {string} [options.dimensionId] - ID de la dimensión (necesario si se usa characterId o templateId)
+     * @param {string} [options.bloqueId] - ID del bloque (necesario si se usa characterId o templateId)
      * @param {string} [options.initialWeapon] - Tipo de arma inicial (ej: 'sword', 'axe', etc.) o null para usar valor por defecto
      * @returns {Promise<number>} ID de la entidad creada
      */
@@ -178,7 +178,7 @@ export class PlayerFactory {
             cellSize = ANIMATION_CONSTANTS.DEFAULT_SPAWN.CELL_SIZE,
             characterId = null,
             templateId = null,
-            dimensionId = null,
+            bloqueId = null,
             initialWeapon = null
         } = options;
         
@@ -190,12 +190,12 @@ export class PlayerFactory {
         
         try {
             // Si hay characterId, cargar desde API
-            if (characterId && dimensionId) {
-                character = await getCharacter(dimensionId, characterId);
+            if (characterId && bloqueId) {
+                character = await getCharacter(bloqueId, characterId);
             }
             // Si hay templateId, crear personaje primero
-            else if (templateId && dimensionId) {
-                character = await createCharacter(dimensionId, templateId, x, y, z);
+            else if (templateId && bloqueId) {
+                character = await createCharacter(bloqueId, templateId, x, y, z);
             }
             
             // Prioridad: modelo_3d > geometria_agrupacion > default

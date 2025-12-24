@@ -19,7 +19,7 @@ from src.models.schemas import (
 
 logger = logging.getLogger(__name__)
 
-router = APIRouter(prefix="/dimensions", tags=["particles"])
+router = APIRouter(prefix="/bloques", tags=["particles"])
 
 # Tipos de partículas que son indestructibles (no pueden ser extraídas o modificadas)
 INDESTRUCTIBLE_TYPES = ['límite']
@@ -38,11 +38,11 @@ def is_indestructible(tipo_nombre: str) -> bool:
     return tipo_nombre in INDESTRUCTIBLE_TYPES
 
 
-async def validate_particle_position(conn: asyncpg.Connection, dimension_id: UUID, x: int, y: int, z: int) -> bool:
+async def validate_particle_position(conn: asyncpg.Connection, bloque_id: UUID, x: int, y: int, z: int) -> bool:
     """
-    Validar que la posición de la partícula esté dentro de los límites de la dimensión.
+    Validar que la posición de la partícula esté dentro de los límites del bloque.
     
-    Valida que las coordenadas (x, y, z) estén dentro de los límites definidos por la dimensión:
+    Valida que las coordenadas (x, y, z) estén dentro de los límites definidos por el bloque:
     - x: 0 <= x < max_x (donde max_x = ancho_metros / tamano_celda)
     - y: 0 <= y < max_y (donde max_y = alto_metros / tamano_celda)
     - z: profundidad_maxima <= z <= altura_maxima
@@ -54,29 +54,29 @@ async def validate_particle_position(conn: asyncpg.Connection, dimension_id: UUI
     
     Args:
         conn: Conexión asyncpg a la base de datos
-        dimension_id: UUID de la dimensión
+        bloque_id: UUID del bloque
         x: Coordenada X en celdas
         y: Coordenada Y en celdas
         z: Coordenada Z en celdas
         
-    Returns:
-        True si la posición es válida, False si está fuera de límites o la dimensión no existe
+        Returns:
+        True si la posición es válida, False si está fuera de límites o el bloque no existe
     """
-    # Obtener límites de la dimensión
-    dim = await conn.fetchrow("""
+    # Obtener límites del bloque
+    bloque = await conn.fetchrow("""
         SELECT ancho_metros, alto_metros, profundidad_maxima, altura_maxima, tamano_celda
-        FROM juego_dioses.dimensiones
+        FROM juego_dioses.bloques
         WHERE id = $1
-    """, dimension_id)
+    """, bloque_id)
     
-    if not dim:
+    if not bloque:
         return False
     
     # Calcular límites en celdas (X e Y)
-    max_x = int(dim['ancho_metros'] / dim['tamano_celda'])
-    max_y = int(dim['alto_metros'] / dim['tamano_celda'])
-    min_z = dim['profundidad_maxima']
-    max_z = dim['altura_maxima']
+    max_x = int(bloque['ancho_metros'] / bloque['tamano_celda'])
+    max_y = int(bloque['alto_metros'] / bloque['tamano_celda'])
+    min_z = bloque['profundidad_maxima']
+    max_z = bloque['altura_maxima']
     
     # Validar límites
     if x < 0 or x >= max_x:
@@ -89,9 +89,9 @@ async def validate_particle_position(conn: asyncpg.Connection, dimension_id: UUI
     return True
 
 
-@router.get("/{dimension_id}/particle-types", response_model=ParticleTypesResponse)
+@router.get("/{bloque_id}/particle-types", response_model=ParticleTypesResponse)
 async def get_particle_types_in_viewport(
-    dimension_id: UUID,
+    bloque_id: UUID,
     x_min: int = Query(..., ge=0, description="Coordenada X mínima"),
     x_max: int = Query(..., ge=0, description="Coordenada X máxima"),
     y_min: int = Query(..., ge=0, description="Coordenada Y mínima"),
@@ -100,15 +100,19 @@ async def get_particle_types_in_viewport(
     z_max: int = Query(10, description="Coordenada Z máxima")
 ):
     """
-    Obtener tipos de partículas únicos en un viewport con sus estilos.
+    Obtener tipos de partículas únicos en un viewport con color y geometría.
     
     Esta query se puede cachear en backend por 5-10 minutos ya que los tipos
     cambian menos frecuentemente que las partículas.
     
     Ventajas:
     - Solo retorna tipos únicos (sin duplicación)
-    - 50% menos datos transferidos vs incluir estilos en cada partícula
+    - 50% menos datos transferidos vs incluir color/geometría en cada partícula
     - Cache eficiente en backend
+    
+    Retorna:
+    - color: Color del tipo (VARCHAR desde BD, puede ser nombre CSS o hex)
+    - geometria: Geometría visual (JSONB desde BD, default: {"tipo": "box"})
     """
     # Validar viewport
     viewport = ParticleViewportQuery(
@@ -122,58 +126,60 @@ async def get_particle_types_in_viewport(
     viewport.validate_ranges()
     
     async with get_connection() as conn:
-        # Verificar que la dimensión existe
-        dim_exists = await conn.fetchval(
-            "SELECT EXISTS(SELECT 1 FROM juego_dioses.dimensiones WHERE id = $1)",
-            dimension_id
+        # Verificar que el bloque existe
+        bloque_exists = await conn.fetchval(
+            "SELECT EXISTS(SELECT 1 FROM juego_dioses.bloques WHERE id = $1)",
+            bloque_id
         )
-        if not dim_exists:
-            raise HTTPException(status_code=404, detail="Dimensión no encontrada")
+        if not bloque_exists:
+            raise HTTPException(status_code=404, detail="Bloque no encontrado")
         
         # Obtener IDs de tipos únicos en viewport
         tipo_ids_rows = await conn.fetch("""
             SELECT DISTINCT p.tipo_particula_id
             FROM juego_dioses.particulas p
-            WHERE p.dimension_id = $1
+            WHERE p.bloque_id = $1
               AND p.celda_x BETWEEN $2 AND $3
               AND p.celda_y BETWEEN $4 AND $5
               AND p.celda_z BETWEEN $6 AND $7
               AND p.extraida = false
-        """, dimension_id, x_min, x_max, y_min, y_max, z_min, z_max)
+        """, bloque_id, x_min, x_max, y_min, y_max, z_min, z_max)
         
         tipo_ids_list = [row['tipo_particula_id'] for row in tipo_ids_rows]
         
         if not tipo_ids_list:
-            logger.debug(f"No particle types found in viewport for dimension {dimension_id}")
+            logger.debug(f"No particle types found in viewport for bloque {bloque_id}")
             return ParticleTypesResponse(types=[])
         
-        # Obtener tipos con estilos
+        # Obtener tipos con color y geometría
         tipos = await conn.fetch("""
             SELECT 
                 id,
                 nombre,
-                estilos
+                color,
+                geometria
             FROM juego_dioses.tipos_particulas
             WHERE id = ANY($1::uuid[])
         """, tipo_ids_list)
         
-        # Parsear estilos usando helper y crear objetos ParticleTypeResponse
+        # Parsear color y geometría usando helper y crear objetos ParticleTypeResponse
         result = []
         for row in tipos:
-            estilos = parse_jsonb_field(row['estilos'])
+            geometria = parse_jsonb_field(row['geometria'])
             result.append(ParticleTypeResponse(
                 id=str(row['id']),
                 nombre=row['nombre'],
-                estilos=estilos if estilos else None
+                color=row['color'] if row['color'] else None,
+                geometria=geometria if geometria else None
             ))
         
         logger.debug(f"Found {len(result)} unique particle types in viewport")
         return ParticleTypesResponse(types=result)
 
 
-@router.get("/{dimension_id}/particles", response_model=ParticlesResponse)
+@router.get("/{bloque_id}/particles", response_model=ParticlesResponse)
 async def get_particles_by_viewport(
-    dimension_id: UUID,
+    bloque_id: UUID,
     x_min: int = Query(..., ge=0, description="Coordenada X mínima"),
     x_max: int = Query(..., ge=0, description="Coordenada X máxima"),
     y_min: int = Query(..., ge=0, description="Coordenada Y mínima"),
@@ -197,21 +203,21 @@ async def get_particles_by_viewport(
     )
     viewport.validate_ranges()
     
-    # Verificar que la dimensión existe
+    # Verificar que el bloque existe
     async with get_connection() as conn:
-        dim_exists = await conn.fetchval(
-            "SELECT EXISTS(SELECT 1 FROM juego_dioses.dimensiones WHERE id = $1)",
-            dimension_id
+        bloque_exists = await conn.fetchval(
+            "SELECT EXISTS(SELECT 1 FROM juego_dioses.bloques WHERE id = $1)",
+            bloque_id
         )
         
-        if not dim_exists:
-            raise HTTPException(status_code=404, detail="Dimensión no encontrada")
+        if not bloque_exists:
+            raise HTTPException(status_code=404, detail="Bloque no encontrado")
         
         # Obtener partículas en el viewport (SIN estilos - vienen en query separada)
         rows = await conn.fetch("""
             SELECT 
                 p.id,
-                p.dimension_id,
+                p.bloque_id,
                 p.celda_x,
                 p.celda_y,
                 p.celda_z,
@@ -232,28 +238,28 @@ async def get_particles_by_viewport(
             FROM juego_dioses.particulas p
             JOIN juego_dioses.tipos_particulas tp ON p.tipo_particula_id = tp.id
             JOIN juego_dioses.estados_materia em ON p.estado_materia_id = em.id
-            WHERE p.dimension_id = $1
+            WHERE p.bloque_id = $1
               AND p.celda_x BETWEEN $2 AND $3
               AND p.celda_y BETWEEN $4 AND $5
               AND p.celda_z BETWEEN $6 AND $7
               AND p.extraida = false
             ORDER BY p.celda_z, p.celda_y, p.celda_x
-        """, dimension_id, x_min, x_max, y_min, y_max, z_min, z_max)
+        """, bloque_id, x_min, x_max, y_min, y_max, z_min, z_max)
         
         # Contar total
         total = await conn.fetchval("""
             SELECT COUNT(*)
             FROM juego_dioses.particulas
-            WHERE dimension_id = $1
+            WHERE bloque_id = $1
               AND celda_x BETWEEN $2 AND $3
               AND celda_y BETWEEN $4 AND $5
               AND celda_z BETWEEN $6 AND $7
               AND extraida = false
-        """, dimension_id, x_min, x_max, y_min, y_max, z_min, z_max)
+        """, bloque_id, x_min, x_max, y_min, y_max, z_min, z_max)
         
         # Logging para debugging
         if not rows:
-            logger.warning(f"No particles found for dimension {dimension_id} in viewport")
+            logger.warning(f"No particles found for bloque {bloque_id} in viewport")
         else:
             logger.debug(f"Found {len(rows)} particles in viewport")
         
@@ -261,15 +267,15 @@ async def get_particles_by_viewport(
         particles = [ParticleResponse.from_row(row) for row in rows]
         
         return ParticlesResponse(
-            dimension_id=dimension_id,
+            bloque_id=bloque_id,
             particles=particles,
             total=total,
             viewport=viewport
         )
 
 
-@router.get("/{dimension_id}/particles/{particle_id}", response_model=ParticleResponse)
-async def get_particle(dimension_id: UUID, particle_id: UUID):
+@router.get("/{bloque_id}/particles/{particle_id}", response_model=ParticleResponse)
+async def get_particle(bloque_id: UUID, particle_id: UUID):
     """
     Obtener una partícula específica por ID
     """
@@ -277,7 +283,7 @@ async def get_particle(dimension_id: UUID, particle_id: UUID):
         row = await conn.fetchrow("""
             SELECT 
                 p.id,
-                p.dimension_id,
+                p.bloque_id,
                 p.celda_x,
                 p.celda_y,
                 p.celda_z,
@@ -298,8 +304,8 @@ async def get_particle(dimension_id: UUID, particle_id: UUID):
             FROM juego_dioses.particulas p
             JOIN juego_dioses.tipos_particulas tp ON p.tipo_particula_id = tp.id
             JOIN juego_dioses.estados_materia em ON p.estado_materia_id = em.id
-            WHERE p.id = $1 AND p.dimension_id = $2
-        """, particle_id, dimension_id)
+            WHERE p.id = $1 AND p.bloque_id = $2
+        """, particle_id, bloque_id)
         
         if not row:
             raise HTTPException(status_code=404, detail="Partícula no encontrada")

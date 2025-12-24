@@ -12,33 +12,33 @@ from src.database.creators.entity_creator import EntityCreator
 from src.models.schemas import CharacterResponse, CharacterCreate, BipedGeometry, Model3D
 from src.models.schemas import parse_jsonb_field
 
-router = APIRouter(prefix="/dimensions/{dimension_id}/characters", tags=["characters"])
+router = APIRouter(prefix="/bloques/{bloque_id}/characters", tags=["characters"])
 
 
 @router.get("/{character_id}", response_model=CharacterResponse)
 async def get_character(
-    dimension_id: UUID = Path(..., description="ID de la dimensión"),
+    bloque_id: UUID = Path(..., description="ID del bloque"),
     character_id: UUID = Path(..., description="ID del personaje (agrupación)")
 ):
     """
     Obtener información de un personaje
     """
     async with get_connection() as conn:
-        # Verificar que la dimensión existe
-        dim_exists = await conn.fetchval(
-            "SELECT EXISTS(SELECT 1 FROM juego_dioses.dimensiones WHERE id = $1)",
-            dimension_id
+        # Verificar que el bloque existe
+        bloque_exists = await conn.fetchval(
+            "SELECT EXISTS(SELECT 1 FROM juego_dioses.bloques WHERE id = $1)",
+            bloque_id
         )
         
-        if not dim_exists:
-            raise HTTPException(status_code=404, detail="Dimensión no encontrada")
+        if not bloque_exists:
+            raise HTTPException(status_code=404, detail="Bloque no encontrado")
         
         # Obtener agrupación (incluyendo posición y modelo_3d)
         agrupacion = await conn.fetchrow("""
             SELECT id, nombre, tipo, especie, geometria_agrupacion, modelo_3d, posicion_x, posicion_y, posicion_z
             FROM juego_dioses.agrupaciones
-            WHERE id = $1 AND dimension_id = $2
-        """, character_id, dimension_id)
+            WHERE id = $1 AND bloque_id = $2
+        """, character_id, bloque_id)
         
         if not agrupacion:
             raise HTTPException(status_code=404, detail="Personaje no encontrado")
@@ -74,7 +74,7 @@ async def get_character(
         
         return CharacterResponse(
             id=str(agrupacion['id']),
-            dimension_id=str(dimension_id),
+            bloque_id=str(bloque_id),
             nombre=agrupacion['nombre'],
             tipo=agrupacion['tipo'],
             especie=agrupacion['especie'] or '',
@@ -91,29 +91,29 @@ async def get_character(
 
 @router.get("", response_model=List[CharacterResponse])
 async def list_characters(
-    dimension_id: UUID = Path(..., description="ID de la dimensión")
+    bloque_id: UUID = Path(..., description="ID del bloque")
 ):
     """
-    Listar todos los personajes en una dimensión
+    Listar todos los personajes en un bloque
     """
     async with get_connection() as conn:
-        # Verificar que la dimensión existe
-        dim_exists = await conn.fetchval(
-            "SELECT EXISTS(SELECT 1 FROM juego_dioses.dimensiones WHERE id = $1)",
-            dimension_id
+        # Verificar que el bloque existe
+        bloque_exists = await conn.fetchval(
+            "SELECT EXISTS(SELECT 1 FROM juego_dioses.bloques WHERE id = $1)",
+            bloque_id
         )
         
-        if not dim_exists:
-            raise HTTPException(status_code=404, detail="Dimensión no encontrada")
+        if not bloque_exists:
+            raise HTTPException(status_code=404, detail="Bloque no encontrado")
         
         # Obtener todas las agrupaciones de tipo 'biped' (incluyendo posición y modelo_3d)
         # Ordenar por fecha de creación DESC para que el más reciente aparezca primero
         agrupaciones = await conn.fetch("""
             SELECT id, nombre, tipo, especie, geometria_agrupacion, modelo_3d, posicion_x, posicion_y, posicion_z
             FROM juego_dioses.agrupaciones
-            WHERE dimension_id = $1 AND tipo = 'biped'
+            WHERE bloque_id = $1 AND tipo = 'biped'
             ORDER BY creado_en DESC
-        """, dimension_id)
+        """, bloque_id)
         
         characters = []
         for agrupacion in agrupaciones:
@@ -143,7 +143,7 @@ async def list_characters(
             
             characters.append(CharacterResponse(
                 id=str(agrupacion['id']),
-                dimension_id=str(dimension_id),
+                bloque_id=str(bloque_id),
                 nombre=agrupacion['nombre'],
                 tipo=agrupacion['tipo'],
                 especie=agrupacion['especie'] or '',
@@ -162,28 +162,28 @@ async def list_characters(
 
 @router.get("/{character_id}/model")
 async def get_character_model(
-    dimension_id: UUID = Path(..., description="ID de la dimensión"),
+    bloque_id: UUID = Path(..., description="ID del bloque"),
     character_id: UUID = Path(..., description="ID del personaje")
 ):
     """
     Obtener URL y metadatos del modelo 3D de un personaje
     """
     async with get_connection() as conn:
-        # Verificar que la dimensión existe
-        dim_exists = await conn.fetchval(
-            "SELECT EXISTS(SELECT 1 FROM juego_dioses.dimensiones WHERE id = $1)",
-            dimension_id
+        # Verificar que el bloque existe
+        bloque_exists = await conn.fetchval(
+            "SELECT EXISTS(SELECT 1 FROM juego_dioses.bloques WHERE id = $1)",
+            bloque_id
         )
         
-        if not dim_exists:
-            raise HTTPException(status_code=404, detail="Dimensión no encontrada")
+        if not bloque_exists:
+            raise HTTPException(status_code=404, detail="Bloque no encontrado")
         
         # Obtener modelo_3d de la agrupación
         agrupacion = await conn.fetchrow("""
             SELECT modelo_3d
             FROM juego_dioses.agrupaciones
-            WHERE id = $1 AND dimension_id = $2 AND tipo = 'biped'
-        """, character_id, dimension_id)
+            WHERE id = $1 AND bloque_id = $2 AND tipo = 'biped'
+        """, character_id, bloque_id)
         
         if not agrupacion:
             raise HTTPException(status_code=404, detail="Personaje no encontrado")
@@ -213,20 +213,20 @@ async def get_character_model(
 @router.post("", response_model=CharacterResponse, status_code=201)
 async def create_character(
     character_data: CharacterCreate,
-    dimension_id: UUID = Path(..., description="ID de la dimensión")
+    bloque_id: UUID = Path(..., description="ID del bloque")
 ):
     """
     Crear un personaje desde un template
     """
     async with get_connection() as conn:
-        # Verificar que la dimensión existe
-        dim_exists = await conn.fetchval(
-            "SELECT EXISTS(SELECT 1 FROM juego_dioses.dimensiones WHERE id = $1)",
-            dimension_id
+        # Verificar que el bloque existe
+        bloque_exists = await conn.fetchval(
+            "SELECT EXISTS(SELECT 1 FROM juego_dioses.bloques WHERE id = $1)",
+            bloque_id
         )
         
-        if not dim_exists:
-            raise HTTPException(status_code=404, detail="Dimensión no encontrada")
+        if not bloque_exists:
+            raise HTTPException(status_code=404, detail="Bloque no encontrado")
         
         # Validar posición
         if character_data.x < 0 or character_data.y < 0:
@@ -245,7 +245,7 @@ async def create_character(
             )
         
         # Crear personaje usando EntityCreator
-        creator = EntityCreator(conn, dimension_id)
+        creator = EntityCreator(conn, bloque_id)
         try:
             # Los bípedos no crean partículas físicas, solo agrupación
             await creator.create_entity(
@@ -260,15 +260,15 @@ async def create_character(
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error al crear personaje: {str(e)}")
         
-        # Obtener la agrupación creada (última creada en esta dimensión de tipo biped)
+        # Obtener la agrupación creada (última creada en este bloque de tipo biped)
         # Incluir posición y modelo_3d en la consulta
         agrupacion = await conn.fetchrow("""
             SELECT id, nombre, tipo, especie, geometria_agrupacion, modelo_3d, posicion_x, posicion_y, posicion_z
             FROM juego_dioses.agrupaciones
-            WHERE dimension_id = $1 AND tipo = 'biped'
+            WHERE bloque_id = $1 AND tipo = 'biped'
             ORDER BY creado_en DESC
             LIMIT 1
-        """, dimension_id)
+        """, bloque_id)
         
         if not agrupacion:
             raise HTTPException(status_code=500, detail="Error al crear personaje: agrupación no encontrada")
@@ -299,7 +299,7 @@ async def create_character(
         
         return CharacterResponse(
             id=str(agrupacion['id']),
-            dimension_id=str(dimension_id),
+            bloque_id=str(bloque_id),
             nombre=agrupacion['nombre'],
             tipo=agrupacion['tipo'],
             especie=agrupacion['especie'] or '',

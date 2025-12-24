@@ -39,7 +39,7 @@ async function loadDemo() {
         const result = await app.loadDemo();
         
         // Actualizar UI
-        dimensionInfoEl.textContent = `Dimensión: ${result.dimension.nombre} (${result.dimension.ancho_metros}m x ${result.dimension.alto_metros}m)`;
+        dimensionInfoEl.textContent = `Bloque: ${result.dimension.nombre} (${result.dimension.ancho_metros}m x ${result.dimension.alto_metros}m)`;
         particlesCountEl.textContent = `Partículas: ${result.particlesCount}`;
         
         // Ocultar loading y mostrar éxito

@@ -52,7 +52,7 @@ async def main():
         # Buscar cualquier dimensión (la primera que encuentre)
         # Esto permite usar la misma dimensión que el frontend
         dimension_id = await conn.fetchval("""
-            SELECT id FROM juego_dioses.dimensiones 
+            SELECT id FROM juego_dioses.bloques 
             ORDER BY creado_en DESC
             LIMIT 1
         """)
@@ -60,7 +60,7 @@ async def main():
         if not dimension_id:
             # Si no hay ninguna, buscar la demo específica
             dimension_id = await conn.fetchval("""
-                SELECT id FROM juego_dioses.dimensiones 
+                SELECT id FROM juego_dioses.bloques 
                 WHERE nombre = 'Terreno Test 2 - Lago y Montaña'
                 LIMIT 1
             """)
@@ -72,7 +72,7 @@ async def main():
         
         # Obtener nombre de la dimensión para mostrar
         dimension_nombre = await conn.fetchval("""
-            SELECT nombre FROM juego_dioses.dimensiones WHERE id = $1
+            SELECT nombre FROM juego_dioses.bloques WHERE id = $1
         """, dimension_id)
         
         print(f"✓ Dimensión encontrada: {dimension_id} ({dimension_nombre})")
@@ -147,7 +147,7 @@ async def main():
             agrupacion = await conn.fetchrow("""
                 SELECT id, nombre, tipo, modelo_3d
                 FROM juego_dioses.agrupaciones
-                WHERE dimension_id = $1 AND tipo = 'biped'
+                WHERE bloque_id = $1 AND tipo = 'biped'
                 ORDER BY creado_en DESC
                 LIMIT 1
             """, dimension_id)

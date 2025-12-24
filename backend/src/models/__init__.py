@@ -16,7 +16,24 @@ from .schemas import (
     EstadoMateriaResponse
 )
 
+# Nuevos modelos del sistema de partículas (JDG-038)
+from .particula_schemas import (
+    TipoParticulaBase,
+    TipoParticulaCreate,
+    TipoParticula,
+    ParticulaBase,
+    ParticulaCreate,
+    Particula,
+    BloqueBase,
+    BloqueCreate,
+    Bloque,
+    TransicionParticulaBase,
+    TransicionParticulaCreate,
+    TransicionParticula
+)
+
 __all__ = [
+    # Modelos existentes (compatibilidad)
     "DimensionBase",
     "DimensionCreate",
     "DimensionResponse",
@@ -28,6 +45,19 @@ __all__ = [
     "AgrupacionResponse",
     "AgrupacionWithParticles",
     "TipoParticulaResponse",
-    "EstadoMateriaResponse"
+    "EstadoMateriaResponse",
+    # Nuevos modelos del sistema de partículas (JDG-038)
+    "TipoParticulaBase",
+    "TipoParticulaCreate",
+    "TipoParticula",
+    "ParticulaBase",
+    "ParticulaCreate",
+    "Particula",
+    "BloqueBase",
+    "BloqueCreate",
+    "Bloque",
+    "TransicionParticulaBase",
+    "TransicionParticulaCreate",
+    "TransicionParticula"
 ]
 

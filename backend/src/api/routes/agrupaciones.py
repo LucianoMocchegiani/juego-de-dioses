@@ -8,29 +8,29 @@ from uuid import UUID
 from src.database.connection import get_connection
 from src.models.schemas import AgrupacionResponse, AgrupacionWithParticles
 
-router = APIRouter(prefix="/dimensions", tags=["agrupaciones"])
+router = APIRouter(prefix="/bloques", tags=["agrupaciones"])
 
 
-@router.get("/{dimension_id}/agrupaciones", response_model=List[AgrupacionResponse])
-async def list_agrupaciones(dimension_id: UUID):
+@router.get("/{bloque_id}/agrupaciones", response_model=List[AgrupacionResponse])
+async def list_agrupaciones(bloque_id: UUID):
     """
-    Listar todas las agrupaciones en una dimensión
+    Listar todas las agrupaciones en un bloque
     """
-    # Verificar que la dimensión existe
+    # Verificar que el bloque existe
     async with get_connection() as conn:
-        dim_exists = await conn.fetchval(
-            "SELECT EXISTS(SELECT 1 FROM juego_dioses.dimensiones WHERE id = $1)",
-            dimension_id
+        bloque_exists = await conn.fetchval(
+            "SELECT EXISTS(SELECT 1 FROM juego_dioses.bloques WHERE id = $1)",
+            bloque_id
         )
         
-        if not dim_exists:
-            raise HTTPException(status_code=404, detail="Dimensión no encontrada")
+        if not bloque_exists:
+            raise HTTPException(status_code=404, detail="Bloque no encontrado")
         
         # Obtener agrupaciones con conteo de partículas
         rows = await conn.fetch("""
             SELECT 
                 a.id,
-                a.dimension_id,
+                a.bloque_id,
                 a.nombre,
                 a.tipo,
                 a.descripcion,
@@ -49,16 +49,16 @@ async def list_agrupaciones(dimension_id: UUID):
                 COUNT(p.id) as particulas_count
             FROM juego_dioses.agrupaciones a
             LEFT JOIN juego_dioses.particulas p ON a.id = p.agrupacion_id AND p.extraida = false
-            WHERE a.dimension_id = $1
+            WHERE a.bloque_id = $1
             GROUP BY a.id
             ORDER BY a.creado_en DESC
-        """, dimension_id)
+        """, bloque_id)
         
         agrupaciones = []
         for row in rows:
             agrupaciones.append(AgrupacionResponse(
                 id=row["id"],
-                dimension_id=row["dimension_id"],
+                bloque_id=row["bloque_id"],
                 nombre=row["nombre"],
                 tipo=row["tipo"],
                 descripcion=row["descripcion"],
@@ -80,8 +80,8 @@ async def list_agrupaciones(dimension_id: UUID):
         return agrupaciones
 
 
-@router.get("/{dimension_id}/agrupaciones/{agrupacion_id}", response_model=AgrupacionWithParticles)
-async def get_agrupacion(dimension_id: UUID, agrupacion_id: UUID):
+@router.get("/{bloque_id}/agrupaciones/{agrupacion_id}", response_model=AgrupacionWithParticles)
+async def get_agrupacion(bloque_id: UUID, agrupacion_id: UUID):
     """
     Obtener una agrupación específica con sus partículas
     """
@@ -90,7 +90,7 @@ async def get_agrupacion(dimension_id: UUID, agrupacion_id: UUID):
         agrupacion_row = await conn.fetchrow("""
             SELECT 
                 id,
-                dimension_id,
+                bloque_id,
                 nombre,
                 tipo,
                 descripcion,
@@ -107,8 +107,8 @@ async def get_agrupacion(dimension_id: UUID, agrupacion_id: UUID):
                 creado_en,
                 modificado_en
             FROM juego_dioses.agrupaciones
-            WHERE id = $1 AND dimension_id = $2
-        """, agrupacion_id, dimension_id)
+            WHERE id = $1 AND bloque_id = $2
+        """, agrupacion_id, bloque_id)
         
         if not agrupacion_row:
             raise HTTPException(status_code=404, detail="Agrupación no encontrada")
@@ -117,7 +117,7 @@ async def get_agrupacion(dimension_id: UUID, agrupacion_id: UUID):
         particulas_rows = await conn.fetch("""
             SELECT 
                 p.id,
-                p.dimension_id,
+                p.bloque_id,
                 p.celda_x,
                 p.celda_y,
                 p.celda_z,
@@ -148,7 +148,7 @@ async def get_agrupacion(dimension_id: UUID, agrupacion_id: UUID):
         
         return AgrupacionWithParticles(
             id=agrupacion_row["id"],
-            dimension_id=agrupacion_row["dimension_id"],
+            bloque_id=agrupacion_row["bloque_id"],
             nombre=agrupacion_row["nombre"],
             tipo=agrupacion_row["tipo"],
             descripcion=agrupacion_row["descripcion"],
