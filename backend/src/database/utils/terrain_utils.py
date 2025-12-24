@@ -30,7 +30,7 @@ async def get_terrain_height(
     max_z = await conn.fetchval("""
         SELECT MAX(celda_z)
         FROM juego_dioses.particulas
-        WHERE dimension_id = $1
+        WHERE bloque_id = $1
           AND celda_x = $2
           AND celda_y = $3
           AND extraida = false
@@ -65,7 +65,7 @@ async def get_terrain_height_area(
     max_z = await conn.fetchval("""
         SELECT MAX(celda_z)
         FROM juego_dioses.particulas
-        WHERE dimension_id = $1
+        WHERE bloque_id = $1
           AND celda_x BETWEEN ($2::INTEGER - $4::INTEGER) AND ($2::INTEGER + $4::INTEGER)
           AND celda_y BETWEEN ($3::INTEGER - $4::INTEGER) AND ($3::INTEGER + $4::INTEGER)
           AND extraida = false

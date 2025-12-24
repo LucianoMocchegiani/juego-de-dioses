@@ -197,7 +197,7 @@ class ParticleBase(BaseModel):
 class ParticleResponse(ParticleBase):
     """Schema de respuesta para partícula"""
     id: UUID
-    dimension_id: UUID
+    bloque_id: UUID
     tipo_particula_id: UUID
     estado_materia_id: UUID
     tipo_nombre: str = Field(..., description="Nombre del tipo de partícula (viene del JOIN)")
@@ -219,7 +219,7 @@ class ParticleResponse(ParticleBase):
         
         return cls(
             id=row['id'],
-            dimension_id=row['dimension_id'],
+            bloque_id=row['bloque_id'],
             celda_x=row['celda_x'],
             celda_y=row['celda_y'],
             celda_z=row['celda_z'],
@@ -280,7 +280,7 @@ class ParticleViewportQuery(BaseModel):
 
 class ParticlesResponse(BaseModel):
     """Response con lista de partículas"""
-    dimension_id: UUID
+    bloque_id: UUID
     particles: List[ParticleResponse]
     total: int
     viewport: ParticleViewportQuery
@@ -306,7 +306,7 @@ class AgrupacionBase(BaseModel):
 class AgrupacionResponse(AgrupacionBase):
     """Schema de respuesta para agrupación"""
     id: UUID
-    dimension_id: UUID
+    bloque_id: UUID
     creado_en: datetime
     modificado_en: datetime
     ultima_verificacion_nucleo: Optional[datetime] = None
@@ -338,12 +338,16 @@ class TipoParticulaResponse(BaseModel):
 
 
 class ParticleTypeResponse(BaseModel):
-    """Schema de respuesta para tipo de partícula con estilos (query separada)"""
+    """Schema de respuesta para tipo de partícula con color y geometría (query separada)"""
     id: str  # UUID como string
     nombre: str
-    estilos: Optional[dict] = Field(
+    color: Optional[str] = Field(
         None,
-        description="Estilos visuales del tipo (color, material, visual)"
+        description="Color del tipo de partícula (VARCHAR desde BD)"
+    )
+    geometria: Optional[dict] = Field(
+        None,
+        description="Geometría visual del tipo (JSONB desde BD, default: {'tipo': 'box'})"
     )
 
 
@@ -419,7 +423,7 @@ class Model3D(BaseModel):
 class CharacterResponse(BaseModel):
     """Respuesta con información completa de un personaje"""
     id: str = Field(..., description="ID del personaje (agrupación)")
-    dimension_id: str = Field(..., description="ID de la dimensión")
+    bloque_id: str = Field(..., description="ID del bloque")
     nombre: str = Field(..., description="Nombre del personaje")
     tipo: str = Field(..., description="Tipo de agrupación (ej: 'biped')")
     especie: str = Field(..., description="Especie del personaje (ej: 'humano')")

@@ -27,7 +27,7 @@ POSTGRES_PASSWORD = os.getenv("POSTGRES_PASSWORD", "juegodioses123")
 POSTGRES_DB = os.getenv("POSTGRES_DB", "juego_dioses")
 
 
-async def seed_demo():
+async def seed_terrain_test_1():
     """
     Crear demo: bioma bosque 40x40 (10m x 10m) con acuífero subterráneo
     """
@@ -45,7 +45,7 @@ async def seed_demo():
         # 0. Borrar dimensión existente si existe (y todas sus partículas)
         print("Verificando si existe dimensión test 1 anterior...")
         existing_dim_id = await conn.fetchval("""
-            SELECT id FROM juego_dioses.dimensiones 
+            SELECT id FROM juego_dioses.bloques 
             WHERE nombre = 'Terreno Test 1 - Bosque Denso'
         """)
         
@@ -54,13 +54,13 @@ async def seed_demo():
             # Borrar partículas primero (por foreign key)
             particulas_borradas = await conn.execute("""
                 DELETE FROM juego_dioses.particulas 
-                WHERE dimension_id = $1
+                WHERE bloque_id = $1
             """, existing_dim_id)
             print(f"  Partículas eliminadas: {particulas_borradas.split()[-1]}")
             
             # Borrar dimensión
             await conn.execute("""
-                DELETE FROM juego_dioses.dimensiones 
+                DELETE FROM juego_dioses.bloques 
                 WHERE id = $1
             """, existing_dim_id)
             print("  Dimensión eliminada correctamente")
@@ -99,7 +99,7 @@ async def seed_demo():
         # Agregamos margen: altura_maxima = 40 para seguridad
         print("Creando dimensión terreno test 1...")
         dimension_id = await conn.fetchval("""
-            INSERT INTO juego_dioses.dimensiones (
+            INSERT INTO juego_dioses.bloques (
                 nombre,
                 ancho_metros,
                 alto_metros,
@@ -129,7 +129,7 @@ async def seed_demo():
         print("Creando capa de partículas límite...")
         dim_row = await conn.fetchrow("""
             SELECT ancho_metros, alto_metros, profundidad_maxima, tamano_celda
-            FROM juego_dioses.dimensiones
+            FROM juego_dioses.bloques
             WHERE id = $1
         """, dimension_id)
         
@@ -168,10 +168,10 @@ async def seed_demo():
                     if len(particulas_roca) >= batch_size:
                         await conn.executemany("""
                             INSERT INTO juego_dioses.particulas 
-                            (dimension_id, celda_x, celda_y, celda_z, tipo_particula_id, estado_materia_id,
+                            (bloque_id, celda_x, celda_y, celda_z, tipo_particula_id, estado_materia_id,
                              cantidad, temperatura, energia, extraida, agrupacion_id, es_nucleo, propiedades)
                             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb)
-                            ON CONFLICT (dimension_id, celda_x, celda_y, celda_z) DO NOTHING
+                            ON CONFLICT (bloque_id, celda_x, celda_y, celda_z) DO NOTHING
                         """, particulas_roca)
                         print(f"  Insertadas {len(particulas_roca)} partículas de roca...")
                         particulas_roca = []
@@ -180,10 +180,10 @@ async def seed_demo():
         if particulas_roca:
             await conn.executemany("""
                 INSERT INTO juego_dioses.particulas 
-                (dimension_id, celda_x, celda_y, celda_z, tipo_particula_id, estado_materia_id,
+                (bloque_id, celda_x, celda_y, celda_z, tipo_particula_id, estado_materia_id,
                  cantidad, temperatura, energia, extraida, agrupacion_id, es_nucleo, propiedades)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb)
-                ON CONFLICT (dimension_id, celda_x, celda_y, celda_z) DO NOTHING
+                ON CONFLICT (bloque_id, celda_x, celda_y, celda_z) DO NOTHING
             """, particulas_roca)
         
         total_roca = (max_x * max_y * 3)
@@ -202,10 +202,10 @@ async def seed_demo():
         
         await conn.executemany("""
             INSERT INTO juego_dioses.particulas 
-            (dimension_id, celda_x, celda_y, celda_z, tipo_particula_id, estado_materia_id,
+            (bloque_id, celda_x, celda_y, celda_z, tipo_particula_id, estado_materia_id,
              cantidad, temperatura, energia, extraida, agrupacion_id, es_nucleo, propiedades)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb)
-            ON CONFLICT (dimension_id, celda_x, celda_y, celda_z) DO NOTHING
+            ON CONFLICT (bloque_id, celda_x, celda_y, celda_z) DO NOTHING
         """, particulas_impermeable)
         print(f"Capa impermeable creada: {len(particulas_impermeable)} partículas")
         
@@ -227,10 +227,10 @@ async def seed_demo():
                     if len(particulas_agua) >= batch_size:
                         await conn.executemany("""
                             INSERT INTO juego_dioses.particulas 
-                            (dimension_id, celda_x, celda_y, celda_z, tipo_particula_id, estado_materia_id,
+                            (bloque_id, celda_x, celda_y, celda_z, tipo_particula_id, estado_materia_id,
                              cantidad, temperatura, energia, extraida, agrupacion_id, es_nucleo, propiedades)
                             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb)
-                            ON CONFLICT (dimension_id, celda_x, celda_y, celda_z) DO NOTHING
+                            ON CONFLICT (bloque_id, celda_x, celda_y, celda_z) DO NOTHING
                         """, particulas_agua)
                         print(f"  Insertadas {len(particulas_agua)} partículas de agua...")
                         particulas_agua = []
@@ -239,10 +239,10 @@ async def seed_demo():
         if particulas_agua:
             await conn.executemany("""
                 INSERT INTO juego_dioses.particulas 
-                (dimension_id, celda_x, celda_y, celda_z, tipo_particula_id, estado_materia_id,
+                (bloque_id, celda_x, celda_y, celda_z, tipo_particula_id, estado_materia_id,
                  cantidad, temperatura, energia, extraida, agrupacion_id, es_nucleo, propiedades)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb)
-                ON CONFLICT (dimension_id, celda_x, celda_y, celda_z) DO NOTHING
+                ON CONFLICT (bloque_id, celda_x, celda_y, celda_z) DO NOTHING
             """, particulas_agua)
         
         total_agua = (max_x * max_y * 3)
@@ -261,10 +261,10 @@ async def seed_demo():
         
         await conn.executemany("""
             INSERT INTO juego_dioses.particulas 
-            (dimension_id, celda_x, celda_y, celda_z, tipo_particula_id, estado_materia_id,
+            (bloque_id, celda_x, celda_y, celda_z, tipo_particula_id, estado_materia_id,
              cantidad, temperatura, energia, extraida, agrupacion_id, es_nucleo, propiedades)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb)
-            ON CONFLICT (dimension_id, celda_x, celda_y, celda_z) DO NOTHING
+            ON CONFLICT (bloque_id, celda_x, celda_y, celda_z) DO NOTHING
         """, particulas_saturacion)
         print(f"Zona de saturación creada: {len(particulas_saturacion)} partículas")
         
@@ -286,10 +286,10 @@ async def seed_demo():
                     if len(particulas_infiltracion) >= batch_size:
                         await conn.executemany("""
                             INSERT INTO juego_dioses.particulas 
-                            (dimension_id, celda_x, celda_y, celda_z, tipo_particula_id, estado_materia_id,
+                            (bloque_id, celda_x, celda_y, celda_z, tipo_particula_id, estado_materia_id,
                              cantidad, temperatura, energia, extraida, agrupacion_id, es_nucleo, propiedades)
                             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb)
-                            ON CONFLICT (dimension_id, celda_x, celda_y, celda_z) DO NOTHING
+                            ON CONFLICT (bloque_id, celda_x, celda_y, celda_z) DO NOTHING
                         """, particulas_infiltracion)
                         print(f"  Insertadas {len(particulas_infiltracion)} partículas de infiltración...")
                         particulas_infiltracion = []
@@ -298,10 +298,10 @@ async def seed_demo():
         if particulas_infiltracion:
             await conn.executemany("""
                 INSERT INTO juego_dioses.particulas 
-                (dimension_id, celda_x, celda_y, celda_z, tipo_particula_id, estado_materia_id,
+                (bloque_id, celda_x, celda_y, celda_z, tipo_particula_id, estado_materia_id,
                  cantidad, temperatura, energia, extraida, agrupacion_id, es_nucleo, propiedades)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb)
-                ON CONFLICT (dimension_id, celda_x, celda_y, celda_z) DO NOTHING
+                ON CONFLICT (bloque_id, celda_x, celda_y, celda_z) DO NOTHING
             """, particulas_infiltracion)
         
         total_infiltracion = (max_x * max_y * 5)
@@ -330,10 +330,10 @@ async def seed_demo():
         
         await conn.executemany("""
             INSERT INTO juego_dioses.particulas 
-            (dimension_id, celda_x, celda_y, celda_z, tipo_particula_id, estado_materia_id,
+            (bloque_id, celda_x, celda_y, celda_z, tipo_particula_id, estado_materia_id,
              cantidad, temperatura, energia, extraida, agrupacion_id, es_nucleo, propiedades)
             VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb)
-            ON CONFLICT (dimension_id, celda_x, celda_y, celda_z) DO UPDATE
+            ON CONFLICT (bloque_id, celda_x, celda_y, celda_z) DO UPDATE
             SET tipo_particula_id = EXCLUDED.tipo_particula_id,
                 temperatura = EXCLUDED.temperatura
         """, particulas_base)
@@ -405,7 +405,7 @@ async def seed_demo():
         # Verificar creación
         total_particulas = await conn.fetchval("""
             SELECT COUNT(*) FROM juego_dioses.particulas
-            WHERE dimension_id = $1 AND extraida = false
+            WHERE bloque_id = $1 AND extraida = false
         """, dimension_id)
         
         # Estadísticas por tipo
@@ -413,7 +413,7 @@ async def seed_demo():
             SELECT tp.nombre, COUNT(*) as cantidad
             FROM juego_dioses.particulas p
             JOIN juego_dioses.tipos_particulas tp ON p.tipo_particula_id = tp.id
-            WHERE p.dimension_id = $1 AND p.extraida = false
+            WHERE p.bloque_id = $1 AND p.extraida = false
             GROUP BY tp.nombre
             ORDER BY cantidad DESC
         """, dimension_id)

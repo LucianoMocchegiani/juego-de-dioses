@@ -46,7 +46,7 @@ terrain/
 - `sorting.js` - Utilidades de ordenamiento (migrado de `utils/sorting.js`)
 
 ### API
-- `dimensions-client.js` - Cliente wrapper para DimensionsApi
+- `bloques-client.js` - Cliente wrapper para BloquesApi
 - `particles-client.js` - Cliente wrapper para ParticlesApi
 
 ## Uso Básico
@@ -58,7 +58,7 @@ import { TerrainManager } from './terrain/manager.js';
 const terrain = new TerrainManager(
     scene.scene,
     particlesApi,
-    dimensionsApi,
+    bloquesApi,
     geometryRegistry
 );
 

@@ -13,13 +13,13 @@ export class ParticlesApi {
     
     /**
      * Obtener partículas por viewport
-     * @param {string} dimensionId - ID de la dimensión
+     * @param {string} bloqueId - ID del bloque
      * @param {Object} viewport - Viewport con x_min, x_max, y_min, y_max, z_min, z_max
      * @returns {Promise<Object>} - Respuesta con partículas y metadatos
      */
-    async getParticles(dimensionId, viewport) {
+    async getParticles(bloqueId, viewport) {
         const { x_min, x_max, y_min, y_max, z_min, z_max } = viewport;
-        const endpoint = `/dimensions/${dimensionId}/particles?` +
+        const endpoint = `/bloques/${bloqueId}/particles?` +
             `x_min=${x_min}&x_max=${x_max}&y_min=${y_min}&y_max=${y_max}&z_min=${z_min}&z_max=${z_max}`;
         
         try {
@@ -31,13 +31,13 @@ export class ParticlesApi {
     
     /**
      * Obtener tipos de partículas con estilos por viewport
-     * @param {string} dimensionId - ID de la dimensión
+     * @param {string} bloqueId - ID del bloque
      * @param {Object} viewport - Viewport con x_min, x_max, y_min, y_max, z_min, z_max
      * @returns {Promise<Object>} - Respuesta con tipos y estilos
      */
-    async getParticleTypes(dimensionId, viewport) {
+    async getParticleTypes(bloqueId, viewport) {
         const { x_min, x_max, y_min, y_max, z_min, z_max } = viewport;
-        const endpoint = `/dimensions/${dimensionId}/particle-types?` +
+        const endpoint = `/bloques/${bloqueId}/particle-types?` +
             `x_min=${x_min}&x_max=${x_max}&y_min=${y_min}&y_max=${y_max}&z_min=${z_min}&z_max=${z_max}`;
         
         try {

@@ -7,8 +7,9 @@ Este módulo contiene los modelos Pydantic para validación y serialización de 
 ```
 models/
 ├── __init__.py
-├── schemas.py          # Todos los schemas Pydantic
-└── README.md          # Este archivo
+├── schemas.py              # Schemas Pydantic existentes (estilos, dimensiones, partículas, agrupaciones)
+├── particula_schemas.py    # Nuevos schemas del sistema de partículas (JDG-038)
+└── README.md              # Este archivo
 ```
 
 ## Componentes Principales
@@ -51,6 +52,135 @@ models/
 ### Estados de Materia
 
 - **`EstadoMateriaResponse`**: Schema de respuesta para estado de materia
+
+## Nuevos Modelos del Sistema de Partículas (JDG-038)
+
+### Tipos de Partículas
+
+- **`TipoParticulaBase`**: Modelo base con todas las propiedades físicas
+- **`TipoParticulaCreate`**: Schema para crear un nuevo tipo de partícula
+- **`TipoParticula`**: Modelo completo (con ID y timestamps)
+
+**Características**:
+- Validación de `tipo_fisico` (solido, liquido, gas, energia)
+- Validación de propiedades específicas según el tipo físico
+- Campos: `inercia_termica`, `conductividad_electrica`, `magnetismo`
+- Propiedades condicionales según tipo (dureza para sólidos, viscosidad para líquidos, etc.)
+
+**Ejemplo**:
+```python
+from src.models import TipoParticulaCreate
+
+tipo_madera = TipoParticulaCreate(
+    nombre="madera",
+    tipo_fisico="solido",
+    densidad=Decimal("0.6"),
+    conductividad_termica=Decimal("0.1"),
+    inercia_termica=Decimal("2.0"),
+    dureza=Decimal("3.0"),
+    fragilidad=Decimal("4.0"),
+    punto_fusion=Decimal("300.0")
+)
+```
+
+### Partículas
+
+- **`ParticulaBase`**: Modelo base con posición y propiedades dinámicas
+- **`ParticulaCreate`**: Schema para crear una nueva partícula
+- **`Particula`**: Modelo completo (con ID y timestamps)
+
+**Características**:
+- Campos dinámicos: `temperatura`, `integridad`, `carga_electrica`
+- Referencias: `bloque_id`, `tipo_particula_id`, `estado_materia_id`
+- Soporte para agrupaciones: `agrupacion_id`, `es_nucleo`
+
+**Ejemplo**:
+```python
+from src.models import ParticulaCreate
+
+particula = ParticulaCreate(
+    bloque_id="bloque-uuid",
+    celda_x=100,
+    celda_y=200,
+    celda_z=50,
+    tipo_particula_id="tipo-madera-uuid",
+    estado_materia_id="estado-solido-uuid",
+    temperatura=Decimal("20.0"),
+    integridad=Decimal("1.0"),
+    carga_electrica=Decimal("0.0")
+)
+```
+
+### Bloques
+
+- **`BloqueBase`**: Modelo base con configuración del mundo
+- **`BloqueCreate`**: Schema para crear un nuevo bloque
+- **`Bloque`**: Modelo completo (con ID y timestamp)
+
+**Características**:
+- Configuración de límites del mundo (ancho, alto, profundidad, altura)
+- Tamaño de celda y posición del origen
+- **`tamano_bloque`**: Tamaño de bloque espacial (40x40x40 celdas por defecto)
+
+**Ejemplo**:
+```python
+from src.models import BloqueCreate
+
+bloque = BloqueCreate(
+    nombre="Mundo Principal",
+    ancho_metros=Decimal("1000.0"),
+    alto_metros=Decimal("1000.0"),
+    profundidad_maxima=-100,
+    altura_maxima=100,
+    tamano_celda=Decimal("0.25"),
+    tamano_bloque=40
+)
+```
+
+### Transiciones de Partículas
+
+- **`TransicionParticulaBase`**: Modelo base con condiciones de transición
+- **`TransicionParticulaCreate`**: Schema para crear una nueva transición
+- **`TransicionParticula`**: Modelo completo (con ID y timestamp)
+
+**Características**:
+- Condiciones de temperatura: `condicion_temperatura`, `valor_temperatura`
+- Condiciones de integridad: `condicion_integridad`, `valor_integridad`
+- Prioridad y histeresis para evitar oscilaciones
+- Soporte para transiciones reversibles
+
+**Ejemplo**:
+```python
+from src.models import TransicionParticulaCreate
+
+transicion = TransicionParticulaCreate(
+    tipo_origen_id="tipo-agua-uuid",
+    tipo_destino_id="tipo-hielo-uuid",
+    condicion_temperatura="menor",
+    valor_temperatura=Decimal("0.0"),
+    histeresis=Decimal("2.0"),
+    prioridad=10,
+    reversible=True
+)
+```
+
+## Validaciones Importantes
+
+### Validación de Propiedades por Tipo Físico
+
+Los modelos de `TipoParticula` validan que las propiedades específicas solo se usen con el tipo físico correcto:
+
+- **Sólidos**: `dureza`, `fragilidad`, `elasticidad`, `punto_fusion`
+- **Líquidos**: `viscosidad`, `punto_ebullicion`
+- **Gases/Energía**: `propagacion`
+
+Si intentas usar propiedades de sólidos con `tipo_fisico='liquido'`, se lanzará un `ValueError`.
+
+### Validación de Condiciones en Transiciones
+
+Las transiciones validan que las condiciones estén completas:
+- Si `condicion_temperatura` está presente, `valor_temperatura` también debe estarlo
+- Si `condicion_integridad` está presente, `valor_integridad` también debe estarlo
 
 ## Conceptos Importantes
 

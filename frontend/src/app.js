@@ -6,7 +6,7 @@ import { actions } from './state/actions.js';
 import { selectors } from './state/selectors.js';
 import { PerformanceManager } from './core/performance/performance-manager.js';
 import { ApiClient } from './api/client.js';
-import { DimensionsApi, ParticlesApi, CharactersApi, initCharactersApi } from './api/endpoints/__init__.js';
+import { BloquesApi, ParticlesApi, CharactersApi, initCharactersApi } from './api/endpoints/__init__.js';
 import { Scene3D } from './core/scene.js';
 import { GeometryRegistry } from './core/geometries/registry.js';
 import { TerrainManager } from './terrain/manager.js';
@@ -49,7 +49,7 @@ export class App {
         
         // Inicializar API
         const apiClient = new ApiClient();
-        this.dimensionsApi = new DimensionsApi(apiClient);
+        this.bloquesApi = new BloquesApi(apiClient);
         this.particlesApi = new ParticlesApi(apiClient);
         this.charactersApi = new CharactersApi(apiClient);
         // Inicializar funciones helper de CharactersApi
@@ -62,7 +62,7 @@ export class App {
         this.terrain = new TerrainManager(
             this.scene.scene,
             this.particlesApi,
-            this.dimensionsApi,
+            this.bloquesApi,
             this.geometryRegistry
         );
         
@@ -157,22 +157,22 @@ export class App {
             actions.setLoading(this.store, true);
             actions.setError(this.store, null);
             
-            // 2. Obtener dimensiones
-            const dimensions = await this.dimensionsApi.getDimensions();
+            // 2. Obtener bloques
+            const dimensions = await this.bloquesApi.getDimensions();
             
-            // Buscar dimensión demo por nombre exacto
+            // Buscar bloque demo por nombre exacto
             const demoDimension = dimensions.find(d => 
                 d.nombre && d.nombre === DEMO_DIMENSION_NAME
             );
             
             if (!demoDimension) {
-                throw new Error(`No se encontró la dimensión demo: "${DEMO_DIMENSION_NAME}". Dimensiones disponibles: ${dimensions.map(d => d.nombre).join(', ')}`);
+                throw new Error(`No se encontró el bloque demo: "${DEMO_DIMENSION_NAME}". Bloques disponibles: ${dimensions.map(d => d.nombre).join(', ')}`);
             }
             
-            // 3. Establecer dimensión en estado
+            // 3. Establecer bloque en estado
             actions.setDimension(this.store, demoDimension);
             
-            // 4. Cargar dimensión usando TerrainManager
+            // 4. Cargar bloque usando TerrainManager
             const terrainResult = await this.terrain.loadDimension(demoDimension);
             const viewport = terrainResult.viewport;
             const particlesData = { particles: terrainResult.particles };
@@ -264,7 +264,7 @@ export class App {
                     cellSize: demoDimension.tamano_celda,
                     characterId: characterId, // Cargar existente si existe
                     templateId: characterId ? null : 'humano', // Crear solo si NO hay existente
-                    dimensionId: demoDimension.id
+                    bloqueId: demoDimension.id
                 });
                 
                 // console.log(`✓ Jugador creado/cargado. Entity ID: ${this.playerId}, Character ID: ${characterId || 'nuevo'}`);

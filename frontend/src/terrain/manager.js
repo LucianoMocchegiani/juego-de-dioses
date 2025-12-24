@@ -12,7 +12,7 @@ import { ParticleRenderer } from './renderers/particle-renderer.js';
 import { LODManager } from './optimizations/lod-manager.js';
 import { ParticleLimiter } from './optimizations/particle-limiter.js';
 import { CullingManager } from './optimizations/culling-manager.js';
-import { DimensionsClient } from './api/dimensions-client.js';
+import { BloquesClient } from './api/bloques-client.js';
 import { ParticlesClient } from './api/particles-client.js';
 
 /**
@@ -25,15 +25,15 @@ export class TerrainManager {
     /**
      * @param {THREE.Scene} scene - Escena Three.js
      * @param {Object} particlesApi - Cliente API para partículas
-     * @param {Object} dimensionsApi - Cliente API para dimensiones
+     * @param {Object} bloquesApi - Cliente API para bloques
      * @param {GeometryRegistry} geometryRegistry - Registry de geometrías
      */
-    constructor(scene, particlesApi, dimensionsApi, geometryRegistry) {
+    constructor(scene, particlesApi, bloquesApi, geometryRegistry) {
         this.scene = scene;
         this.geometryRegistry = geometryRegistry;
         
         // Inicializar clientes API
-        this.dimensionsClient = new DimensionsClient(dimensionsApi);
+        this.bloquesClient = new BloquesClient(bloquesApi);
         this.particlesClient = new ParticlesClient(particlesApi);
         
         // Inicializar sistemas
@@ -81,11 +81,28 @@ export class TerrainManager {
         this.styleSystem.cacheStyles(typesData.types);
         this.currentParticles = new Map(particlesData.particles.map(p => [p.id || `${p.celda_x}_${p.celda_y}_${p.celda_z}`, p]));
         
-        // 4. Preparar tiposEstilos para renderizado
+        // 4. Preparar tiposEstilos para renderizado (compatibilidad con estructura antigua)
         const tiposEstilos = new Map();
         typesData.types.forEach(tipo => {
-            if (tipo.estilos) {
-                tiposEstilos.set(tipo.nombre, tipo.estilos);
+            // Convertir nueva estructura (color, geometria) a estructura antigua (estilos) para compatibilidad
+            if (tipo.color || tipo.geometria) {
+                const estilosCompat = {};
+                if (tipo.color) {
+                    // El color puede venir como nombre de color (ej: "brown", "blue") o como hex
+                    // THREE.Color acepta ambos formatos, pero para compatibilidad guardamos como color_hex
+                    // Si no empieza con #, asumimos que es un nombre de color y lo pasamos tal cual
+                    // El parser de estilos manejará la conversión
+                    estilosCompat.color = tipo.color;
+                    estilosCompat.color_hex = tipo.color.startsWith('#') ? tipo.color : tipo.color;
+                }
+                if (tipo.geometria) {
+                    // Guardar geometria tanto en nueva estructura como en antigua para compatibilidad
+                    estilosCompat.geometria = tipo.geometria;
+                    estilosCompat.visual = {
+                        geometria: tipo.geometria
+                    };
+                }
+                tiposEstilos.set(tipo.nombre, estilosCompat);
             }
         });
         
