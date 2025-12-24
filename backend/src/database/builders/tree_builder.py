@@ -127,7 +127,7 @@ class TreeBuilder(BaseBuilder):
         metadata = self.get_agrupacion_metadata()
         agrupacion_id = await conn.fetchval("""
             INSERT INTO juego_dioses.agrupaciones
-            (dimension_id, nombre, tipo, especie, posicion_x, posicion_y, posicion_z)
+            (bloque_id, nombre, tipo, especie, posicion_x, posicion_y, posicion_z)
             VALUES ($1, $2, $3, $4, $5, $6, $7)
             RETURNING id
         """, dimension_id, metadata['nombre'], metadata['tipo'], 

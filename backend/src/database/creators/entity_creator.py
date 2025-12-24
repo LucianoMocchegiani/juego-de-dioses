@@ -10,9 +10,9 @@ from src.database.builders.biped_builder import BipedBuilder
 class EntityCreator:
     """Creator genérico que simplifica la creación de entidades"""
     
-    def __init__(self, conn: asyncpg.Connection, dimension_id: UUID):
+    def __init__(self, conn: asyncpg.Connection, bloque_id: UUID):
         self.conn = conn
-        self.dimension_id = dimension_id
+        self.bloque_id = bloque_id  # Internamente usamos bloque_id, pero el parámetro puede ser dimension_id por compatibilidad
         self._particle_type_cache = {}
         self._state_cache = {}
     
@@ -116,7 +116,7 @@ class EntityCreator:
         if create_agrupacion:
             agrupacion_id = await builder.create_agrupacion(
                 self.conn,
-                self.dimension_id,
+                self.bloque_id,
                 x, y, z
             )
         
@@ -134,7 +134,7 @@ class EntityCreator:
         # El builder recibe los IDs de tipos de partículas, el ID del estado de materia y el agrupacion_id
         particles = await builder.create_at_position(
             self.conn,
-            self.dimension_id,
+            self.bloque_id,
             x, y, z,
             solido_id=estado_materia_id,  # Nombre del parámetro para compatibilidad con TreeBuilder
             agrupacion_id=agrupacion_id,  # ID de agrupación (None si no se creó)
@@ -145,10 +145,10 @@ class EntityCreator:
         if particles:
             await self.conn.executemany("""
                 INSERT INTO juego_dioses.particulas
-                (dimension_id, celda_x, celda_y, celda_z, tipo_particula_id, estado_materia_id,
+                (bloque_id, celda_x, celda_y, celda_z, tipo_particula_id, estado_materia_id,
                  cantidad, temperatura, energia, extraida, agrupacion_id, es_nucleo, propiedades)
                 VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb)
-                ON CONFLICT (dimension_id, celda_x, celda_y, celda_z) DO UPDATE
+                ON CONFLICT (bloque_id, celda_x, celda_y, celda_z) DO UPDATE
                 SET tipo_particula_id = EXCLUDED.tipo_particula_id,
                     temperatura = EXCLUDED.temperatura,
                     propiedades = EXCLUDED.propiedades,

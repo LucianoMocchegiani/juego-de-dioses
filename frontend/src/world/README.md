@@ -78,7 +78,7 @@ const collisionDetector = new CollisionDetector(particlesApi, 0.25);
 const occupiedCells = await collisionDetector.checkCollision(
     { x: 80, y: 80, z: 1 }, // Posición
     2,                       // Radio de búsqueda
-    dimensionId              // ID de dimensión
+    bloqueId                  // ID del bloque
 );
 
 // Verificar si una celda está ocupada
@@ -88,7 +88,7 @@ if (collisionDetector.isCellOccupied(occupiedCells, 80, 80, 0)) {
 ```
 
 **Métodos principales:**
-- `checkCollision(position, radius, dimensionId)` - Obtener celdas ocupadas en área
+- `checkCollision(position, radius, bloqueId)` - Obtener celdas ocupadas en área
 - `isCellOccupied(occupiedCells, x, y, z)` - Verificar si celda está ocupada
 - `clearCache()` - Limpiar cache de colisiones
 

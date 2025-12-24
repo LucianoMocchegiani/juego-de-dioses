@@ -176,7 +176,12 @@ export class ParticleRenderer extends BaseRenderer {
                         geometryParams = parteDef.geometria.parametros || {};
                     }
                 }
+            } else if (tipoEstilos?.geometria) {
+                // Nueva estructura: geometria directa
+                geometryType = tipoEstilos.geometria.tipo;
+                geometryParams = tipoEstilos.geometria.parametros || {};
             } else if (tipoEstilos?.visual?.geometria) {
+                // Estructura antigua: visual.geometria (compatibilidad)
                 geometryType = tipoEstilos.visual.geometria.tipo;
                 geometryParams = tipoEstilos.visual.geometria.parametros || {};
             }

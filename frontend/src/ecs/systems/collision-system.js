@@ -11,18 +11,18 @@ import { ANIMATION_CONSTANTS } from '../../config/animation-constants.js';
 export class CollisionSystem extends System {
     /**
      * @param {CollisionDetector} collisionDetector - Detector de colisiones
-     * @param {string} dimensionId - ID de la dimensión
-     * @param {Object} [dimension] - Información de la dimensión (para límites)
+     * @param {string} bloqueId - ID del bloque
+     * @param {Object} [dimension] - Información del bloque (para límites)
      * @param {Array} [particles] - Partículas ya cargadas del viewport (opcional)
      */
-    constructor(collisionDetector, dimensionId, dimension = null, particles = null) {
+    constructor(collisionDetector, bloqueId, dimension = null, particles = null) {
         super();
         this.requiredComponents = [
             ECS_CONSTANTS.COMPONENT_NAMES.POSITION,
             ECS_CONSTANTS.COMPONENT_NAMES.PHYSICS
         ];
         this.collisionDetector = collisionDetector;
-        this.dimensionId = dimensionId;
+        this.bloqueId = bloqueId;
         this.dimension = dimension;
         this.particles = particles;
         this.priority = 2; // Ejecutar después de PhysicsSystem (priority 1)
@@ -107,7 +107,7 @@ export class CollisionSystem extends System {
                 if (!occupiedCells) {
                     // Iniciar consulta async
                     this.collisionDetector.checkCollision(
-                        position, 2, this.dimensionId
+                        position, 2, this.bloqueId
                     ).then(cells => {
                         this.entityCollisionCache.set(entityId, cells);
                     }).catch(error => {

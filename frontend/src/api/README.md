@@ -8,7 +8,7 @@ Este módulo contiene el cliente API modular organizado por recurso.
 api/
 ├── client.js            # Cliente base con configuración
 └── endpoints/          # Endpoints por recurso
-    ├── dimensions.js
+    ├── bloques.js
     ├── particles.js
     └── agrupaciones.js
 ```
@@ -23,43 +23,43 @@ Cliente base con configuración y método genérico de request.
 - Proporcionar método `request()` genérico
 - Manejar errores de red
 
-### DimensionsApi (`endpoints/dimensions.js`)
-Endpoints específicos para dimensiones.
+### BloquesApi (`endpoints/bloques.js`)
+Endpoints específicos para bloques.
 
 **Métodos:**
-- `getDimensions()`: Listar todas las dimensiones
-- `getDimension(dimensionId)`: Obtener dimensión específica
+- `getDimensions()`: Listar todos los bloques
+- `getDimension(bloqueId)`: Obtener bloque específico
 
 ### ParticlesApi (`endpoints/particles.js`)
 Endpoints específicos para partículas.
 
 **Métodos:**
-- `getParticles(dimensionId, viewport)`: Obtener partículas por viewport
-- `getParticleTypes(dimensionId, viewport)`: Obtener tipos de partículas con estilos
+- `getParticles(bloqueId, viewport)`: Obtener partículas por viewport
+- `getParticleTypes(bloqueId, viewport)`: Obtener tipos de partículas con estilos
 
 ### AgrupacionesApi (`endpoints/agrupaciones.js`)
 Endpoints específicos para agrupaciones.
 
 **Métodos:**
-- `getAgrupaciones(dimensionId)`: Listar agrupaciones
-- `getAgrupacion(dimensionId, agrupacionId)`: Obtener agrupación con partículas
+- `getAgrupaciones(bloqueId)`: Listar agrupaciones
+- `getAgrupacion(bloqueId, agrupacionId)`: Obtener agrupación con partículas
 
 ## Uso
 
 ```javascript
 import { ApiClient } from './client.js';
-import { DimensionsApi, ParticlesApi } from './endpoints/index.js';
+import { BloquesApi, ParticlesApi } from './endpoints/index.js';
 
 // Crear cliente base
 const client = new ApiClient('/api/v1');
 
 // Crear APIs específicos
-const dimensionsApi = new DimensionsApi(client);
+const bloquesApi = new BloquesApi(client);
 const particlesApi = new ParticlesApi(client);
 
 // Usar APIs
-const dimensions = await dimensionsApi.getDimensions();
-const particles = await particlesApi.getParticles(dimensionId, viewport);
+const bloques = await bloquesApi.getDimensions();
+const particles = await particlesApi.getParticles(bloqueId, viewport);
 ```
 
 ## Referencias

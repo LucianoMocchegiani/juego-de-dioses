@@ -16,7 +16,7 @@ export class ApiClient {
     
     /**
      * Realizar request genérico al API
-     * @param {string} endpoint - Endpoint relativo (ej: '/dimensions')
+     * @param {string} endpoint - Endpoint relativo (ej: '/bloques')
      * @param {RequestInit} options - Opciones de fetch (method, body, headers, etc.)
      * @returns {Promise<any>} - Respuesta parseada como JSON
      * @throws {Error} - Si la respuesta no es exitosa

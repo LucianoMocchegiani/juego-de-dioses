@@ -1,22 +1,22 @@
 /**
- * Cliente API para dimensiones (wrapper)
+ * Cliente API para bloques (wrapper)
  * 
- * Wrapper alrededor de DimensionsApi para uso con TerrainManager
+ * Wrapper alrededor de BloquesApi para uso con TerrainManager
  */
 
 /**
- * Cliente de dimensiones para terreno
+ * Cliente de bloques para terreno
  */
-export class DimensionsClient {
+export class BloquesClient {
     /**
-     * @param {Object} dimensionsApi - Instancia de DimensionsApi
+     * @param {Object} bloquesApi - Instancia de BloquesApi
      */
-    constructor(dimensionsApi) {
-        this.api = dimensionsApi;
+    constructor(bloquesApi) {
+        this.api = bloquesApi;
     }
     
     /**
-     * Obtener todas las dimensiones
+     * Obtener todos los bloques
      * @returns {Promise<Array>}
      */
     async getDimensions() {
@@ -24,8 +24,8 @@ export class DimensionsClient {
     }
     
     /**
-     * Obtener dimensión por nombre
-     * @param {string} name - Nombre de la dimensión
+     * Obtener bloque por nombre
+     * @param {string} name - Nombre del bloque
      * @returns {Promise<Object|null>}
      */
     async getDimensionByName(name) {
@@ -34,8 +34,8 @@ export class DimensionsClient {
     }
     
     /**
-     * Obtener dimensión por ID
-     * @param {string} id - ID de la dimensión
+     * Obtener bloque por ID
+     * @param {string} id - ID del bloque
      * @returns {Promise<Object|null>}
      */
     async getDimensionById(id) {
@@ -43,3 +43,4 @@ export class DimensionsClient {
         return dimensions.find(d => d.id === id) || null;
     }
 }
+

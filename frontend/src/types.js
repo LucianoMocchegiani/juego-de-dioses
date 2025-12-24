@@ -13,16 +13,12 @@
 
 /**
  * @typedef {Object} TipoEstilosBD
- * @property {string} [color_hex] - Color en hexadecimal como string en formato CSS (ej: "#8B4513")
- * @property {number[]} [color_rgb] - Color en RGB [R, G, B]
- * @property {Object} [material] - Propiedades del material
- * @property {number} [material.metalness] - Metalness (0-1)
- * @property {number} [material.roughness] - Roughness (0-1)
- * @property {boolean} [material.emissive] - Si es emisivo
- * @property {Object} [visual] - Propiedades visuales
- * @property {string} [visual.modelo] - Tipo de modelo 3D
- * @property {number} [visual.escala] - Escala del modelo
- * @property {number} [visual.opacity] - Opacidad del material (0-1), 0.0 = completamente transparente
+ * @property {string} [color] - Color del tipo de partícula (VARCHAR desde BD)
+ * @property {Object} [geometria] - Geometría visual del tipo (JSONB desde BD)
+ * @property {string} [geometria.tipo] - Tipo de geometría: "box", "sphere", "cylinder", etc.
+ * @property {Object} [geometria.parametros] - Parámetros de la geometría (relativos a tamano_celda)
+ * 
+ * @deprecated Este tipo se mantiene por compatibilidad. La nueva estructura usa `color` y `geometria` directamente.
  */
 
 /**
@@ -46,10 +42,12 @@
 
 /**
  * @typedef {Object} Dimension
- * @property {string} id - ID de la dimensión
+ * @property {string} id - ID del bloque
  * @property {number} ancho_metros - Ancho en metros
  * @property {number} alto_metros - Alto en metros
  * @property {number} tamano_celda - Tamaño de celda en metros
  * @property {number} [profundidad_maxima] - Profundidad máxima en celdas
  * @property {number} [altura_maxima] - Altura máxima en celdas
+ * 
+ * @deprecated El nombre "Dimension" se mantiene por compatibilidad, pero ahora representa un "Bloque"
  */

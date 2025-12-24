@@ -166,7 +166,7 @@ const inputSystem = new InputSystem(inputManager);
 const physicsSystem = new PhysicsSystem({ gravity: -9.8 });
 const animationStateSystem = new AnimationStateSystem();
 const animationMixerSystem = new AnimationMixerSystem();
-const collisionSystem = new CollisionSystem(collisionDetector, dimensionId, dimension);
+const collisionSystem = new CollisionSystem(collisionDetector, bloqueId, dimension);
 const renderSystem = new RenderSystem(cellSize);
 
 ecs.registerSystem(inputSystem);        // Priority 0 - Ejecutar primero

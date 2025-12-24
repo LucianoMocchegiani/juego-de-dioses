@@ -12,13 +12,13 @@ export class AgrupacionesApi {
     }
     
     /**
-     * Obtener todas las agrupaciones de una dimensión
-     * @param {string} dimensionId - ID de la dimensión
+     * Obtener todas las agrupaciones de un bloque
+     * @param {string} bloqueId - ID del bloque
      * @returns {Promise<Array>} - Lista de agrupaciones
      */
-    async getAgrupaciones(dimensionId) {
+    async getAgrupaciones(bloqueId) {
         try {
-            return await this.client.get(`/dimensions/${dimensionId}/agrupaciones`);
+            return await this.client.get(`/bloques/${bloqueId}/agrupaciones`);
         } catch (error) {
             throw new Error(`Error al obtener agrupaciones: ${error.message}`);
         }
@@ -26,13 +26,13 @@ export class AgrupacionesApi {
     
     /**
      * Obtener una agrupación específica con sus partículas
-     * @param {string} dimensionId - ID de la dimensión
+     * @param {string} bloqueId - ID del bloque
      * @param {string} agrupacionId - ID de la agrupación
      * @returns {Promise<Object>} - Agrupación con partículas
      */
-    async getAgrupacion(dimensionId, agrupacionId) {
+    async getAgrupacion(bloqueId, agrupacionId) {
         try {
-            return await this.client.get(`/dimensions/${dimensionId}/agrupaciones/${agrupacionId}`);
+            return await this.client.get(`/bloques/${bloqueId}/agrupaciones/${agrupacionId}`);
         } catch (error) {
             throw new Error(`Error al obtener agrupación: ${error.message}`);
         }

@@ -70,10 +70,10 @@ async def create_boundary_layer(conn: asyncpg.Connection, dimension_id: UUID, di
     # Insertar en batch para mejor rendimiento
     await conn.executemany("""
         INSERT INTO juego_dioses.particulas 
-        (dimension_id, celda_x, celda_y, celda_z, tipo_particula_id, estado_materia_id,
+        (bloque_id, celda_x, celda_y, celda_z, tipo_particula_id, estado_materia_id,
          cantidad, temperatura, energia, extraida, agrupacion_id, es_nucleo, propiedades)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13::jsonb)
-        ON CONFLICT (dimension_id, celda_x, celda_y, celda_z) DO NOTHING
+        ON CONFLICT (bloque_id, celda_x, celda_y, celda_z) DO NOTHING
     """, particulas)
     
     return len(particulas)
