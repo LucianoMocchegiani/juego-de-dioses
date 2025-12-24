@@ -45,7 +45,15 @@ export class BaseRenderer {
         }
         
         // 2. Verificar tipo de partícula
-        if (tipoEstilos?.visual?.geometria) {
+        // Prioridad: nueva estructura (geometria directa) > estructura antigua (visual.geometria)
+        if (tipoEstilos?.geometria) {
+            const geometriaDef = tipoEstilos.geometria;
+            return this.createGeometry(
+                geometriaDef.tipo,
+                geometriaDef.parametros || {},
+                cellSize
+            );
+        } else if (tipoEstilos?.visual?.geometria) {
             const geometriaDef = tipoEstilos.visual.geometria;
             return this.geometryRegistry.create(
                 geometriaDef.tipo,

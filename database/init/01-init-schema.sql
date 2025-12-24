@@ -11,16 +11,16 @@ CREATE SCHEMA IF NOT EXISTS juego_dioses;
 -- Cambiar al esquema
 SET search_path TO juego_dioses, public;
 
--- Tabla de Dimensiones
-CREATE TABLE IF NOT EXISTS dimensiones (
+-- Tabla de Bloques (configuración de mundos/dimensiones)
+CREATE TABLE IF NOT EXISTS bloques (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nombre VARCHAR(255) DEFAULT 'Mundo Inicial',
     
-    -- Límites horizontales (X, Y)
+    -- Límites horizontales (X, Y) en METROS
     ancho_metros DECIMAL(10,2) DEFAULT 1.0,
     alto_metros DECIMAL(10,2) DEFAULT 1.0,
     
-    -- Límites verticales (Z)
+    -- Límites verticales (Z) en CELDAS
     profundidad_maxima INTEGER DEFAULT -100,
     altura_maxima INTEGER DEFAULT 100,
     
@@ -32,32 +32,127 @@ CREATE TABLE IF NOT EXISTS dimensiones (
     origen_y DECIMAL(10,2) DEFAULT 0.0,
     origen_z INTEGER DEFAULT 0,
     
+    -- ===== CONFIGURACIÓN DE BLOQUES =====
+    tamano_bloque INTEGER NOT NULL DEFAULT 40,  -- Tamaño de bloque (40x40x40 celdas = 64,000 celdas por bloque)
+    
     -- Metadatos
     creado_por UUID,
     creado_en TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_dimensiones_creado ON dimensiones(creado_en);
+CREATE INDEX IF NOT EXISTS idx_bloques_creado ON bloques(creado_en);
+
+-- Comentario para documentar el campo tamano_bloque
+COMMENT ON COLUMN juego_dioses.bloques.tamano_bloque IS 
+'Tamaño de bloque en celdas (40x40x40 = 64,000 celdas por bloque). Se usa para dividir el mundo en zonas para temperatura, renderizado y comunicación.';
 
 -- Tabla de Tipos de Partículas
 CREATE TABLE IF NOT EXISTS tipos_particulas (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     nombre VARCHAR(100) NOT NULL UNIQUE,
-    categoria VARCHAR(50) NOT NULL,
-    densidad DECIMAL(10,4) DEFAULT 1.0,
-    color_base VARCHAR(50),
+    
+    -- Tipo físico (determina qué propiedades usar)
+    tipo_fisico VARCHAR(50) NOT NULL DEFAULT 'solido',  -- 'solido', 'liquido', 'gas', 'energia'
+    
+    -- ===== PROPIEDADES COMUNES (Todos los tipos) =====
+    densidad DECIMAL(3,2) DEFAULT 1.0,              -- 0.0 a 10.0 (0 = no gravedad)
+    conductividad_termica DECIMAL(3,2) DEFAULT 1.0, -- 0.0 a 10.0 (propagación de calor)
+    inercia_termica DECIMAL(3,2) DEFAULT 1.0,       -- 0.0 a 10.0 (resistencia al cambio de temperatura)
+                                                    -- NOTA: También conocido como "calor específico" en física.
+                                                    -- Valores altos = cambia temperatura lentamente (agua: ~4.0)
+                                                    -- Valores bajos = cambia temperatura rápidamente (metal: ~0.5)
+                                                    -- Se usa igual para calentar y enfriar.
+    opacidad DECIMAL(3,2) DEFAULT 1.0,             -- 0.0 (transparente) a 1.0 (opaco)
+    color VARCHAR(50),
+    geometria JSONB DEFAULT '{"tipo": "box"}',
+    
+    -- ===== PROPIEDADES ELÉCTRICAS Y MAGNÉTICAS (Todos los tipos) =====
+    conductividad_electrica DECIMAL(3,2) DEFAULT 0.0, -- 0.0 a 10.0 (capacidad de conducir electricidad)
+    magnetismo DECIMAL(3,2) DEFAULT 0.0,            -- 0.0 a 10.0 (fuerza magnética)
+    
+    -- ===== PROPIEDADES DE SÓLIDOS =====
+    -- (Usar solo si tipo_fisico = 'solido', NULL si no es sólido)
+    dureza DECIMAL(3,2),              -- 0.0 a 10.0 (resistencia a rayar/deformar)
+    fragilidad DECIMAL(3,2),          -- 0.0 a 10.0 (tendencia a romperse)
+    elasticidad DECIMAL(3,2),         -- 0.0 a 10.0 (coeficiente de rebote)
+    punto_fusion DECIMAL(10,2),       -- Temperatura en °C (NULL si no se derrite)
+    
+    -- ===== PROPIEDADES DE LÍQUIDOS =====
+    -- (Usar solo si tipo_fisico = 'liquido', NULL si no es líquido)
+    viscosidad DECIMAL(3,2),          -- 0.0 a 10.0 (0 = no fluye, 10 = muy viscoso)
+    punto_ebullicion DECIMAL(10,2),   -- Temperatura en °C (NULL si no se evapora)
+    
+    -- ===== PROPIEDADES DE GASES/ENERGÍA =====
+    -- (Usar solo si tipo_fisico = 'gas' o 'energia', NULL si no es gas/energía)
+    propagacion DECIMAL(3,2),         -- 0.0 a 10.0 (velocidad/radio de propagación)
+    
+    -- Propiedades avanzadas (opcionales)
+    propiedades_fisicas JSONB DEFAULT '{}',
+    
+    -- Metadatos
     descripcion TEXT,
-    estilos JSONB DEFAULT '{}'::jsonb,
     creado_en TIMESTAMP DEFAULT NOW()
 );
 
+-- Índices para consultas eficientes
 CREATE INDEX IF NOT EXISTS idx_tipos_particulas_nombre ON tipos_particulas(nombre);
-CREATE INDEX IF NOT EXISTS idx_tipos_particulas_categoria ON tipos_particulas(categoria);
-CREATE INDEX IF NOT EXISTS idx_tipos_particulas_estilos ON tipos_particulas USING GIN (estilos);
+CREATE INDEX IF NOT EXISTS idx_tipos_particulas_tipo_fisico ON tipos_particulas(tipo_fisico);
+CREATE INDEX IF NOT EXISTS idx_tipos_particulas_conductividad_electrica 
+ON tipos_particulas(conductividad_electrica) WHERE conductividad_electrica > 0;
 
--- Comentario para documentar el campo estilos
-COMMENT ON COLUMN juego_dioses.tipos_particulas.estilos IS 
-'Estilos visuales de la partícula en formato JSONB. Estructura: {color_hex, color_rgb, material: {metalness, roughness, emissive}, visual: {modelo, escala}}';
+-- Índices parciales para campos condicionales (optimización para campos NULL)
+CREATE INDEX IF NOT EXISTS idx_solidos_dureza ON tipos_particulas(dureza) 
+WHERE tipo_fisico = 'solido' AND dureza IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_solidos_fragilidad ON tipos_particulas(fragilidad) 
+WHERE tipo_fisico = 'solido' AND fragilidad IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_liquidos_viscosidad ON tipos_particulas(viscosidad) 
+WHERE tipo_fisico = 'liquido' AND viscosidad IS NOT NULL;
+
+CREATE INDEX IF NOT EXISTS idx_gases_propagacion ON tipos_particulas(propagacion) 
+WHERE tipo_fisico IN ('gas', 'energia') AND propagacion IS NOT NULL;
+
+-- Tabla de Transiciones de Partículas
+CREATE TABLE IF NOT EXISTS transiciones_particulas (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    
+    -- Tipos de partícula
+    tipo_origen_id UUID NOT NULL REFERENCES tipos_particulas(id) ON DELETE CASCADE,
+    tipo_destino_id UUID NOT NULL REFERENCES tipos_particulas(id) ON DELETE CASCADE,
+    
+    -- Condición de temperatura
+    condicion_temperatura VARCHAR(10),  -- 'mayor', 'menor', 'igual', NULL si no aplica
+    valor_temperatura DECIMAL(10,2),    -- Valor de temperatura en °C
+    
+    -- Condición de integridad
+    condicion_integridad VARCHAR(10),    -- 'mayor', 'menor', 'igual', NULL si no aplica
+    valor_integridad DECIMAL(3,2),      -- Valor de integridad (0.0-1.0)
+    
+    -- Prioridad (mayor = más importante, se evalúa primero)
+    prioridad INTEGER DEFAULT 0,
+    
+    -- Estado
+    activa BOOLEAN DEFAULT true,
+    reversible BOOLEAN DEFAULT true,     -- Si puede revertirse al tipo original
+    
+    -- Histeresis (para evitar oscilaciones en transiciones reversibles)
+    histeresis DECIMAL(10,2) DEFAULT 5.0,  -- Diferencia necesaria para revertir
+    
+    -- Metadatos
+    descripcion TEXT,
+    creado_en TIMESTAMP DEFAULT NOW(),
+    
+    -- Constraints
+    CHECK (condicion_temperatura IN ('mayor', 'menor', 'igual', NULL)),
+    CHECK (condicion_integridad IN ('mayor', 'menor', 'igual', NULL))
+);
+
+-- Índices para consultas eficientes
+CREATE INDEX IF NOT EXISTS idx_transiciones_origen ON transiciones_particulas(tipo_origen_id);
+CREATE INDEX IF NOT EXISTS idx_transiciones_destino ON transiciones_particulas(tipo_destino_id);
+CREATE INDEX IF NOT EXISTS idx_transiciones_activa ON transiciones_particulas(activa) WHERE activa = true;
+CREATE INDEX IF NOT EXISTS idx_transiciones_prioridad ON transiciones_particulas(tipo_origen_id, prioridad DESC) WHERE activa = true;
 
 -- Tabla de Estados de Materia
 CREATE TABLE IF NOT EXISTS estados_materia (
@@ -79,7 +174,7 @@ CREATE INDEX IF NOT EXISTS idx_estados_materia_tipo ON estados_materia(tipo_fisi
 -- Tabla de Partículas
 CREATE TABLE IF NOT EXISTS particulas (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    dimension_id UUID NOT NULL REFERENCES dimensiones(id) ON DELETE CASCADE,
+    bloque_id UUID NOT NULL REFERENCES bloques(id) ON DELETE CASCADE,
     
     -- Posición 3D
     celda_x INTEGER NOT NULL,
@@ -91,8 +186,12 @@ CREATE TABLE IF NOT EXISTS particulas (
     estado_materia_id UUID NOT NULL REFERENCES estados_materia(id),
     
     -- Propiedades dinámicas
+    temperatura DECIMAL(10,2) DEFAULT 20.0,        -- Temperatura en °C
+    integridad DECIMAL(3,2) DEFAULT 1.0,          -- 0.0 a 1.0 (vida/durabilidad de la partícula)
+    carga_electrica DECIMAL(5,2) DEFAULT 0.0,      -- Carga eléctrica actual (-100.0 a +100.0)
+    
+    -- Propiedades adicionales (mantenidas para compatibilidad)
     cantidad DECIMAL(10,4) DEFAULT 1.0,
-    temperatura DECIMAL(10,2) DEFAULT 20.0,
     energia DECIMAL(10,4) DEFAULT 0.0,
     extraida BOOLEAN DEFAULT false,
     
@@ -108,21 +207,27 @@ CREATE TABLE IF NOT EXISTS particulas (
     creado_en TIMESTAMP DEFAULT NOW(),
     modificado_en TIMESTAMP DEFAULT NOW(),
     
-    UNIQUE(dimension_id, celda_x, celda_y, celda_z)
+    UNIQUE(bloque_id, celda_x, celda_y, celda_z)
 );
 
-CREATE INDEX IF NOT EXISTS idx_particulas_dimension ON particulas(dimension_id);
+-- Índices para consultas eficientes
+CREATE INDEX IF NOT EXISTS idx_particulas_bloque ON particulas(bloque_id);
 CREATE INDEX IF NOT EXISTS idx_particulas_tipo ON particulas(tipo_particula_id);
 CREATE INDEX IF NOT EXISTS idx_particulas_estado ON particulas(estado_materia_id);
 CREATE INDEX IF NOT EXISTS idx_particulas_agrupacion ON particulas(agrupacion_id);
 CREATE INDEX IF NOT EXISTS idx_particulas_nucleo ON particulas(agrupacion_id, es_nucleo) WHERE es_nucleo = true;
-CREATE INDEX IF NOT EXISTS idx_particulas_posicion ON particulas(dimension_id, celda_x, celda_y, celda_z);
-CREATE INDEX IF NOT EXISTS idx_particulas_z ON particulas(dimension_id, celda_z);
+CREATE INDEX IF NOT EXISTS idx_particulas_posicion ON particulas(bloque_id, celda_x, celda_y, celda_z);
+CREATE INDEX IF NOT EXISTS idx_particulas_z ON particulas(bloque_id, celda_z);
+CREATE INDEX IF NOT EXISTS idx_particulas_temperatura ON particulas(temperatura);
+CREATE INDEX IF NOT EXISTS idx_particulas_integridad 
+ON particulas(integridad) WHERE integridad < 1.0;
+CREATE INDEX IF NOT EXISTS idx_particulas_carga_electrica 
+ON particulas(carga_electrica) WHERE ABS(carga_electrica) > 0;
 
 -- Tabla de Agrupaciones
 CREATE TABLE IF NOT EXISTS agrupaciones (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-    dimension_id UUID NOT NULL REFERENCES dimensiones(id) ON DELETE CASCADE,
+    bloque_id UUID NOT NULL REFERENCES bloques(id) ON DELETE CASCADE,
     
     -- Identificación
     nombre VARCHAR(255) NOT NULL,
@@ -156,9 +261,9 @@ CREATE TABLE IF NOT EXISTS agrupaciones (
     modificado_en TIMESTAMP DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_agrupaciones_dimension ON agrupaciones(dimension_id);
+CREATE INDEX IF NOT EXISTS idx_agrupaciones_bloque ON agrupaciones(bloque_id);
 CREATE INDEX IF NOT EXISTS idx_agrupaciones_tipo ON agrupaciones(tipo);
-CREATE INDEX IF NOT EXISTS idx_agrupaciones_dimension_tipo ON agrupaciones(dimension_id, tipo);
+CREATE INDEX IF NOT EXISTS idx_agrupaciones_bloque_tipo ON agrupaciones(bloque_id, tipo);
 CREATE INDEX IF NOT EXISTS idx_agrupaciones_nombre ON agrupaciones(nombre);
 CREATE INDEX IF NOT EXISTS idx_agrupaciones_especie ON agrupaciones(especie);
 CREATE INDEX IF NOT EXISTS idx_agrupaciones_geometria ON agrupaciones USING GIN (geometria_agrupacion);

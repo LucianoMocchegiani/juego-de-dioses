@@ -13,12 +13,12 @@ export class CharactersApi {
     
     /**
      * Obtener información de un personaje
-     * @param {string} dimensionId - ID de la dimensión
+     * @param {string} bloqueId - ID del bloque
      * @param {string} characterId - ID del personaje (agrupación)
      * @returns {Promise<Object>} - Información del personaje
      */
-    async getCharacter(dimensionId, characterId) {
-        const endpoint = `/dimensions/${dimensionId}/characters/${characterId}`;
+    async getCharacter(bloqueId, characterId) {
+        const endpoint = `/bloques/${bloqueId}/characters/${characterId}`;
         
         try {
             return await this.client.get(endpoint);
@@ -29,12 +29,12 @@ export class CharactersApi {
     }
     
     /**
-     * Listar todos los personajes en una dimensión
-     * @param {string} dimensionId - ID de la dimensión
+     * Listar todos los personajes en un bloque
+     * @param {string} bloqueId - ID del bloque
      * @returns {Promise<Array>} - Lista de personajes
      */
-    async listCharacters(dimensionId) {
-        const endpoint = `/dimensions/${dimensionId}/characters`;
+    async listCharacters(bloqueId) {
+        const endpoint = `/bloques/${bloqueId}/characters`;
         
         try {
             return await this.client.get(endpoint);
@@ -46,15 +46,15 @@ export class CharactersApi {
     
     /**
      * Crear un personaje desde un template
-     * @param {string} dimensionId - ID de la dimensión
+     * @param {string} bloqueId - ID del bloque
      * @param {string} templateId - ID del template (ej: 'humano')
      * @param {number} x - Posición X en celdas
      * @param {number} y - Posición Y en celdas
      * @param {number} z - Posición Z en celdas
      * @returns {Promise<Object>} - Información del personaje creado
      */
-    async createCharacter(dimensionId, templateId, x, y, z) {
-        const endpoint = `/dimensions/${dimensionId}/characters`;
+    async createCharacter(bloqueId, templateId, x, y, z) {
+        const endpoint = `/bloques/${bloqueId}/characters`;
         
         try {
             return await this.client.post(endpoint, {
@@ -71,12 +71,12 @@ export class CharactersApi {
     
     /**
      * Obtener URL y metadatos del modelo 3D de un personaje
-     * @param {string} dimensionId - ID de la dimensión
+     * @param {string} bloqueId - ID del bloque
      * @param {string} characterId - ID del personaje
      * @returns {Promise<Object>} - { model_url, metadata }
      */
-    async getCharacterModel(dimensionId, characterId) {
-        const endpoint = `/dimensions/${dimensionId}/characters/${characterId}/model`;
+    async getCharacterModel(bloqueId, characterId) {
+        const endpoint = `/bloques/${bloqueId}/characters/${characterId}/model`;
         
         try {
             return await this.client.get(endpoint);
@@ -100,55 +100,55 @@ export function initCharactersApi(client) {
 
 /**
  * Obtener información de un personaje (función helper)
- * @param {string} dimensionId - ID de la dimensión
+ * @param {string} bloqueId - ID del bloque
  * @param {string} characterId - ID del personaje
  * @returns {Promise<Object>} - Información del personaje
  */
-export async function getCharacter(dimensionId, characterId) {
+export async function getCharacter(bloqueId, characterId) {
     if (!defaultClient) {
         throw new Error('CharactersApi no inicializado. Llama a initCharactersApi() primero.');
     }
-    return await defaultClient.getCharacter(dimensionId, characterId);
+    return await defaultClient.getCharacter(bloqueId, characterId);
 }
 
 /**
- * Listar todos los personajes en una dimensión (función helper)
- * @param {string} dimensionId - ID de la dimensión
+ * Listar todos los personajes en un bloque (función helper)
+ * @param {string} bloqueId - ID del bloque
  * @returns {Promise<Array>} - Lista de personajes
  */
-export async function listCharacters(dimensionId) {
+export async function listCharacters(bloqueId) {
     if (!defaultClient) {
         throw new Error('CharactersApi no inicializado. Llama a initCharactersApi() primero.');
     }
-    return await defaultClient.listCharacters(dimensionId);
+    return await defaultClient.listCharacters(bloqueId);
 }
 
 /**
  * Crear un personaje desde un template (función helper)
- * @param {string} dimensionId - ID de la dimensión
+ * @param {string} bloqueId - ID del bloque
  * @param {string} templateId - ID del template (ej: 'humano')
  * @param {number} x - Posición X en celdas
  * @param {number} y - Posición Y en celdas
  * @param {number} z - Posición Z en celdas
  * @returns {Promise<Object>} - Información del personaje creado
  */
-export async function createCharacter(dimensionId, templateId, x, y, z) {
+export async function createCharacter(bloqueId, templateId, x, y, z) {
     if (!defaultClient) {
         throw new Error('CharactersApi no inicializado. Llama a initCharactersApi() primero.');
     }
-    return await defaultClient.createCharacter(dimensionId, templateId, x, y, z);
+    return await defaultClient.createCharacter(bloqueId, templateId, x, y, z);
 }
 
 /**
  * Obtener URL y metadatos del modelo 3D de un personaje (función helper)
- * @param {string} dimensionId - ID de la dimensión
+ * @param {string} bloqueId - ID del bloque
  * @param {string} characterId - ID del personaje
  * @returns {Promise<Object>} - { model_url, metadata }
  */
-export async function getCharacterModel(dimensionId, characterId) {
+export async function getCharacterModel(bloqueId, characterId) {
     if (!defaultClient) {
         throw new Error('CharactersApi no inicializado. Llama a initCharactersApi() primero.');
     }
-    return await defaultClient.getCharacterModel(dimensionId, characterId);
+    return await defaultClient.getCharacterModel(bloqueId, characterId);
 }
 

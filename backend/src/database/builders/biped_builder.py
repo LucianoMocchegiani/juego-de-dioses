@@ -107,7 +107,7 @@ class BipedBuilder(BaseBuilder):
         
         # Obtener tamano_celda de la dimensión
         tamano_celda_raw = await conn.fetchval("""
-            SELECT tamano_celda FROM juego_dioses.dimensiones WHERE id = $1
+            SELECT tamano_celda FROM juego_dioses.bloques WHERE id = $1
         """, dimension_id)
         
         # Convertir Decimal a float para JSON serialization
@@ -126,7 +126,7 @@ class BipedBuilder(BaseBuilder):
         
         agrupacion_id = await conn.fetchval("""
             INSERT INTO juego_dioses.agrupaciones
-            (dimension_id, nombre, tipo, especie, geometria_agrupacion, modelo_3d, posicion_x, posicion_y, posicion_z)
+            (bloque_id, nombre, tipo, especie, geometria_agrupacion, modelo_3d, posicion_x, posicion_y, posicion_z)
             VALUES ($1, $2, $3, $4, $5::jsonb, $6::jsonb, $7, $8, $9)
             RETURNING id
         """, dimension_id, metadata['nombre'], metadata['tipo'], metadata['especie'], 

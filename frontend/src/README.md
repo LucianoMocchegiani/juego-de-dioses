@@ -33,7 +33,7 @@ src/
 ├── api/                      # Cliente API modular
 │   ├── client.js            # Cliente base con configuración
 │   └── endpoints/          # Endpoints por recurso
-│       ├── dimensions.js
+│       ├── bloques.js
 │       ├── particles.js
 │       └── agrupaciones.js
 │

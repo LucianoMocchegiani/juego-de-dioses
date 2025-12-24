@@ -30,10 +30,10 @@ export class CollisionDetector {
      * Verificar colisiones en un área alrededor de una posición
      * @param {Object} position - Posición {x, y, z} en celdas
      * @param {number} radius - Radio de búsqueda en celdas (default: 2)
-     * @param {string} dimensionId - ID de la dimensión
+     * @param {string} bloqueId - ID del bloque
      * @returns {Promise<Set<string>>} Set de claves de celdas ocupadas (formato: "x,y,z")
      */
-    async checkCollision(position, radius = 2, dimensionId) {
+    async checkCollision(position, radius = 2, bloqueId) {
         // Calcular área de colisión
         const xMin = Math.floor(position.x - radius);
         const xMax = Math.floor(position.x + radius);
@@ -43,7 +43,7 @@ export class CollisionDetector {
         const zMax = Math.floor(position.z + radius);
         
         // Verificar cache
-        const cacheKey = `${dimensionId}-${xMin}-${xMax}-${yMin}-${yMax}-${zMin}-${zMax}`;
+        const cacheKey = `${bloqueId}-${xMin}-${xMax}-${yMin}-${yMax}-${zMin}-${zMax}`;
         if (this.collisionCache.has(cacheKey)) {
             return this.collisionCache.get(cacheKey);
         }
@@ -51,7 +51,7 @@ export class CollisionDetector {
         try {
             // Consultar partículas en área pequeña
             const particlesData = await this.particlesApi.getParticles(
-                dimensionId,
+                bloqueId,
                 { x_min: xMin, x_max: xMax, y_min: yMin, y_max: yMax, z_min: zMin, z_max: zMax }
             );
             

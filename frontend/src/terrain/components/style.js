@@ -50,7 +50,20 @@ export class Style {
         };
         
         if (tipoEstilos) {
-            if (tipoEstilos.color_hex !== undefined && tipoEstilos.color_hex !== null) {
+            // Prioridad: color directo (nuevo) > color_hex (antiguo)
+            if (tipoEstilos.color !== undefined && tipoEstilos.color !== null) {
+                // color viene como string desde BD (puede ser nombre de color CSS o hex)
+                // THREE.Color acepta strings en formato CSS (#RRGGBB) o nombres de color CSS
+                // Si no empieza con #, asumimos que es un nombre de color CSS válido
+                const colorValue = tipoEstilos.color.trim();
+                if (colorValue.startsWith('#')) {
+                    estilo.color = colorValue;
+                } else {
+                    // Es un nombre de color CSS (ej: "brown", "blue", "lightgreen")
+                    // THREE.Color acepta nombres de color CSS directamente
+                    estilo.color = colorValue;
+                }
+            } else if (tipoEstilos.color_hex !== undefined && tipoEstilos.color_hex !== null) {
                 // color_hex viene como string hexadecimal en formato CSS desde BD (ej: "#8B4513")
                 // THREE.Color acepta strings en formato CSS (#RRGGBB) directamente
                 estilo.color = tipoEstilos.color_hex;
