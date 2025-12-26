@@ -1,11 +1,11 @@
-    """
+"""
 Clase WorldBloque - Representa un bloque espacial del mundo en memoria.
 
 Un bloque espacial es una zona del mundo (40x40x40 celdas por defecto) que se usa
 para organizar partículas, calcular temperatura ambiental, y optimizar renderizado.
 """
 
-from typing import Set
+from typing import Set, Optional
 from datetime import datetime
 
 
@@ -56,50 +56,46 @@ class WorldBloque:
         # Renderizado
         self.needs_rerender = False
     
-    async def calcular_temperatura(self, celestial_system) -> None:
+    async def calcular_temperatura(
+        self,
+        celestial_time_service: 'CelestialTimeService',
+        tipo_particula_superficie: Optional[str] = None
+    ) -> float:
         """
         Calcula la temperatura del bloque basándose en factores ambientales.
         
-        Esta función se implementará completamente en fases siguientes cuando
-        se implementen los sistemas de temperatura ambiental y sol/luna.
-        
         Args:
-            celestial_system: Sistema de sol/luna para calcular temperatura solar
+            celestial_time_service: Servicio de tiempo celestial (autoritativo)
+            tipo_particula_superficie: Nombre del tipo de partícula dominante en la superficie
+        
+        Returns:
+            Temperatura ambiental en grados Celsius
         """
-        centro_x = self.bloque_x * self.tamano_bloque + (self.tamano_bloque / 2)
-        centro_y = self.bloque_y * self.tamano_bloque + (self.tamano_bloque / 2)
-        centro_z = self.bloque_z * self.tamano_bloque + (self.tamano_bloque / 2)
+        from src.services.temperature_service import calculate_cell_temperature
         
-        # Temperatura solar (se implementará en fase siguiente)
-        # temp_solar = celestial_system.get_temperature_at(centro_x, centro_y)
-        temp_solar = 20.0  # Placeholder hasta implementar sistema sol/luna
+        # Calcular temperatura en el centro del bloque
+        centro_x = (self.bloque_x + 0.5) * self.tamano_bloque
+        centro_y = (self.bloque_y + 0.5) * self.tamano_bloque
+        centro_z = (self.bloque_z + 0.5) * self.tamano_bloque
         
-        # Modificadores (se implementarán en fase siguiente)
-        # from .temperature_helpers import (
-        #     get_altitude_modifier,
-        #     get_water_modifier,
-        #     get_albedo_modifier
-        # )
-        # 
-        # self.modificador_altitud = get_altitude_modifier(centro_z)
-        # self.modificador_agua = await get_water_modifier(centro_x, centro_y, centro_z, self)
-        # self.modificador_albedo = await get_albedo_modifier(centro_x, centro_y, centro_z, self)
-        
-        # Placeholders hasta implementar funciones auxiliares
-        self.modificador_altitud = 0.0
-        self.modificador_agua = 0.0
-        self.modificador_albedo = 0.0
-        
-        # Temperatura final
-        self.temperatura_base = (
-            temp_solar + 
-            self.modificador_altitud + 
-            self.modificador_agua + 
-            self.modificador_albedo
+        # Calcular temperatura usando el servicio de temperatura
+        temperatura = await calculate_cell_temperature(
+            celda_x=centro_x,
+            celda_y=centro_y,
+            celda_z=centro_z,
+            bloque_id=self.bloque_id,
+            celestial_time_service=celestial_time_service,
+            tipo_particula_superficie=tipo_particula_superficie
         )
         
+        # Almacenar temperatura calculada
+        self.temperatura_base = temperatura
+        
+        # Actualizar timestamp
         self.ultima_actualizacion_temperatura = datetime.now()
         self.necesita_recalcular_temperatura = False
+        
+        return temperatura
     
     def get_temperatura(self) -> float:
         """
