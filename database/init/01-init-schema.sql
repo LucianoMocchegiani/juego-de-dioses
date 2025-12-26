@@ -63,6 +63,8 @@ CREATE TABLE IF NOT EXISTS tipos_particulas (
                                                     -- Valores bajos = cambia temperatura rápidamente (metal: ~0.5)
                                                     -- Se usa igual para calentar y enfriar.
     opacidad DECIMAL(3,2) DEFAULT 1.0,             -- 0.0 (transparente) a 1.0 (opaco)
+    albedo DECIMAL(3,2) DEFAULT 0.2,               -- 0.0 a 1.0 (reflexión de luz: 0.0 = absorbe todo, 1.0 = refleja todo)
+                                                    -- Usado para cálculos de temperatura ambiental
     color VARCHAR(50),
     geometria JSONB DEFAULT '{"tipo": "box"}',
     

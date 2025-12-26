@@ -92,6 +92,11 @@ async def lifespan(app: FastAPI):
         # Ejecutar seeds en segundo plano (no bloquea el startup)
         asyncio.create_task(run_seeds())
         print("Seeds iniciados en segundo plano. La aplicación está lista para recibir peticiones.")
+        
+        # Iniciar servicio de tiempo celestial en segundo plano (no bloquea)
+        from src.api.routes.celestial import start_celestial_service_background_task
+        asyncio.create_task(start_celestial_service_background_task())
+        print("Servicio de tiempo celestial iniciado en segundo plano.")
     except Exception as e:
         print(f"Error inicializando base de datos: {e}")
     
@@ -132,12 +137,13 @@ async def health_check():
     }
 
 # API Routes
-from src.api.routes import dimensions, particles, agrupaciones, characters
+from src.api.routes import dimensions, particles, agrupaciones, characters, celestial
 
 app.include_router(dimensions.router, prefix="/api/v1")
 app.include_router(particles.router, prefix="/api/v1")
 app.include_router(agrupaciones.router, prefix="/api/v1")
 app.include_router(characters.router, prefix="/api/v1")
+app.include_router(celestial.router, prefix="/api/v1")
 
 # Servir archivos estáticos de modelos 3D
 static_models_path = Path("static/models")
@@ -154,7 +160,9 @@ async def api_info():
             "bloques": "/api/v1/bloques",
             "particles": "/api/v1/bloques/{id}/particles",
             "agrupaciones": "/api/v1/bloques/{id}/agrupaciones",
-            "characters": "/api/v1/bloques/{id}/characters"
+            "characters": "/api/v1/bloques/{id}/characters",
+            "celestial_state": "/api/v1/celestial/state",
+            "celestial_temperature": "/api/v1/celestial/temperature"
         }
     }
 

@@ -6,11 +6,13 @@ Este módulo contiene servicios para gestionar bloques espaciales, partículas, 
 
 ```
 services/
-├── __init__.py              # Exportaciones del módulo
-├── world_bloque.py          # Clase WorldBloque (bloque espacial en memoria)
-├── world_bloque_manager.py  # Gestor de bloques espaciales (cache y lazy loading)
-├── particula_service.py     # Funciones auxiliares para consultar partículas
-└── README.md               # Este archivo
+├── __init__.py                  # Exportaciones del módulo
+├── world_bloque.py              # Clase WorldBloque (bloque espacial en memoria)
+├── world_bloque_manager.py      # Gestor de bloques espaciales (cache y lazy loading)
+├── particula_service.py         # Funciones auxiliares para consultar partículas
+├── celestial_time_service.py    # Servicio de tiempo celestial (sol/luna, fases)
+├── temperature_service.py        # Servicio de temperatura ambiental
+└── README.md                     # Este archivo
 ```
 
 ## Componentes Principales
@@ -43,9 +45,16 @@ bloque = WorldBloque(
     tamano_bloque=40
 )
 
-# Calcular temperatura (requiere sistema celestial)
-await bloque.calcular_temperatura(celestial_system)
-temperatura = bloque.get_temperatura()
+# Calcular temperatura (requiere servicio de tiempo celestial)
+from src.services.celestial_time_service import CelestialTimeService
+
+celestial_time_service = CelestialTimeService()
+await celestial_time_service.update(0.1)  # Actualizar con delta_time
+
+temperatura = await bloque.calcular_temperatura(
+    celestial_time_service=celestial_time_service,
+    tipo_particula_superficie="tierra"  # Opcional: tipo de partícula dominante
+)
 ```
 
 ### WorldBloqueManager
@@ -154,6 +163,114 @@ debe_congelar = evaluar_temperatura(-3.0, '<', 0.0, 2.0)  # True
 transiciones = await get_transiciones("tipo-agua-uuid")
 ```
 
+### CelestialTimeService
+
+**Archivo**: `celestial_time_service.py`
+
+Servicio autoritativo que gestiona el tiempo del juego y cálculos celestiales. El backend controla el tiempo como single source of truth, y el frontend recibe este tiempo para calcular posiciones visuales.
+
+Este servicio está diseñado para ser extensible y soportar:
+- Cálculos de temperatura (actual)
+- Modificadores de hechizos según fase lunar (futuro)
+- Estadísticas de personajes según ciclo solar/lunar (futuro)
+- Eventos especiales (eclipses, alineaciones) (futuro)
+
+#### Componentes
+
+- **CelestialTimeService**: Gestiona tiempo del juego y calcula ángulos solares/lunares
+- **get_celestial_state()**: Proporciona estado completo para otros sistemas
+- **get_sun_intensity_at()**: Intensidad solar en posición (para temperatura y efectos futuros)
+- **is_daytime_at()**: Determina si es de día (para efectos futuros)
+
+**Ejemplo de uso**:
+```python
+from src.services import CelestialTimeService
+
+celestial_service = CelestialTimeService(velocidad_tiempo=60.0)
+celestial_service.update(delta_time=1.0)
+
+# Obtener ángulo del sol
+angulo_sol = celestial_service.get_sun_angle()
+
+# Obtener fase lunar
+fase_lunar = celestial_service.get_luna_phase()
+
+# Obtener estado completo (para otros sistemas)
+estado = celestial_service.get_celestial_state()
+
+# Ejemplo futuro: Modificador de hechizos según fase lunar
+def calcular_modificador_hechizo_agua(celestial_service):
+    fase = celestial_service.get_luna_phase()
+    if fase >= 0.45 and fase <= 0.55:  # Luna llena
+        return 1.5  # +50% poder
+    return 1.0
+```
+
+**Notas**:
+- El tiempo del juego se actualiza con `update(delta_time)` donde `delta_time` es el tiempo transcurrido en segundos reales
+- La velocidad del tiempo se puede configurar en el constructor (`velocidad_tiempo`)
+- Los cálculos usan proyección Gleason (mundo plano 2D/3D)
+- El sol completa un ciclo cada 24 horas de juego
+- La luna completa un ciclo cada 28 días de juego
+
+### TemperatureService
+
+**Archivo**: `temperature_service.py`
+
+Calcula temperatura ambiental según múltiples factores ambientales usando la proyección Gleason.
+
+#### Funciones
+
+- **calculate_solar_temperature()**: Temperatura base según latitud (distancia del centro) y posición del sol
+- **get_altitude_modifier()**: Modificador por altitud (gradiente adiabático: -6.5°C/1000m)
+- **get_water_modifier()**: Modificador por proximidad al agua (efecto moderador)
+- **get_albedo_modifier()**: Modificador por tipo de superficie (albedo desde BD)
+- **calculate_cell_temperature()**: Función principal que integra todos los modificadores
+
+**Ejemplo de uso**:
+```python
+from src.services import calculate_cell_temperature, CelestialTimeService
+
+celestial_service = CelestialTimeService()
+celestial_service.update(delta_time=1.0)
+
+temperatura = await calculate_cell_temperature(
+    celda_x=100.0,
+    celda_y=200.0,
+    celda_z=50.0,
+    bloque_id="bloque-uuid",
+    celestial_time_service=celestial_service,
+    tipo_particula_superficie="tierra"  # Opcional: para calcular albedo
+)
+```
+
+**Factores de temperatura**:
+
+1. **Temperatura solar base**:
+   - Centro (radio 0) = Polo Norte = -20°C base
+   - Ecuador (radio ~50%) = 30°C base (máximo)
+   - Borde (radio 100%) = Polo Sur = -40°C base
+   - Ajuste día/noche: Día +15°C, Noche -10°C (diferencia de 25°C)
+
+2. **Modificador por altitud**:
+   - Gradiente adiabático: -6.5°C por cada 1000 unidades de altura
+
+3. **Modificador por proximidad al agua**:
+   - Efecto moderador: más cerca del agua = temperatura más estable
+   - Máximo efecto dentro de 5 celdas: ±5°C
+
+4. **Modificador por albedo**:
+   - Albedo alto (superficies claras) = reflejan luz = más frío
+   - Albedo bajo (superficies oscuras) = absorben luz = más caliente
+   - Valores almacenados en `tipos_particulas.albedo` (0.0-1.0)
+   - Escala: -10°C a +10°C según albedo
+
+**Notas**:
+- La temperatura final se limita entre -50°C y 60°C
+- El albedo se obtiene desde la base de datos (`tipos_particulas.albedo`)
+- La búsqueda de agua usa `get_particulas_vecinas()` con radio configurable (default: 10 celdas)
+- Todos los cálculos usan coordenadas en celdas (float)
+
 ## Conceptos Importantes
 
 ### Bloques Espaciales
@@ -184,13 +301,55 @@ await conn.fetchrow("SELECT * FROM particulas WHERE id = $1", particula_id)
 await conn.fetchrow(f"SELECT * FROM particulas WHERE id = '{particula_id}'")
 ```
 
+## Endpoints de API
+
+Los servicios de tiempo celestial y temperatura están expuestos a través de endpoints REST:
+
+### Tiempo Celestial
+
+- **`GET /api/v1/celestial/state`**: Obtener estado completo del tiempo celestial
+  - Retorna: `CelestialStateResponse` con tiempo, ángulos solares/lunares, fase lunar, hora actual, etc.
+
+### Temperatura
+
+- **`POST /api/v1/celestial/temperature`**: Calcular temperatura en una posición
+  - Request: `TemperatureRequest` con coordenadas (x, y, z), bloque_id, y tipo_particula_superficie (opcional)
+  - Retorna: `TemperatureResponse` con temperatura calculada
+
+**Ejemplo de uso desde frontend**:
+```javascript
+// Obtener estado celestial
+const response = await fetch('/api/v1/celestial/state');
+const state = await response.json();
+console.log(`Hora: ${state.current_hour}, Fase lunar: ${state.luna_phase}`);
+
+// Calcular temperatura
+const tempResponse = await fetch('/api/v1/celestial/temperature', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    x: 100.0,
+    y: 200.0,
+    z: 50.0,
+    bloque_id: 'bloque-uuid',
+    tipo_particula_superficie: 'tierra'
+  })
+});
+const temp = await tempResponse.json();
+console.log(`Temperatura: ${temp.temperatura}°C`);
+```
+
 ## Referencias
 
 - **Diseño del sistema de partículas**: `Juego de Dioses/Ideas/29-Diseno-Final-Particulas.md`
 - **Sistema de bloques**: `Juego de Dioses/Ideas/36-Sistema-Bloques-Unificado.md`
 - **Funciones auxiliares**: `Juego de Dioses/Ideas/35-Funciones-Auxiliares-Sistema-Particulas.md`
+- **Sistema de temperatura y sol/luna (JDG-039)**: `instructions/tickets/JDG-039_work-ticket_*.md`
+- **Análisis de arquitectura**: `instructions/analysis/JDG-039-architecture-analysis_*.md`
+- **Plan de acción**: `instructions/tasks/JDG-039-action-plan_*.md`
 - **Modelos Pydantic**: `backend/src/models/README.md`
 - **Schema de base de datos**: `database/init/01-init-schema.sql`
+- **Endpoints de API**: `backend/src/api/routes/celestial.py`
 
 ## Testing
 
