@@ -2,45 +2,45 @@
 SET search_path TO juego_dioses, public;
 
 -- Tipos de Partículas Comunes
-INSERT INTO tipos_particulas (nombre, tipo_fisico, densidad, color, geometria, opacidad) VALUES
+INSERT INTO tipos_particulas (nombre, tipo_fisico, densidad, color, geometria, opacidad, albedo) VALUES
 -- Terreno (sólidos)
-('tierra', 'solido', 1.5, '#8B4513', '{"tipo": "box"}', 1.0),  -- Brown (marrón tierra)
-('piedra', 'solido', 2.5, '#696969', '{"tipo": "box"}', 1.0),  -- Dim gray (gris oscuro piedra)
-('arena', 'solido', 1.2, '#F4A460', '{"tipo": "box"}', 1.0),  -- Sandy brown (arena)
-('arcilla', 'solido', 1.8, '#CD853F', '{"tipo": "box"}', 1.0),  -- Peru (arcilla)
-('roca_magmatica', 'solido', 3.0, '#8B0000', '{"tipo": "box"}', 1.0),  -- Dark red (roca magmática)
-('nieve', 'solido', 0.3, '#FFFFFF', '{"tipo": "box"}', 1.0),  -- White (nieve)
-('hielo', 'solido', 0.9, '#87CEEB', '{"tipo": "box"}', 1.0),  -- Sky blue (hielo)
+('tierra', 'solido', 1.5, '#8B4513', '{"tipo": "box"}', 1.0, 0.2),  -- Brown (marrón tierra) - Albedo 0.2
+('piedra', 'solido', 2.5, '#696969', '{"tipo": "box"}', 1.0, 0.1),  -- Dim gray (gris oscuro piedra) - Albedo 0.1
+('arena', 'solido', 1.2, '#F4A460', '{"tipo": "box"}', 1.0, 0.3),  -- Sandy brown (arena) - Albedo 0.3
+('arcilla', 'solido', 1.8, '#CD853F', '{"tipo": "box"}', 1.0, 0.2),  -- Peru (arcilla) - Albedo 0.2
+('roca_magmatica', 'solido', 3.0, '#8B0000', '{"tipo": "box"}', 1.0, 0.1),  -- Dark red (roca magmática) - Albedo 0.1
+('nieve', 'solido', 0.3, '#FFFFFF', '{"tipo": "box"}', 1.0, 0.9),  -- White (nieve) - Albedo 0.9 (refleja 90%)
+('hielo', 'solido', 0.9, '#87CEEB', '{"tipo": "box"}', 1.0, 0.8),  -- Sky blue (hielo) - Albedo 0.8 (refleja 80%)
 -- Líquidos (esferas para fluidez visual)
-('agua', 'liquido', 1.0, '#4169E1', '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}', 0.6),  -- Royal blue (agua, semi-transparente)
-('agua_sucia', 'liquido', 1.05, '#00008B', '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}', 1.0),  -- Dark blue (agua sucia)
-('lava', 'liquido', 3.0, '#FF4500', '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}', 1.0),  -- Orange red (lava)
-('pantano', 'liquido', 1.1, '#556B2F', '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}', 1.0),  -- Dark olive green (pantano)
-('aceite', 'liquido', 0.9, '#000000', '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}', 1.0),  -- Black (aceite)
-('sangre', 'liquido', 1.05, '#8B0000', '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}', 1.0),  -- Dark red (sangre)
+('agua', 'liquido', 1.0, '#4169E1', '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}', 0.6, 0.1),  -- Royal blue (agua, semi-transparente) - Albedo 0.1
+('agua_sucia', 'liquido', 1.05, '#00008B', '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}', 1.0, 0.1),  -- Dark blue (agua sucia) - Albedo 0.1
+('lava', 'liquido', 3.0, '#FF4500', '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}', 1.0, 0.1),  -- Orange red (lava) - Albedo 0.1
+('pantano', 'liquido', 1.1, '#556B2F', '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}', 1.0, 0.1),  -- Dark olive green (pantano) - Albedo 0.1
+('aceite', 'liquido', 0.9, '#000000', '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}', 1.0, 0.05),  -- Black (aceite) - Albedo 0.05 (muy oscuro)
+('sangre', 'liquido', 1.05, '#8B0000', '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}', 1.0, 0.1),  -- Dark red (sangre) - Albedo 0.1
 -- Orgánicos (sólidos)
-('carne', 'solido', 1.0, '#FFC0CB', '{"tipo": "box"}', 1.0),  -- Pink (carne)
-('hueso', 'solido', 1.8, '#F5F5DC', '{"tipo": "box"}', 1.0),  -- Beige (hueso)
-('piel', 'solido', 0.8, '#D2B48C', '{"tipo": "box"}', 1.0),  -- Tan (piel)
-('madera', 'solido', 0.6, '#8B4513', '{"tipo": "cylinder", "parametros": {"radiusTop": 0.4, "radiusBottom": 0.5, "height": 1.0, "segments": 8}}', 1.0),  -- Brown (madera - cilindro)
-('hojas', 'solido', 0.2, '#006400', '{"tipo": "box"}', 1.0),  -- Dark green (hojas - verde oscuro)
-('hierba', 'solido', 0.3, '#7CFC00', '{"tipo": "box"}', 1.0),  -- Lawn green (hierba - verde lima brillante)
+('carne', 'solido', 1.0, '#FFC0CB', '{"tipo": "box"}', 1.0, 0.2),  -- Pink (carne) - Albedo 0.2
+('hueso', 'solido', 1.8, '#F5F5DC', '{"tipo": "box"}', 1.0, 0.4),  -- Beige (hueso) - Albedo 0.4
+('piel', 'solido', 0.8, '#D2B48C', '{"tipo": "box"}', 1.0, 0.3),  -- Tan (piel) - Albedo 0.3
+('madera', 'solido', 0.6, '#8B4513', '{"tipo": "cylinder", "parametros": {"radiusTop": 0.4, "radiusBottom": 0.5, "height": 1.0, "segments": 8}}', 1.0, 0.2),  -- Brown (madera - cilindro) - Albedo 0.2
+('hojas', 'solido', 0.2, '#006400', '{"tipo": "box"}', 1.0, 0.2),  -- Dark green (hojas - verde oscuro) - Albedo 0.2
+('hierba', 'solido', 0.3, '#7CFC00', '{"tipo": "box"}', 1.0, 0.2),  -- Lawn green (hierba - verde lima brillante) - Albedo 0.2
 -- Energía (esferas para energía)
-('energia_fuego', 'energia', 0.0, '#FF8C00', '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}', 1.0),  -- Dark orange (energía fuego)
-('energia_hielo', 'energia', 0.0, '#00FFFF', '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}', 1.0),  -- Cyan (energía hielo)
-('energia_rayo', 'energia', 0.0, '#FFFF00', '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}', 1.0),  -- Yellow (energía rayo)
-('energia_vida', 'energia', 0.0, '#32CD32', '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}', 1.0),  -- Lime green (energía vida)
-('energia_oscuridad', 'energia', 0.0, '#800080', '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}', 1.0),  -- Purple (energía oscuridad)
-('mana', 'energia', 0.0, '#0000FF', '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}', 1.0),  -- Blue (mana)
-('poder_divino', 'energia', 0.0, '#FFD700', '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}', 1.0),  -- Gold (poder divino)
+('energia_fuego', 'energia', 0.0, '#FF8C00', '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}', 1.0, 0.1),  -- Dark orange (energía fuego) - Albedo 0.1
+('energia_hielo', 'energia', 0.0, '#00FFFF', '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}', 1.0, 0.3),  -- Cyan (energía hielo) - Albedo 0.3
+('energia_rayo', 'energia', 0.0, '#FFFF00', '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}', 1.0, 0.4),  -- Yellow (energía rayo) - Albedo 0.4
+('energia_vida', 'energia', 0.0, '#32CD32', '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}', 1.0, 0.2),  -- Lime green (energía vida) - Albedo 0.2
+('energia_oscuridad', 'energia', 0.0, '#800080', '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}', 1.0, 0.05),  -- Purple (energía oscuridad) - Albedo 0.05
+('mana', 'energia', 0.0, '#0000FF', '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}', 1.0, 0.2),  -- Blue (mana) - Albedo 0.2
+('poder_divino', 'energia', 0.0, '#FFD700', '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}', 1.0, 0.5),  -- Gold (poder divino) - Albedo 0.5
 -- Gases (esferas pequeñas)
-('aire', 'gas', 0.001, 'transparent', '{"tipo": "sphere", "parametros": {"radius": 0.3, "segments": 8}}', 0.0),  -- Transparent (aire)
-('vapor', 'gas', 0.002, '#FFFFFF', '{"tipo": "sphere", "parametros": {"radius": 0.3, "segments": 8}}', 0.5),  -- White (vapor, semi-transparente)
-('humo', 'gas', 0.001, '#696969', '{"tipo": "sphere", "parametros": {"radius": 0.3, "segments": 8}}', 0.4),  -- Dim gray (humo, semi-transparente)
-('gas_toxico', 'gas', 0.003, '#00FF00', '{"tipo": "sphere", "parametros": {"radius": 0.3, "segments": 8}}', 0.7),  -- Green (gas tóxico, semi-transparente)
-('neblina_magica', 'gas', 0.001, '#9370DB', '{"tipo": "sphere", "parametros": {"radius": 0.3, "segments": 8}}', 0.5),  -- Medium purple (neblina mágica, semi-transparente)
+('aire', 'gas', 0.001, 'transparent', '{"tipo": "sphere", "parametros": {"radius": 0.3, "segments": 8}}', 0.0, 0.1),  -- Transparent (aire) - Albedo 0.1
+('vapor', 'gas', 0.002, '#FFFFFF', '{"tipo": "sphere", "parametros": {"radius": 0.3, "segments": 8}}', 0.5, 0.3),  -- White (vapor, semi-transparente) - Albedo 0.3
+('humo', 'gas', 0.001, '#696969', '{"tipo": "sphere", "parametros": {"radius": 0.3, "segments": 8}}', 0.4, 0.1),  -- Dim gray (humo, semi-transparente) - Albedo 0.1
+('gas_toxico', 'gas', 0.003, '#00FF00', '{"tipo": "sphere", "parametros": {"radius": 0.3, "segments": 8}}', 0.7, 0.2),  -- Green (gas tóxico, semi-transparente) - Albedo 0.2
+('neblina_magica', 'gas', 0.001, '#9370DB', '{"tipo": "sphere", "parametros": {"radius": 0.3, "segments": 8}}', 0.5, 0.2),  -- Medium purple (neblina mágica, semi-transparente) - Albedo 0.2
 -- Sistema (partículas límite indestructibles - sólido especial)
-('límite', 'solido', 9.99, 'transparent', '{"tipo": "box"}', 0.0)  -- Transparent (límite)
+('límite', 'solido', 9.99, 'transparent', '{"tipo": "box"}', 0.0, 0.0)  -- Transparent (límite) - Albedo 0.0
 ON CONFLICT (nombre) DO NOTHING;
 
 -- Estados de Materia
