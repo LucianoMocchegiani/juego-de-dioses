@@ -67,10 +67,16 @@ export class CameraController {
         this.height = 1.25;
         
         /**
-         * Sensibilidad del mouse
+         * Sensibilidad del mouse cuando el cursor está oculto (jugando)
          * @type {number}
          */
-        this.mouseSensitivity = 0.005; // Aumentado de 0.002 a 0.005 (2.5x más rápido)
+        this.mouseSensitivity = 0.008; // Sensibilidad para rotación de cámara en juego
+        
+        /**
+         * Sensibilidad del mouse cuando el cursor está visible (en menús)
+         * @type {number}
+         */
+        this.menuMouseSensitivity = 0.002; // Sensibilidad más baja para menús (más control)
         
         /**
          * Límites de rotación vertical (en radianes)
@@ -140,17 +146,26 @@ export class CameraController {
             this.inputManager.isKeyPressed('AltRight')
         );
         
-        // Rotar cámara con click derecho + mouse
-        if (this.inputManager && this.inputManager.isMouseButtonPressed(2)) { // Botón derecho (2)
+        // Verificar si el cursor está visible (interfaces abiertas)
+        const isCursorVisible = document.body.classList.contains('cursor-visible');
+        
+        // Usar sensibilidad diferente según si el cursor está visible o no
+        // En menús (cursor visible): sensibilidad más baja para mejor control
+        // En juego (cursor oculto): sensibilidad normal para rotación fluida
+        const currentSensitivity = isCursorVisible ? this.menuMouseSensitivity : this.mouseSensitivity;
+        
+        // Rotar cámara con movimiento del mouse (sin necesidad de click derecho)
+        // Solo rotar si el cursor está oculto (no hay interfaces abiertas)
+        if (this.inputManager && !isCursorVisible) {
             const mouseDelta = this.inputManager.getMouseDelta();
             
             // Solo rotar si hay movimiento del mouse
             if (mouseDelta.x !== 0 || mouseDelta.y !== 0) {
                 // Rotación horizontal (alrededor del eje Y)
-                this.rotation.horizontal -= mouseDelta.x * this.mouseSensitivity;
+                this.rotation.horizontal -= mouseDelta.x * currentSensitivity;
                 
                 // Rotación vertical (inclinación)
-                this.rotation.vertical += mouseDelta.y * this.mouseSensitivity;
+                this.rotation.vertical += mouseDelta.y * currentSensitivity;
                 
                 // Limitar rotación vertical
                 this.rotation.vertical = Math.max(
@@ -162,9 +177,8 @@ export class CameraController {
         
         // Actualizar rotación del personaje para que siempre mire en la dirección de la cámara
         // (se actualiza cada frame, no solo cuando se mueve el mouse)
-        // EXCEPCIÓN: Si ALT + click derecho está activo, NO rotar el personaje
-        const isRightClickPressed = this.inputManager && this.inputManager.isMouseButtonPressed(2);
-        const shouldRotateCharacter = !(isAltPressed && isRightClickPressed);
+        // EXCEPCIÓN: Si ALT está presionado, NO rotar el personaje (para ajuste manual de cámara)
+        const shouldRotateCharacter = !isAltPressed;
         
         const render = ecs.getComponent(this.targetEntityId, 'Render');
         if (render && shouldRotateCharacter) {

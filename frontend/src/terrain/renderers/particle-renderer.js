@@ -42,7 +42,9 @@ export class ParticleRenderer extends BaseRenderer {
      */
     getGeometryKey(geometryType, geometryParams, estilo, lodLevel = 'high') {
         const paramsStr = JSON.stringify(geometryParams || {});
-        return `${geometryType}_${lodLevel}_${paramsStr}_${estilo.metalness}_${estilo.roughness}_${estilo.opacity || 1.0}`;
+        const opacity = estilo.opacity !== undefined ? estilo.opacity : 1.0;
+        // IMPORTANTE: Incluir el color en la clave para que partículas con diferentes colores se agrupen por separado
+        return `${geometryType}_${lodLevel}_${paramsStr}_${estilo.color}_${estilo.metalness}_${estilo.roughness}_${opacity}`;
     }
     
     /**
@@ -305,8 +307,24 @@ export class ParticleRenderer extends BaseRenderer {
             };
         }
         
+        // Prioridad: color directo (nuevo) > color_hex (antiguo)
+        let colorValue = '#FFFFFF';
+        if (tipoEstilos.color !== undefined && tipoEstilos.color !== null) {
+            const colorStr = String(tipoEstilos.color).trim();
+            // Validar que no sea 'transparent' o vacío
+            if (colorStr && colorStr !== 'transparent' && colorStr !== '') {
+                colorValue = colorStr;
+            }
+        } else if (tipoEstilos.color_hex !== undefined && tipoEstilos.color_hex !== null) {
+            const colorStr = String(tipoEstilos.color_hex).trim();
+            // Validar que no sea 'transparent' o vacío
+            if (colorStr && colorStr !== 'transparent' && colorStr !== '') {
+                colorValue = colorStr;
+            }
+        }
+        
         const estilo = {
-            color: tipoEstilos.color_hex || '#FFFFFF',
+            color: colorValue,
             metalness: tipoEstilos.material?.metalness || 0.1,
             roughness: tipoEstilos.material?.roughness || 0.8
         };

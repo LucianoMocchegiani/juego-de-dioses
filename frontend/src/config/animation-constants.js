@@ -94,8 +94,8 @@ export const ANIMATION_CONSTANTS = {
     // Valores del sistema de input
     INPUT: {
         // Velocidades de movimiento (celdas/segundo)
-        WALK_SPEED: 15,
-        RUN_SPEED: 30,
+        WALK_SPEED: 200,  // Aumentado de 15 a 30
+        RUN_SPEED: 1500,   // Aumentado de 30 a 60
         
         // Thresholds
         DIRECTION_NORMALIZE_THRESHOLD: 0.01,

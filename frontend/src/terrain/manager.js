@@ -84,8 +84,8 @@ export class TerrainManager {
         // 4. Preparar tiposEstilos para renderizado (compatibilidad con estructura antigua)
         const tiposEstilos = new Map();
         typesData.types.forEach(tipo => {
-            // Convertir nueva estructura (color, geometria) a estructura antigua (estilos) para compatibilidad
-            if (tipo.color || tipo.geometria) {
+            // Convertir nueva estructura (color, geometria, opacidad) a estructura antigua (estilos) para compatibilidad
+            if (tipo.color || tipo.geometria || tipo.opacidad !== undefined) {
                 const estilosCompat = {};
                 if (tipo.color) {
                     // El color puede venir como nombre de color (ej: "brown", "blue") o como hex
@@ -93,7 +93,7 @@ export class TerrainManager {
                     // Si no empieza con #, asumimos que es un nombre de color y lo pasamos tal cual
                     // El parser de estilos manejará la conversión
                     estilosCompat.color = tipo.color;
-                    estilosCompat.color_hex = tipo.color.startsWith('#') ? tipo.color : tipo.color;
+                    estilosCompat.color_hex = tipo.color; // Simplificado: siempre usar el mismo valor
                 }
                 if (tipo.geometria) {
                     // Guardar geometria tanto en nueva estructura como en antigua para compatibilidad
@@ -101,6 +101,13 @@ export class TerrainManager {
                     estilosCompat.visual = {
                         geometria: tipo.geometria
                     };
+                }
+                // Agregar opacidad si está disponible
+                if (tipo.opacidad !== undefined && tipo.opacidad !== null) {
+                    if (!estilosCompat.visual) {
+                        estilosCompat.visual = {};
+                    }
+                    estilosCompat.visual.opacity = tipo.opacidad;
                 }
                 tiposEstilos.set(tipo.nombre, estilosCompat);
             }

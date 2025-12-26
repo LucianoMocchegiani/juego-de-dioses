@@ -3,6 +3,7 @@
  */
 import { App } from './app.js';
 import { exposeAppOnly } from './dev-exposure.js';
+import { cursorManager } from './utils/cursor-manager.js';
 
 // Elementos del DOM
 const loadingEl = document.getElementById('loading');
@@ -13,6 +14,9 @@ const statusEl = document.getElementById('status');
 // Inicializar aplicación
 const container = document.getElementById('canvas-container');
 const app = new App(container);
+
+// Inicializar gestor de cursor
+cursorManager.init(container);
 
 // Exponer app básico globalmente (solo desarrollo)
 // Las herramientas completas se exponen después en app.js cuando todo está inicializado

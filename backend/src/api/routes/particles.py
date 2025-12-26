@@ -151,26 +151,29 @@ async def get_particle_types_in_viewport(
             logger.debug(f"No particle types found in viewport for bloque {bloque_id}")
             return ParticleTypesResponse(types=[])
         
-        # Obtener tipos con color y geometría
+        # Obtener tipos con color, geometría y opacidad
         tipos = await conn.fetch("""
             SELECT 
                 id,
                 nombre,
                 color,
-                geometria
+                geometria,
+                opacidad
             FROM juego_dioses.tipos_particulas
             WHERE id = ANY($1::uuid[])
         """, tipo_ids_list)
         
-        # Parsear color y geometría usando helper y crear objetos ParticleTypeResponse
+        # Parsear color, geometría y opacidad usando helper y crear objetos ParticleTypeResponse
         result = []
         for row in tipos:
             geometria = parse_jsonb_field(row['geometria'])
+            opacidad = float(row['opacidad']) if row['opacidad'] is not None else None
             result.append(ParticleTypeResponse(
                 id=str(row['id']),
                 nombre=row['nombre'],
                 color=row['color'] if row['color'] else None,
-                geometria=geometria if geometria else None
+                geometria=geometria if geometria else None,
+                opacidad=opacidad
             ))
         
         logger.debug(f"Found {len(result)} unique particle types in viewport")
