@@ -349,6 +349,10 @@ class ParticleTypeResponse(BaseModel):
         None,
         description="Geometría visual del tipo (JSONB desde BD, default: {'tipo': 'box'})"
     )
+    opacidad: Optional[float] = Field(
+        None,
+        description="Opacidad del tipo (0.0 = transparente, 1.0 = opaco, default: 1.0)"
+    )
 
 
 class ParticleTypesResponse(BaseModel):

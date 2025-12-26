@@ -8,6 +8,8 @@
  * - Bloqueo de input del juego
  * - Sistema de tabs genérico
  */
+import { cursorManager } from '../utils/cursor-manager.js';
+
 export class BaseInterface {
     /**
      * Crear interfaz base
@@ -346,8 +348,12 @@ export class BaseInterface {
             // Bloquear/desbloquear input del juego
             if (this.visible) {
                 this.blockGameInput();
+                // Mostrar cursor cuando se abre la interfaz
+                cursorManager.show();
             } else {
                 this.unblockGameInput();
+                // Ocultar cursor cuando se cierra la interfaz
+                cursorManager.hide();
             }
         }
     }

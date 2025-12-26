@@ -1,10 +1,11 @@
 -- Actualizar colores y geometrías de tipos de partículas
 SET search_path TO juego_dioses, public;
 
--- Agua: azul, esfera
+-- Agua: azul, esfera, semi-transparente
 UPDATE tipos_particulas 
 SET color = '#4169E1', 
-    geometria = '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}'::jsonb
+    geometria = '{"tipo": "sphere", "parametros": {"radius": 0.5, "segments": 16}}'::jsonb,
+    opacidad = 0.6
 WHERE nombre = 'agua';
 
 -- Madera: marrón, cilindro
