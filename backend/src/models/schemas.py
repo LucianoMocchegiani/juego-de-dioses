@@ -444,3 +444,32 @@ class CharacterCreate(BaseModel):
     y: int = Field(..., ge=0, description="Posición Y en celdas")
     z: int = Field(..., description="Posición Z en celdas")
 
+
+# ===== Tiempo Celestial y Temperatura =====
+
+class CelestialStateResponse(BaseModel):
+    """Estado del tiempo celestial (sol/luna)"""
+    time: float = Field(..., description="Tiempo del juego en segundos")
+    sun_angle: float = Field(..., description="Ángulo del sol en radianes (0-2π)")
+    luna_angle: float = Field(..., description="Ángulo de la luna en radianes (0-2π)")
+    luna_phase: float = Field(..., ge=0.0, le=1.0, description="Fase lunar (0.0 = nueva, 0.5 = llena, 1.0 = nueva)")
+    current_hour: float = Field(..., ge=0.0, le=24.0, description="Hora actual del día (0-24)")
+    is_daytime: bool = Field(..., description="Si es de día (basado en hora)")
+
+
+class TemperatureRequest(BaseModel):
+    """Request para calcular temperatura en una posición"""
+    x: float = Field(..., description="Coordenada X en celdas")
+    y: float = Field(..., description="Coordenada Y en celdas")
+    z: float = Field(..., description="Coordenada Z (altitud) en celdas")
+    bloque_id: str = Field(..., description="ID del bloque")
+    tipo_particula_superficie: Optional[str] = Field(None, description="Tipo de partícula dominante en la superficie (opcional)")
+
+
+class TemperatureResponse(BaseModel):
+    """Respuesta con temperatura calculada"""
+    temperatura: float = Field(..., description="Temperatura ambiental en grados Celsius")
+    x: float = Field(..., description="Coordenada X donde se calculó")
+    y: float = Field(..., description="Coordenada Y donde se calculó")
+    z: float = Field(..., description="Coordenada Z donde se calculó")
+
