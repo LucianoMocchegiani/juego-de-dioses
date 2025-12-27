@@ -158,6 +158,7 @@ async def api_info():
         "docs": "/docs",
         "endpoints": {
             "bloques": "/api/v1/bloques",
+            "world_size": "/api/v1/bloques/world/size",
             "particles": "/api/v1/bloques/{id}/particles",
             "agrupaciones": "/api/v1/bloques/{id}/agrupaciones",
             "characters": "/api/v1/bloques/{id}/characters",

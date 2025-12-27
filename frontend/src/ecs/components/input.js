@@ -94,6 +94,18 @@ export class InputComponent {
         this.wantsToDodge = false;
 
         /**
+         * Si el jugador quiere volar hacia arriba (en modo vuelo)
+         * @type {boolean}
+         */
+        this.wantsToFlyUp = false;
+
+        /**
+         * Si el jugador quiere volar hacia abajo (en modo vuelo)
+         * @type {boolean}
+         */
+        this.wantsToFlyDown = false;
+
+        /**
          * Rotación del mouse (para cámara)
          * @type {Object}
          */
@@ -163,6 +175,7 @@ export class InputComponent {
         this.wantsToChargedAttack = false;
         this.wantsToParry = false;
         this.wantsToDodge = false;
+        // Nota: wantsToFlyUp y wantsToFlyDown se resetean en PhysicsSystem después de procesarlos
     }
 }
 
