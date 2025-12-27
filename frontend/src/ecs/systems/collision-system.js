@@ -175,19 +175,20 @@ export class CollisionSystem extends System {
                 physics.isGrounded = false;
             }
             
-            // Límites del terreno (prevenir caída infinita)
+            // Límites del terreno (prevenir caída infinita hacia abajo, pero permitir vuelo ilimitado hacia arriba)
             if (this.dimension) {
                 const maxX = this.dimension.ancho_metros / this.dimension.tamano_celda;
                 const maxY = this.dimension.alto_metros / this.dimension.tamano_celda;
                 const minZ = this.dimension.profundidad_maxima || ANIMATION_CONSTANTS.COLLISION.DEFAULT_DIMENSION.MIN_Z;
-                const maxZ = this.dimension.altura_maxima || ANIMATION_CONSTANTS.COLLISION.DEFAULT_DIMENSION.MAX_Z;
+                // No limitar altura máxima - permitir vuelo ilimitado hacia arriba para ver sol/luna
+                // const maxZ = this.dimension.altura_maxima || ANIMATION_CONSTANTS.COLLISION.DEFAULT_DIMENSION.MAX_Z;
                 
-                // Limitar posición
+                // Limitar posición horizontal y profundidad mínima
                 position.x = Math.max(0, Math.min(maxX - 1, position.x));
                 position.y = Math.max(0, Math.min(maxY - 1, position.y));
-                position.z = Math.max(minZ, Math.min(maxZ, position.z));
+                position.z = Math.max(minZ, position.z); // Solo limitar hacia abajo, no hacia arriba
                 
-                // Si cae fuera del terreno, teleportar a superficie
+                // Si cae fuera del terreno (hacia abajo), teleportar a superficie
                 if (position.z < minZ) {
                     position.z = ANIMATION_CONSTANTS.COLLISION.DEFAULT_RESPAWN.Z;
                     position.x = ANIMATION_CONSTANTS.COLLISION.DEFAULT_RESPAWN.X;

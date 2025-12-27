@@ -7,5 +7,5 @@
  */
 
 export { ApiClient } from './client.js';
-export { BloquesApi, ParticlesApi, AgrupacionesApi } from './endpoints/__init__.js';
+export { BloquesApi, ParticlesApi, AgrupacionesApi, CelestialApi } from './endpoints/__init__.js';
 

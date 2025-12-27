@@ -32,6 +32,12 @@ class CursorManager {
          */
         this.container = null;
         
+        /**
+         * Si el pointer lock está activo
+         * @type {boolean}
+         */
+        this.isPointerLocked = false;
+        
         // Ocultar cursor por defecto al inicializar
         // No llamar hide() aquí porque aún no tenemos el container
         // Se llamará después de init()
@@ -47,8 +53,12 @@ class CursorManager {
         // Ocultar cursor por defecto
         this.forceHide();
         
-        // Centrar cursor inicialmente
-        this.centerCursor();
+        // Escuchar cambios de pointer lock
+        document.addEventListener('pointerlockchange', this.handlePointerLockChange.bind(this));
+        document.addEventListener('pointerlockerror', this.handlePointerLockError.bind(this));
+        
+        // Activar pointer lock cuando se hace click en el canvas (si el cursor está oculto)
+        container.addEventListener('click', this.handleContainerClick.bind(this));
         
         // Escuchar movimiento del mouse para centrarlo
         if (this.autoCenter) {
@@ -61,11 +71,51 @@ class CursorManager {
      * @param {MouseEvent} event - Evento de mouse
      */
     handleMouseMove(event) {
-        // Solo centrar si el cursor está oculto y tenemos pointer lock
-        if (this.showCursorCount === 0 && this.container && document.pointerLockElement === this.container) {
-            // Con pointer lock, el cursor ya está centrado automáticamente
-            // No necesitamos hacer nada adicional
+        // Con pointer lock, el cursor ya está centrado automáticamente
+        // No necesitamos hacer nada adicional
+    }
+    
+    /**
+     * Manejar click en el contenedor para activar pointer lock
+     * @param {MouseEvent} event - Evento de mouse
+     */
+    handleContainerClick(event) {
+        // Solo activar pointer lock si el cursor está oculto (modo juego)
+        if (this.showCursorCount === 0 && this.container && !this.isPointerLocked) {
+            this.requestPointerLock();
         }
+    }
+    
+    /**
+     * Manejar cambio de estado de pointer lock
+     */
+    handlePointerLockChange() {
+        const isLocked = document.pointerLockElement === this.container;
+        this.isPointerLocked = isLocked;
+        
+        if (isLocked) {
+            // Pointer lock activado: cursor está bloqueado y centrado
+            // No necesitamos hacer nada adicional
+        } else {
+            // Pointer lock desactivado: intentar reactivarlo si el cursor está oculto
+            if (this.showCursorCount === 0 && this.container) {
+                // Intentar reactivar después de un pequeño delay
+                setTimeout(() => {
+                    if (this.showCursorCount === 0 && !this.isPointerLocked) {
+                        this.requestPointerLock();
+                    }
+                }, 100);
+            }
+        }
+    }
+    
+    /**
+     * Manejar error de pointer lock
+     */
+    handlePointerLockError() {
+        // Si falla el pointer lock, no podemos hacer mucho
+        // El usuario puede necesitar hacer click manualmente
+        console.warn('Error al activar pointer lock. El mouse puede salir del canvas.');
     }
     
     /**
@@ -79,6 +129,7 @@ class CursorManager {
             if (document.pointerLockElement) {
                 document.exitPointerLock();
             }
+            this.isPointerLocked = false;
             
             // Usar clases CSS para controlar el cursor
             document.body.classList.remove('cursor-hidden');
@@ -113,8 +164,8 @@ class CursorManager {
                 this.container.style.setProperty('cursor', 'none', 'important');
             }
             
-            // Centrar cursor cuando se oculta
-            this.centerCursor();
+            // Activar pointer lock cuando se oculta el cursor
+            this.requestPointerLock();
         }
     }
     
@@ -135,25 +186,33 @@ class CursorManager {
             this.container.style.setProperty('cursor', 'none', 'important');
         }
         
-        this.centerCursor();
+        // Intentar activar pointer lock (puede fallar si no hay interacción del usuario)
+        // Se activará automáticamente cuando el usuario haga click
     }
     
     /**
-     * Centrar el cursor en el contenedor
+     * Solicitar pointer lock
+     * Esto bloquea el cursor dentro del canvas y previene que salga
      */
-    centerCursor() {
+    requestPointerLock() {
         if (!this.container) return;
         
         // Solo intentar pointer lock si el cursor está oculto
         if (this.showCursorCount > 0) {
-            return; // No centrar si el cursor está visible
+            return; // No activar pointer lock si el cursor está visible
         }
         
-        // Intentar usar pointer lock para centrar (solo cuando cursor está oculto)
+        // Si ya está bloqueado, no hacer nada
+        if (this.isPointerLocked) {
+            return;
+        }
+        
+        // Intentar usar pointer lock para bloquear el cursor
         try {
-            if (this.container.requestPointerLock && !document.pointerLockElement) {
+            if (this.container.requestPointerLock) {
                 this.container.requestPointerLock().catch(() => {
                     // Ignorar errores de pointer lock (puede fallar si no hay interacción del usuario)
+                    // El usuario necesitará hacer click para activarlo
                 });
             }
         } catch (error) {
