@@ -57,7 +57,7 @@ export const ANIMATION_CONSTANTS = {
         MASS: 70,
         GROUND_FRICTION: 0.8,
         AIR_FRICTION: 0.95,
-        MAX_VELOCITY: { x: 5, y: 10, z: 5 },
+        MAX_VELOCITY: { x: 1000, y: 1000, z: Infinity }, // Z sin límite para permitir vuelo hasta sol/luna
         JUMP_VELOCITY: 5, // Velocidad de salto en celdas/segundo
         ANIMATION_SPEED: 1.0,
     },

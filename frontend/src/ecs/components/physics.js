@@ -27,6 +27,12 @@ export class PhysicsComponent {
         
         // Velocidad máxima (opcional)
         this.maxVelocity = options.maxVelocity || { x: Infinity, y: Infinity, z: Infinity };
+        
+        // Sistema de triple salto para vuelo
+        this.consecutiveJumps = 0; // Contador de saltos consecutivos
+        this.lastJumpTime = 0; // Tiempo del último salto (para resetear contador si pasa mucho tiempo)
+        this.isFlying = false; // Estado de vuelo
+        this.flySpeed = 400; // Velocidad de vuelo en celdas/segundo (aumentado para alcanzar sol/luna a 500m = 2000 celdas en ~4 segundos)
     }
     
     /**

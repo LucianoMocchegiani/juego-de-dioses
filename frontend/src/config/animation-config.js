@@ -115,10 +115,21 @@ export const ANIMATION_STATES = [
         type: 'movement',
         priority: 9,
         conditions: [
-            { type: 'physics', property: 'velocity.z', operator: 'greaterThan', value: 0.1 }
+            { type: 'physics', property: 'velocity.z', operator: 'greaterThan', value: 0.1 },
+            { type: 'physics', property: 'isFlying', operator: 'equals', value: false }
         ],
         animation: 'regular_jump', // Fallback: Si no existe, AnimationMixerSystem usará 'combat_stance'
-        transitions: ['idle', 'walk', 'run']
+        transitions: ['idle', 'walk', 'run', 'flying']
+    },
+    {
+        id: 'flying',
+        type: 'movement',
+        priority: 10, // Mayor prioridad que jump para que se active cuando está volando
+        conditions: [
+            { type: 'physics', property: 'isFlying', operator: 'equals', value: true }
+        ],
+        animation: 'combat_stance', // Usar animación de combate mientras vuela (o idle si está disponible)
+        transitions: ['idle', 'walk', 'run', 'jump']
     },
     {
         id: 'crouch_walk',

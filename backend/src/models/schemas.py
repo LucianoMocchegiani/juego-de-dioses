@@ -473,3 +473,16 @@ class TemperatureResponse(BaseModel):
     y: float = Field(..., description="Coordenada Y donde se calculó")
     z: float = Field(..., description="Coordenada Z donde se calculó")
 
+
+class WorldSizeResponse(BaseModel):
+    """Schema de respuesta para el tamaño total del mundo (todos los bloques combinados)"""
+    ancho_total: float = Field(..., description="Ancho total del mundo en metros (suma de todos los bloques)")
+    alto_total: float = Field(..., description="Alto total del mundo en metros (suma de todos los bloques)")
+    radio_mundo: float = Field(..., description="Radio del mundo en metros (distancia desde el centro hasta la esquina más lejana)")
+    min_x: float = Field(..., description="Coordenada X mínima del mundo")
+    max_x: float = Field(..., description="Coordenada X máxima del mundo")
+    min_y: float = Field(..., description="Coordenada Y mínima del mundo")
+    max_y: float = Field(..., description="Coordenada Y máxima del mundo")
+    centro_x: float = Field(..., description="Coordenada X del centro del mundo")
+    centro_y: float = Field(..., description="Coordenada Y del centro del mundo")
+

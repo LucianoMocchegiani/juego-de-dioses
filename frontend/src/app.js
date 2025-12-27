@@ -6,7 +6,7 @@ import { actions } from './state/actions.js';
 import { selectors } from './state/selectors.js';
 import { PerformanceManager } from './core/performance/performance-manager.js';
 import { ApiClient } from './api/client.js';
-import { BloquesApi, ParticlesApi, CharactersApi, initCharactersApi } from './api/endpoints/__init__.js';
+import { BloquesApi, ParticlesApi, CharactersApi, CelestialApi, initCharactersApi } from './api/endpoints/__init__.js';
 import { Scene3D } from './core/scene.js';
 import { GeometryRegistry } from './core/geometries/registry.js';
 import { TerrainManager } from './terrain/manager.js';
@@ -17,6 +17,7 @@ import { PlayerFactory } from './ecs/factories/player-factory.js';
 import { InputManager } from './core/input/input-manager.js';
 import { CollisionDetector } from './world/collision-detector.js';
 import { CameraController } from './world/camera-controller.js';
+import { CelestialSystem, CelestialRenderer } from './world/__init__.js';
 // Herramientas de debugging inicializadas centralmente en dev-exposure.js
 import { exposeDevelopmentTools, initDevelopmentTools } from './dev-exposure.js';
 
@@ -52,6 +53,7 @@ export class App {
         this.bloquesApi = new BloquesApi(apiClient);
         this.particlesApi = new ParticlesApi(apiClient);
         this.charactersApi = new CharactersApi(apiClient);
+        this.celestialApi = new CelestialApi(apiClient);
         // Inicializar funciones helper de CharactersApi
         initCharactersApi(apiClient);
         
@@ -104,6 +106,15 @@ export class App {
         
         // Para calcular deltaTime en animate
         this.lastTime = null;
+        
+        // Sistema celestial (se inicializará después de cargar el bloque)
+        this.celestialSystem = null;
+        this.celestialRenderer = null;
+        
+        // Configuración de sincronización celestial
+        this.celestialSyncInterval = 5.0; // Sincronizar cada 5 segundos
+        this.lastCelestialSync = 0;
+        this.celestialInterpolationTime = 0; // Tiempo desde última sincronización
         
         // Inicializar herramientas de debugging (solo en desarrollo)
         this.initDevelopmentTools();
@@ -171,6 +182,19 @@ export class App {
             
             // 3. Establecer bloque en estado
             actions.setDimension(this.store, demoDimension);
+            
+            // 3.5. Obtener tamaño del mundo completo y inicializar sistema celestial
+            const worldSize = await this.bloquesApi.getWorldSize();
+            if (!this.celestialSystem) {
+                this.celestialSystem = new CelestialSystem(null, worldSize);
+                this.celestialRenderer = new CelestialRenderer(this.scene.scene, this.celestialSystem);
+            } else {
+                // Actualizar radio del mundo si ya existe
+                this.celestialSystem.updateWorldRadius(worldSize);
+            }
+            
+            // Sincronizar estado celestial inicial
+            await this.syncCelestialState();
             
             // 4. Cargar bloque usando TerrainManager
             const terrainResult = await this.terrain.loadDimension(demoDimension);
@@ -279,6 +303,11 @@ export class App {
                     );
                     this.cameraController.setTarget(this.playerId);
                     
+                    // Pasar CameraController al InputSystem para control de vuelo 3D
+                    if (this.inputSystem) {
+                        this.inputSystem.cameraController = this.cameraController;
+                    }
+                    
                     // Deshabilitar OrbitControls cuando el jugador está activo
                     this.scene.controls.setEnabled(false);
                 }
@@ -332,6 +361,22 @@ export class App {
     }
     
     /**
+     * Sincronizar estado celestial con el backend
+     */
+    async syncCelestialState() {
+        if (!this.celestialApi || !this.celestialSystem) {
+            return;
+        }
+        
+        try {
+            const state = await this.celestialApi.getState();
+            this.celestialSystem.update(state);
+        } catch (error) {
+            console.error('Error sincronizando estado celestial:', error);
+        }
+    }
+    
+    /**
      * Iniciar loop de animación con actualización de ECS
      */
     startAnimation() {
@@ -342,6 +387,35 @@ export class App {
             const currentTime = performance.now();
             const deltaTime = this.lastTime ? (currentTime - this.lastTime) / 1000 : 0;
             this.lastTime = currentTime;
+            
+            // Sincronizar estado celestial periódicamente
+            const currentTimeSeconds = performance.now() / 1000; // Tiempo en segundos
+            if (this.celestialSystem && currentTimeSeconds - this.lastCelestialSync >= this.celestialSyncInterval) {
+                this.syncCelestialState().catch(err => {
+                    console.error('Error sincronizando estado celestial:', err);
+                });
+                this.lastCelestialSync = currentTimeSeconds;
+                this.celestialInterpolationTime = 0;
+            }
+            
+            // Actualizar interpolación celestial
+            if (this.celestialSystem) {
+                this.celestialInterpolationTime += deltaTime;
+                const interpolationFactor = Math.min(
+                    this.celestialInterpolationTime / this.celestialSyncInterval,
+                    1.0
+                );
+                
+                // Actualizar renderizador celestial
+                if (this.celestialRenderer) {
+                    this.celestialRenderer.update(interpolationFactor);
+                }
+                
+                // Actualizar iluminación
+                if (this.scene.lights) {
+                    this.scene.lights.updateLighting(this.celestialSystem);
+                }
+            }
             
             // Actualizar sistemas ECS (procesan input primero)
             if (this.ecs) {
