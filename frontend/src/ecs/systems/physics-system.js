@@ -67,10 +67,27 @@ export class PhysicsSystem extends System {
             
             // Aplicar salto (si tiene componente Input)
             // Z es altura, Y es adelante/atrás, X es izquierda/derecha
-            if (input && input.wantsToJump && physics.isGrounded) {
-                physics.velocity.z = ANIMATION_CONSTANTS.PLAYER_PHYSICS.JUMP_VELOCITY; // Velocidad de salto en celdas/segundo (Z es altura)
-                physics.isGrounded = false;
+            if (input && input.wantsToJump) {
+                if (physics.isGrounded) {
+                    // Salto normal desde el suelo
+                    physics.velocity.z = ANIMATION_CONSTANTS.PLAYER_PHYSICS.JUMP_VELOCITY;
+                    physics.isGrounded = false;
+                } else if (!physics.isFlying) {
+                    // Salto aéreo (doble salto)
+                    physics.velocity.z = ANIMATION_CONSTANTS.PLAYER_PHYSICS.JUMP_VELOCITY * 0.8; // Un poco menos de impulso
+                }
                 input.wantsToJump = false; // Resetear
+            }
+            
+            // Aplicar movimiento de vuelo (3D basado en dirección de la cámara)
+            // El movimiento 3D ya está calculado en InputSystem basado en la dirección de la cámara
+            // La aceleración vertical se aplica junto con el movimiento horizontal más abajo
+            
+            // Desactivar vuelo si toca el suelo
+            if (physics.isGrounded && physics.isFlying) {
+                physics.isFlying = false;
+                physics.useGravity = true;
+                physics.consecutiveJumps = 0;
             }
             
             // Aplicar movimiento de acciones de combate
@@ -125,8 +142,8 @@ export class PhysicsSystem extends System {
                 }
             }
             
-            // Aplicar gravedad (Z es altura)
-            if (physics.useGravity && !physics.isGrounded) {
+            // Aplicar gravedad (Z es altura) - solo si no está volando
+            if (physics.useGravity && !physics.isGrounded && !physics.isFlying) {
                 physics.acceleration.z += this.gravity;
             }
             
@@ -135,10 +152,19 @@ export class PhysicsSystem extends System {
             physics.velocity.y += physics.acceleration.y * timestep; // Adelante/atrás
             physics.velocity.z += physics.acceleration.z * timestep; // Arriba/abajo
             
-            // Aplicar fricción (solo horizontal: X e Y)
-            const friction = physics.isGrounded ? physics.groundFriction : physics.airFriction;
-            physics.velocity.x *= friction; // Izquierda/derecha
-            physics.velocity.y *= friction; // Adelante/atrás
+            // Aplicar fricción
+            if (physics.isFlying) {
+                // En vuelo: fricción más fuerte para frenar cuando no hay input (como un avión)
+                const flyFriction = 0.85; // Fricción más fuerte en vuelo para frenar rápidamente
+                physics.velocity.x *= flyFriction; // Izquierda/derecha
+                physics.velocity.y *= flyFriction; // Adelante/atrás
+                physics.velocity.z *= flyFriction; // Arriba/abajo
+            } else {
+                // Movimiento normal: solo fricción horizontal
+                const friction = physics.isGrounded ? physics.groundFriction : physics.airFriction;
+                physics.velocity.x *= friction; // Izquierda/derecha
+                physics.velocity.y *= friction; // Adelante/atrás
+            }
             
             // Limitar velocidad máxima
             if (Math.abs(physics.velocity.x) > physics.maxVelocity.x) {
@@ -147,7 +173,8 @@ export class PhysicsSystem extends System {
             if (Math.abs(physics.velocity.y) > physics.maxVelocity.y) {
                 physics.velocity.y = Math.sign(physics.velocity.y) * physics.maxVelocity.y;
             }
-            if (Math.abs(physics.velocity.z) > physics.maxVelocity.z) {
+            // En vuelo, no limitar velocidad vertical para permitir alcanzar sol/luna
+            if (!physics.isFlying && Math.abs(physics.velocity.z) > physics.maxVelocity.z) {
                 physics.velocity.z = Math.sign(physics.velocity.z) * physics.maxVelocity.z;
             }
             
