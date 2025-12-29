@@ -14,78 +14,37 @@ export class CelestialSystem {
      */
     constructor(initialState = null, worldSize = null) {
         // Estado celestial recibido del backend (autoritativo)
+        // Ahora incluye sun_position y luna_position calculadas en el backend
         this.celestialState = initialState || {
             time: 0,
             sun_angle: 0,
             luna_angle: 0,
             luna_phase: 0,
             current_hour: 12,
-            is_daytime: true
+            is_daytime: true,
+            sun_position: { x: 0, y: 0, z: 500 },
+            luna_position: { x: 0, y: 0, z: 500 }
         };
         
         // Estado anterior para interpolación
         this.previousState = null;
         
-        // Radio del mundo para cálculos de posición
-        // Se calcula desde el tamaño total del mundo (todos los bloques combinados)
-        // Los bloques son subdivisiones técnicas, pero el sol/luna ven el mundo completo
-        this.worldRadius = this.calculateWorldRadius(worldSize);
-        
-        // Centro del mundo (para cálculos futuros)
+        // Centro del mundo (para ajustar posiciones del backend al centro del mundo)
         this.worldCenter = worldSize ? {
             x: worldSize.centro_x || 0.0,
             y: worldSize.centro_y || 0.0
         } : { x: 0.0, y: 0.0 };
-        
-        // Altura del sol/luna sobre el mundo (configurable)
-        this.celestialHeight = 500.0;
     }
     
     /**
-     * Calcular radio del mundo desde el tamaño total del mundo
+     * Actualizar centro del mundo (para ajustar posiciones del backend)
      * 
-     * IMPORTANTE: El mundo es un conjunto abierto de bloques
-     * - Los bloques son subdivisiones técnicas para optimización (temperatura, renderizado, etc.)
-     * - El mundo real es la unión de todos los bloques
-     * - El sol y la luna orbitan alrededor del mundo completo, no de un bloque individual
-     * - El radio se calcula desde el bounding box de todos los bloques combinados
-     * 
-     * @param {Object} [worldSize] - Tamaño total del mundo con:
-     *   - radio_mundo: Radio ya calculado (preferido)
-     *   - ancho_total y alto_total: Para calcular el radio
-     * @returns {number} - Radio del mundo en metros
-     */
-    calculateWorldRadius(worldSize) {
-        if (!worldSize) {
-            // Valor por defecto si no hay información del mundo
-            return 1000.0;
-        }
-        
-        // Si ya viene el radio calculado, usarlo directamente
-        if (worldSize.radio_mundo !== undefined && worldSize.radio_mundo !== null) {
-            return worldSize.radio_mundo;
-        }
-        
-        // Si no, calcular desde ancho_total y alto_total
-        if (worldSize.ancho_total && worldSize.alto_total) {
-            const halfWidth = worldSize.ancho_total / 2;
-            const halfHeight = worldSize.alto_total / 2;
-            return Math.sqrt(halfWidth * halfWidth + halfHeight * halfHeight);
-        }
-        
-        // Fallback a valor por defecto
-        return 1000.0;
-    }
-    
-    /**
-     * Actualizar radio del mundo desde el tamaño total del mundo
-     * 
-     * Útil cuando se carga el mundo o se agregan nuevos bloques.
+     * Las posiciones del backend vienen relativas al centro (0,0), pero el mundo
+     * puede tener un centro diferente. Este método actualiza el centro para ajustar.
      * 
      * @param {Object} worldSize - Tamaño total del mundo (todos los bloques combinados)
      */
-    updateWorldRadius(worldSize) {
-        this.worldRadius = this.calculateWorldRadius(worldSize);
+    updateWorldCenter(worldSize) {
         if (worldSize) {
             this.worldCenter = {
                 x: worldSize.centro_x || 0.0,
@@ -108,40 +67,46 @@ export class CelestialSystem {
     
     /**
      * Obtener posición visual del sol en coordenadas 3D
+     * Usa la posición calculada por el backend (autoritativa)
      * @param {number} [interpolationFactor] - Factor de interpolación (0.0 a 1.0) para movimiento suave
-     * @returns {Object} - Posición {x, y, z}
+     * @returns {Object} - Posición {x, y, z} en metros
+     * @throws {Error} Si no hay posición del sol en el estado celestial
      */
     getSunPosition(interpolationFactor = 0.0) {
         const state = this.getInterpolatedState(interpolationFactor);
-        const angle = state.sun_angle;
         
-        // Calcular posición en círculo alrededor del centro
-        // El sol gira en sentido horario alrededor del centro
-        const radius = this.worldRadius * 1.5; // Sol más lejos que el borde del mundo
-        const x = Math.cos(angle) * radius;
-        const y = Math.sin(angle) * radius;
-        const z = this.celestialHeight;
+        // Usar posición del backend (ya calculada)
+        if (!state.sun_position || state.sun_position.x === undefined) {
+            throw new Error('CelestialSystem: No hay posición del sol en el estado celestial. El backend debe enviar sun_position.');
+        }
         
-        return { x, y, z };
+        return {
+            x: state.sun_position.x,
+            y: state.sun_position.y,
+            z: state.sun_position.z
+        };
     }
     
     /**
      * Obtener posición visual de la luna en coordenadas 3D
+     * Usa la posición calculada por el backend (autoritativa)
      * @param {number} [interpolationFactor] - Factor de interpolación (0.0 a 1.0) para movimiento suave
-     * @returns {Object} - Posición {x, y, z}
+     * @returns {Object} - Posición {x, y, z} en metros
+     * @throws {Error} Si no hay posición de la luna en el estado celestial
      */
     getLunaPosition(interpolationFactor = 0.0) {
         const state = this.getInterpolatedState(interpolationFactor);
-        const angle = state.luna_angle;
         
-        // Calcular posición en círculo alrededor del centro
-        // La luna gira más lento que el sol
-        const radius = this.worldRadius * 1.5;
-        const x = Math.cos(angle) * radius;
-        const y = Math.sin(angle) * radius;
-        const z = this.celestialHeight;
+        // Usar posición del backend (ya calculada)
+        if (!state.luna_position || state.luna_position.x === undefined) {
+            throw new Error('CelestialSystem: No hay posición de la luna en el estado celestial. El backend debe enviar luna_position.');
+        }
         
-        return { x, y, z };
+        return {
+            x: state.luna_position.x,
+            y: state.luna_position.y,
+            z: state.luna_position.z
+        };
     }
     
     /**
@@ -205,10 +170,30 @@ export class CelestialSystem {
             return a1 + diff * t;
         };
         
+        // Interpolar posiciones (lineal)
+        const interpolatePosition = (pos1, pos2, t) => {
+            if (!pos1 || !pos2) return pos2 || pos1;
+            return {
+                x: pos1.x + (pos2.x - pos1.x) * t,
+                y: pos1.y + (pos2.y - pos1.y) * t,
+                z: pos1.z + (pos2.z - pos1.z) * t
+            };
+        };
+        
         return {
             ...this.celestialState,
             sun_angle: interpolateAngle(this.previousState.sun_angle, this.celestialState.sun_angle, factor),
-            luna_angle: interpolateAngle(this.previousState.luna_angle, this.celestialState.luna_angle, factor)
+            luna_angle: interpolateAngle(this.previousState.luna_angle, this.celestialState.luna_angle, factor),
+            sun_position: interpolatePosition(
+                this.previousState.sun_position,
+                this.celestialState.sun_position,
+                factor
+            ),
+            luna_position: interpolatePosition(
+                this.previousState.luna_position,
+                this.celestialState.luna_position,
+                factor
+            )
         };
     }
 }

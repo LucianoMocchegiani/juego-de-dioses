@@ -6,6 +6,7 @@
  */
 import * as THREE from 'three';
 import { CelestialSystem } from './celestial-system.js';
+import { debugLogger } from '../debug/logger.js';
 
 export class CelestialRenderer {
     /**
@@ -21,8 +22,9 @@ export class CelestialRenderer {
         this.lunaMesh = null;
         
         // Configuración
-        this.solRadius = 20.0;
-        this.lunaRadius = 10.0;
+        // Tamaños aumentados para visibilidad desde distancia (sol y luna están a ~500m de altura)
+        this.solRadius = 50.0; // Aumentado de 20 a 50 metros
+        this.lunaRadius = 30.0; // Aumentado de 10 a 30 metros
         this.solColor = 0xFFD700; // Dorado
         this.lunaColor = 0xE6E6FA; // Lavanda
         
@@ -34,28 +36,34 @@ export class CelestialRenderer {
      * Crear meshes del sol y luna
      */
     createMeshes() {
-        // Crear sol
-        const solGeometry = new THREE.SphereGeometry(this.solRadius, 32, 32);
-        const solMaterial = new THREE.MeshBasicMaterial({
-            color: this.solColor,
-            emissive: this.solColor,
-            emissiveIntensity: 1.0
-        });
-        this.solMesh = new THREE.Mesh(solGeometry, solMaterial);
-        this.scene.add(this.solMesh);
-        
-        // Crear luna
-        const lunaGeometry = new THREE.SphereGeometry(this.lunaRadius, 32, 32);
-        const lunaMaterial = new THREE.MeshBasicMaterial({
-            color: this.lunaColor,
-            emissive: this.lunaColor,
-            emissiveIntensity: 0.3
-        });
-        this.lunaMesh = new THREE.Mesh(lunaGeometry, lunaMaterial);
-        this.scene.add(this.lunaMesh);
-        
-        // Aplicar fase lunar inicial
-        this.updateLunaPhase();
+        try {
+            // Crear sol
+            const solGeometry = new THREE.SphereGeometry(this.solRadius, 32, 32);
+            // Usar MeshStandardMaterial para soportar emissive y emissiveIntensity
+            const solMaterial = new THREE.MeshStandardMaterial({
+                color: this.solColor,
+                emissive: this.solColor,
+                emissiveIntensity: 1.0
+            });
+            this.solMesh = new THREE.Mesh(solGeometry, solMaterial);
+            this.scene.add(this.solMesh);
+            
+            // Crear luna
+            const lunaGeometry = new THREE.SphereGeometry(this.lunaRadius, 32, 32);
+            // Usar MeshStandardMaterial para soportar emissive y emissiveIntensity
+            const lunaMaterial = new THREE.MeshStandardMaterial({
+                color: this.lunaColor,
+                emissive: this.lunaColor,
+                emissiveIntensity: 0.3
+            });
+            this.lunaMesh = new THREE.Mesh(lunaGeometry, lunaMaterial);
+            this.scene.add(this.lunaMesh);
+            
+            // Aplicar fase lunar inicial
+            this.updateLunaPhase();
+        } catch (error) {
+            debugLogger.error('CelestialRenderer', 'Error creando meshes', { error });
+        }
     }
     
     /**
@@ -64,33 +72,53 @@ export class CelestialRenderer {
      */
     update(interpolationFactor = 0.0) {
         if (!this.solMesh || !this.lunaMesh) {
+            if (!this.solMesh) {
+                debugLogger.warn('CelestialRenderer', 'Sol mesh no existe');
+            }
+            if (!this.lunaMesh) {
+                debugLogger.warn('CelestialRenderer', 'Luna mesh no existe');
+            }
             return;
         }
         
-        // Obtener centro del mundo para ajustar posiciones
-        const worldCenter = this.celestialSystem.worldCenter || { x: 0.0, y: 0.0 };
-        
-        // Actualizar posición del sol
-        const solPos = this.celestialSystem.getSunPosition(interpolationFactor);
-        // En Three.js: X es horizontal, Y es vertical (altura), Z es profundidad
-        // El sistema celestial devuelve: x (horizontal relativo al centro), y (horizontal relativo al centro), z (altura)
-        // Ajustar al centro del mundo
-        this.solMesh.position.set(
-            solPos.x + worldCenter.x,
-            solPos.z, // Altura no se ajusta al centro
-            solPos.y + worldCenter.y
-        );
-        
-        // Actualizar posición de la luna
-        const lunaPos = this.celestialSystem.getLunaPosition(interpolationFactor);
-        this.lunaMesh.position.set(
-            lunaPos.x + worldCenter.x,
-            lunaPos.z, // Altura no se ajusta al centro
-            lunaPos.y + worldCenter.y
-        );
-        
-        // Actualizar fase lunar (apariencia)
-        this.updateLunaPhase();
+        try {
+            // Obtener centro del mundo para ajustar posiciones
+            const worldCenter = this.celestialSystem.worldCenter || { x: 0.0, y: 0.0 };
+            
+            // Actualizar posición del sol
+            try {
+                const solPos = this.celestialSystem.getSunPosition(interpolationFactor);
+                // En Three.js: X es horizontal, Y es vertical (altura), Z es profundidad
+                // El sistema celestial devuelve: x (horizontal relativo al centro), y (horizontal relativo al centro), z (altura)
+                // Ajustar al centro del mundo
+                const finalSolPos = {
+                    x: solPos.x + worldCenter.x,
+                    y: solPos.z, // Altura (Z del backend) es Y en Three.js
+                    z: solPos.y + worldCenter.y
+                };
+                this.solMesh.position.set(finalSolPos.x, finalSolPos.y, finalSolPos.z);
+            } catch (error) {
+                debugLogger.warn('CelestialRenderer', 'Error obteniendo posición del sol', { error });
+            }
+            
+            // Actualizar posición de la luna
+            try {
+                const lunaPos = this.celestialSystem.getLunaPosition(interpolationFactor);
+                const finalLunaPos = {
+                    x: lunaPos.x + worldCenter.x,
+                    y: lunaPos.z, // Altura (Z del backend) es Y en Three.js
+                    z: lunaPos.y + worldCenter.y
+                };
+                this.lunaMesh.position.set(finalLunaPos.x, finalLunaPos.y, finalLunaPos.z);
+            } catch (error) {
+                debugLogger.warn('CelestialRenderer', 'Error obteniendo posición de la luna', { error });
+            }
+            
+            // Actualizar fase lunar (apariencia)
+            this.updateLunaPhase();
+        } catch (error) {
+            debugLogger.error('CelestialRenderer', 'Error actualizando renderizador celestial', { error });
+        }
     }
     
     /**

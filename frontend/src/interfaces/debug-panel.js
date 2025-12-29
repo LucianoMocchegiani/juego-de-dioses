@@ -19,6 +19,11 @@ export class DebugPanel {
         this.metrics = null;
         this.recentLogs = []; // Últimos logs para mostrar
         this.maxRecentLogs = 10; // Máximo de logs a mostrar
+        this.currentTemperature = null; // Temperatura actual del bloque
+        this.temperatureError = null; // Error al calcular temperatura
+        this.lastTemperatureUpdate = 0; // Timestamp de última actualización de temperatura
+        this.temperatureUpdateInterval = 60000; // Actualizar temperatura cada 1 minuto (60000ms)
+        this.temperatureUpdateInProgress = false; // Flag para evitar múltiples llamadas simultáneas
         
         if (this.enabled) {
             this.init();
@@ -157,6 +162,16 @@ export class DebugPanel {
     update() {
         if (!this.visible || !this.panel) return;
         
+        // Actualizar temperatura de forma asíncrona (solo si ha pasado el intervalo de 1 minuto)
+        // No llamar si ya hay una actualización en progreso
+        const now = Date.now();
+        const shouldUpdate = !this.temperatureUpdateInProgress && 
+                            (!this.lastTemperatureUpdate || (now - this.lastTemperatureUpdate) >= this.temperatureUpdateInterval);
+        
+        if (shouldUpdate) {
+            this.updateTemperature();
+        }
+        
         // Obtener métricas
         const metrics = this.metrics?.getStats();
         const stats = this.inspector?.getStats();
@@ -195,6 +210,71 @@ export class DebugPanel {
         }
         
         html += positionHtml;
+        
+        // Game Time (Horario de juego)
+        let gameTimeHtml = '';
+        if (this.app?.celestialSystem) {
+            try {
+                const hour = this.app.celestialSystem.getCurrentHour();
+                const isDaytime = this.app.celestialSystem.isDaytime();
+                
+                // Formatear hora en formato HH:MM
+                const hours = Math.floor(hour);
+                const minutes = Math.floor((hour - hours) * 60);
+                const hoursStr = hours.toString().padStart(2, '0');
+                const minutesStr = minutes.toString().padStart(2, '0');
+                const timeString = `${hoursStr}:${minutesStr}`;
+                
+                // Color según si es de día o noche
+                const timeColor = isDaytime ? '#ff0' : '#0ff';
+                const timeLabel = isDaytime ? 'Day' : 'Night';
+                
+                gameTimeHtml = `
+                    <div style="margin-bottom: 15px;">
+                        <h4 style="margin: 0 0 5px 0; color: #0f0;">Game Time</h4>
+                        <div style="margin-left: 10px;">
+                            <div>Time: <span style="color: ${timeColor};">${timeString}</span> (<span style="color: ${timeColor};">${timeLabel}</span>)</div>
+                        </div>
+                    </div>
+                `;
+            } catch (e) {
+                // Si no se puede obtener el horario, simplemente no mostrar
+            }
+        }
+        html += gameTimeHtml;
+        
+        // Temperature (con data-section para actualización parcial)
+        let temperatureHtml = '';
+        if (this.currentTemperature !== null) {
+            const tempColor = this.currentTemperature > 20 ? '#ff0' : this.currentTemperature > 0 ? '#0ff' : '#0ff';
+            temperatureHtml = `
+                <div data-section="temperature" style="margin-bottom: 15px;">
+                    <h4 style="margin: 0 0 5px 0; color: #0f0;">Temperature</h4>
+                    <div style="margin-left: 10px;">
+                        <div>Current: <span style="color: ${tempColor};">${this.currentTemperature.toFixed(2)}°C</span></div>
+                    </div>
+                </div>
+            `;
+        } else if (this.temperatureError) {
+            temperatureHtml = `
+                <div data-section="temperature" style="margin-bottom: 15px;">
+                    <h4 style="margin: 0 0 5px 0; color: #0f0;">Temperature</h4>
+                    <div style="margin-left: 10px; color: #f00;">
+                        Error: ${this.escapeHtml(this.temperatureError)}
+                    </div>
+                </div>
+            `;
+        } else {
+            temperatureHtml = `
+                <div data-section="temperature" style="margin-bottom: 15px;">
+                    <h4 style="margin: 0 0 5px 0; color: #0f0;">Temperature</h4>
+                    <div style="margin-left: 10px; color: #888;">
+                        Calculating...
+                    </div>
+                </div>
+            `;
+        }
+        html += temperatureHtml;
         
         // Performance
         html += `
@@ -266,6 +346,122 @@ export class DebugPanel {
         }
         
         this.panel.innerHTML = html;
+    }
+    
+    /**
+     * Actualizar temperatura del bloque actual
+     * Solo actualiza si han pasado al menos `temperatureUpdateInterval` ms (1 minuto) desde la última actualización
+     */
+    async updateTemperature() {
+        // Verificar condiciones básicas
+        if (!this.app?.playerId || !this.app?.currentBloqueId || !this.app?.celestialApi || !this.ecs) {
+            this.currentTemperature = null;
+            this.temperatureError = null;
+            return;
+        }
+        
+        // Verificar si ya hay una actualización en progreso
+        if (this.temperatureUpdateInProgress) {
+            return; // Ya hay una llamada en curso, no hacer otra
+        }
+        
+        const now = Date.now();
+        
+        // Verificar si necesitamos actualizar (máximo 1 vez por minuto)
+        // Si ya tenemos temperatura y no ha pasado el intervalo, no actualizar
+        if (this.currentTemperature !== null && this.lastTemperatureUpdate > 0 && (now - this.lastTemperatureUpdate) < this.temperatureUpdateInterval) {
+            return; // No actualizar, usar temperatura cacheada
+        }
+        
+        // Marcar que hay una actualización en progreso
+        this.temperatureUpdateInProgress = true;
+        
+        try {
+            // Obtener posición del jugador
+            const PositionComponent = this.ecs.getComponent(this.app.playerId, 'Position');
+            if (!PositionComponent) {
+                this.currentTemperature = null;
+                this.temperatureError = 'No se pudo obtener la posición del jugador';
+                this.lastTemperatureUpdate = now; // Actualizar timestamp para no intentar de nuevo inmediatamente
+                return;
+            }
+            
+            // Calcular temperatura en la posición del jugador
+            const temperatureData = await this.app.celestialApi.calculateTemperature(
+                PositionComponent.x,
+                PositionComponent.y,
+                PositionComponent.z,
+                this.app.currentBloqueId
+            );
+            
+            this.currentTemperature = temperatureData.temperatura;
+            this.temperatureError = null;
+            this.lastTemperatureUpdate = now; // Actualizar timestamp solo después de éxito
+            
+            // Actualizar el panel si está visible (sin llamar a updateTemperature de nuevo)
+            if (this.visible && this.panel) {
+                // Solo actualizar el HTML, no llamar a updateTemperature()
+                this.renderTemperature();
+            }
+        } catch (error) {
+            this.currentTemperature = null;
+            this.temperatureError = error.message || 'Error al calcular temperatura';
+            this.lastTemperatureUpdate = now; // Actualizar timestamp incluso en error para no intentar de nuevo inmediatamente
+            
+            // Actualizar el panel para mostrar el error (sin llamar a updateTemperature de nuevo)
+            if (this.visible && this.panel) {
+                this.renderTemperature();
+            }
+        } finally {
+            // Siempre liberar el flag, incluso si hay error
+            this.temperatureUpdateInProgress = false;
+        }
+    }
+    
+    /**
+     * Renderizar solo la sección de temperatura en el panel
+     * (evita llamar a updateTemperature() desde update())
+     */
+    renderTemperature() {
+        if (!this.panel) return;
+        
+        // Buscar el elemento de temperatura en el panel
+        const tempSection = this.panel.querySelector('[data-section="temperature"]');
+        if (!tempSection) return;
+        
+        // Actualizar solo el contenido de temperatura
+        let temperatureHtml = '';
+        if (this.currentTemperature !== null) {
+            const tempColor = this.currentTemperature > 20 ? '#ff0' : this.currentTemperature > 0 ? '#0ff' : '#0ff';
+            temperatureHtml = `
+                <div style="margin-bottom: 15px;">
+                    <h4 style="margin: 0 0 5px 0; color: #0f0;">Temperature</h4>
+                    <div style="margin-left: 10px;">
+                        <div>Current: <span style="color: ${tempColor};">${this.currentTemperature.toFixed(2)}°C</span></div>
+                    </div>
+                </div>
+            `;
+        } else if (this.temperatureError) {
+            temperatureHtml = `
+                <div style="margin-bottom: 15px;">
+                    <h4 style="margin: 0 0 5px 0; color: #0f0;">Temperature</h4>
+                    <div style="margin-left: 10px; color: #f00;">
+                        Error: ${this.escapeHtml(this.temperatureError)}
+                    </div>
+                </div>
+            `;
+        } else {
+            temperatureHtml = `
+                <div style="margin-bottom: 15px;">
+                    <h4 style="margin: 0 0 5px 0; color: #0f0;">Temperature</h4>
+                    <div style="margin-left: 10px; color: #888;">
+                        Calculating...
+                    </div>
+                </div>
+            `;
+        }
+        
+        tempSection.innerHTML = temperatureHtml;
     }
     
     /**
