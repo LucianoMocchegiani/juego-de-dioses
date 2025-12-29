@@ -17,7 +17,8 @@ from .particula_service import (
     calcular_distancia,
     calcular_distancia_particulas,
     evaluar_temperatura,
-    get_transiciones
+    get_transiciones,
+    get_particulas_con_inercia
 )
 
 # Servicio de Tiempo Celestial
@@ -29,7 +30,9 @@ from .temperature_service import (
     get_altitude_modifier,
     get_water_modifier,
     get_albedo_modifier,
-    calculate_cell_temperature
+    calculate_cell_temperature,
+    update_particle_temperature,
+    get_particle_temperature_modifier
 )
 
 __all__ = [
@@ -45,6 +48,7 @@ __all__ = [
     'calcular_distancia_particulas',
     'evaluar_temperatura',
     'get_transiciones',
+    'get_particulas_con_inercia',
     # Servicio de Tiempo Celestial
     'CelestialTimeService',
     # Servicio de Temperatura
@@ -52,6 +56,8 @@ __all__ = [
     'get_altitude_modifier',
     'get_water_modifier',
     'get_albedo_modifier',
-    'calculate_cell_temperature'
+    'calculate_cell_temperature',
+    'update_particle_temperature',
+    'get_particle_temperature_modifier'
 ]
 
