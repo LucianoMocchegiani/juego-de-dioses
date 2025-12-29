@@ -8,11 +8,15 @@ from uuid import UUID
 from typing import Optional
 
 from src.services import CelestialTimeService, calculate_cell_temperature
+from src.services.temperature_service import update_particle_temperature
+from src.services.particula_service import get_particulas_con_inercia
+from src.database.connection import get_connection
 from src.models.schemas import (
     CelestialStateResponse,
     TemperatureRequest,
     TemperatureResponse
 )
+from src.config import CELESTIAL_CONFIG
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +26,9 @@ router = APIRouter(tags=["celestial"])
 # Se actualiza periódicamente en segundo plano
 _celestial_service: Optional[CelestialTimeService] = None
 _update_task: Optional[asyncio.Task] = None
+
+# Background task para actualizar temperatura de partículas
+_particle_temperature_update_task: Optional[asyncio.Task] = None
 
 
 def get_celestial_service() -> CelestialTimeService:
@@ -33,11 +40,14 @@ def get_celestial_service() -> CelestialTimeService:
     """
     global _celestial_service
     if _celestial_service is None:
-        # Inicializar con velocidad de tiempo (1 segundo real = 60 segundos de juego)
-        # Esto se puede hacer configurable más adelante
-        velocidad_tiempo = 60.0  # 1 segundo real = 1 minuto de juego
-        _celestial_service = CelestialTimeService(velocidad_tiempo=velocidad_tiempo)
-        logger.info(f"CelestialTimeService inicializado con velocidad_tiempo={velocidad_tiempo}")
+        # Inicializar con velocidad de tiempo desde configuración
+        velocidad_tiempo = CELESTIAL_CONFIG['VELOCIDAD_TIEMPO']
+        tiempo_inicial = CELESTIAL_CONFIG['TIEMPO_INICIAL']
+        _celestial_service = CelestialTimeService(
+            tiempo_inicial=tiempo_inicial,
+            velocidad_tiempo=velocidad_tiempo
+        )
+        logger.info(f"CelestialTimeService inicializado con velocidad_tiempo={velocidad_tiempo}, tiempo_inicial={tiempo_inicial}")
     return _celestial_service
 
 
@@ -70,6 +80,90 @@ async def start_celestial_service_background_task():
         logger.info("Tarea de actualización de CelestialTimeService iniciada")
 
 
+async def update_particle_temperatures_periodically():
+    """
+    Actualizar temperatura de partículas periódicamente.
+    
+    Se ejecuta cada X minutos (configurable en CELESTIAL_CONFIG) y actualiza partículas
+    con inercia_termica > 0 en bloques activos.
+    """
+    global _particle_temperature_update_task
+    
+    # Obtener intervalo desde configuración
+    update_interval = CELESTIAL_CONFIG.get('PARTICLE_TEMPERATURE_UPDATE_INTERVAL', 300)
+    
+    while True:
+        try:
+            await asyncio.sleep(update_interval)
+            
+            # Obtener servicio celestial
+            celestial_service = get_celestial_service()
+            
+            # Obtener bloques activos (por ahora, todos los bloques con partículas)
+            # Optimización futura: solo bloques activos (con jugadores)
+            async with get_connection() as conn:
+                # Obtener todos los bloques únicos
+                bloques = await conn.fetch(
+                    """
+                    SELECT DISTINCT bloque_id
+                    FROM juego_dioses.particulas
+                    WHERE extraida = false
+                    """
+                )
+                
+                for bloque_row in bloques:
+                    bloque_id = str(bloque_row['bloque_id'])
+                    
+                    # Obtener partículas con inercia_termica
+                    particulas = await get_particulas_con_inercia(bloque_id, conn)
+                    
+                    if not particulas:
+                        continue
+                    
+                    # Actualizar temperatura de cada partícula
+                    for particula in particulas:
+                        try:
+                            # Calcular temperatura ambiental en la posición de la partícula
+                            temp_ambiente = await calculate_cell_temperature(
+                                celda_x=float(particula['celda_x']),
+                                celda_y=float(particula['celda_y']),
+                                celda_z=float(particula['celda_z']),
+                                bloque_id=bloque_id,
+                                celestial_time_service=celestial_service
+                            )
+                            
+                            # Actualizar temperatura de la partícula
+                            await update_particle_temperature(
+                                particula_id=str(particula['id']),
+                                temp_ambiente=temp_ambiente,
+                                tipo_particula={
+                                    'inercia_termica': float(particula['inercia_termica'])
+                                },
+                                conn=conn
+                            )
+                        except Exception as e:
+                            logger.error(f"Error actualizando temperatura de partícula {particula.get('id')}: {e}")
+                            continue
+                        
+        except asyncio.CancelledError:
+            logger.info("Tarea de actualización de temperatura de partículas cancelada")
+            break
+        except Exception as e:
+            logger.error(f"Error actualizando temperatura de partículas: {e}")
+
+
+async def start_particle_temperature_update_task():
+    """
+    Iniciar background task para actualizar temperatura de partículas.
+    """
+    global _particle_temperature_update_task
+    if _particle_temperature_update_task is None or _particle_temperature_update_task.done():
+        _particle_temperature_update_task = asyncio.create_task(
+            update_particle_temperatures_periodically()
+        )
+        logger.info("Tarea de actualización de temperatura de partículas iniciada")
+
+
 @router.get("/celestial/state", response_model=CelestialStateResponse)
 async def get_celestial_state():
     """
@@ -81,6 +175,10 @@ async def get_celestial_state():
     try:
         service = get_celestial_service()
         state = service.get_celestial_state()
+        # Convertir posiciones a objetos CelestialPosition
+        from src.models.schemas import CelestialPosition
+        state['sun_position'] = CelestialPosition(**state['sun_position'])
+        state['luna_position'] = CelestialPosition(**state['luna_position'])
         return CelestialStateResponse(**state)
     except Exception as e:
         logger.error(f"Error obteniendo estado celestial: {e}")

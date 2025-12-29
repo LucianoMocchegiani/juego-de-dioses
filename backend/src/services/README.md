@@ -223,9 +223,11 @@ Calcula temperatura ambiental según múltiples factores ambientales usando la p
 
 - **calculate_solar_temperature()**: Temperatura base según latitud (distancia del centro) y posición del sol
 - **get_altitude_modifier()**: Modificador por altitud (gradiente adiabático: -6.5°C/1000m)
-- **get_water_modifier()**: Modificador por proximidad al agua (efecto moderador)
+- **get_water_modifier()**: Modificador por proximidad al agua/hielo (lee temperatura real de partículas)
 - **get_albedo_modifier()**: Modificador por tipo de superficie (albedo desde BD)
 - **calculate_cell_temperature()**: Función principal que integra todos los modificadores
+- **update_particle_temperature()**: Actualiza temperatura de una partícula según temperatura ambiental e inercia_termica
+- **get_particle_temperature_modifier()**: Modificador genérico por partículas de tipos específicos (agua, hielo, lava, etc.)
 
 **Ejemplo de uso**:
 ```python
@@ -255,9 +257,12 @@ temperatura = await calculate_cell_temperature(
 2. **Modificador por altitud**:
    - Gradiente adiabático: -6.5°C por cada 1000 unidades de altura
 
-3. **Modificador por proximidad al agua**:
-   - Efecto moderador: más cerca del agua = temperatura más estable
-   - Máximo efecto dentro de 5 celdas: ±5°C
+3. **Modificador por proximidad al agua/hielo**:
+   - Lee temperatura real de partículas de agua/hielo
+   - Calcula modificador basado en diferencia de temperatura
+   - Considera conductividad_termica del tipo de partícula
+   - Propagación de calor según distancia (ley del cuadrado inverso)
+   - Máximo efecto dentro de 5 celdas
 
 4. **Modificador por albedo**:
    - Albedo alto (superficies claras) = reflejan luz = más frío
@@ -265,11 +270,28 @@ temperatura = await calculate_cell_temperature(
    - Valores almacenados en `tipos_particulas.albedo` (0.0-1.0)
    - Escala: -10°C a +10°C según albedo
 
+**Sistema de Conservación de Calor (JDG-041)**:
+
+- **update_particle_temperature()**: Actualiza temperatura de partículas con `inercia_termica > 0`
+  - El cambio de temperatura depende de `inercia_termica` (agua: 4.0 cambia lentamente, metal: 0.5 cambia rápido)
+  - Se ejecuta periódicamente en background task (cada 5 minutos)
+  - Las partículas absorben temperatura del ambiente y la conservan
+
+- **get_particle_temperature_modifier()**: Función genérica para calcular modificador por partículas
+  - Funciona para cualquier tipo de partícula (agua, hielo, lava, etc.)
+  - Lee temperatura real de partículas y calcula diferencia con temperatura ambiental
+  - Considera `conductividad_termica` y distancia para propagación de calor
+
+- **get_particulas_con_inercia()**: Obtiene partículas que necesitan actualización de temperatura
+  - Filtra por `inercia_termica > 0`
+  - Retorna información necesaria para actualización (temperatura, tipo, propiedades)
+
 **Notas**:
 - La temperatura final se limita entre -50°C y 60°C
 - El albedo se obtiene desde la base de datos (`tipos_particulas.albedo`)
 - La búsqueda de agua usa `get_particulas_vecinas()` con radio configurable (default: 10 celdas)
 - Todos los cálculos usan coordenadas en celdas (float)
+- El sistema de conservación de calor se ejecuta en background task (ver `celestial.py`)
 
 ## Conceptos Importantes
 

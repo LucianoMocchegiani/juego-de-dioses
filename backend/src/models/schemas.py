@@ -447,6 +447,13 @@ class CharacterCreate(BaseModel):
 
 # ===== Tiempo Celestial y Temperatura =====
 
+class CelestialPosition(BaseModel):
+    """Posición 3D de un cuerpo celestial"""
+    x: float = Field(..., description="Coordenada X en metros")
+    y: float = Field(..., description="Coordenada Y en metros")
+    z: float = Field(..., description="Coordenada Z (altura) en metros")
+
+
 class CelestialStateResponse(BaseModel):
     """Estado del tiempo celestial (sol/luna)"""
     time: float = Field(..., description="Tiempo del juego en segundos")
@@ -455,6 +462,8 @@ class CelestialStateResponse(BaseModel):
     luna_phase: float = Field(..., ge=0.0, le=1.0, description="Fase lunar (0.0 = nueva, 0.5 = llena, 1.0 = nueva)")
     current_hour: float = Field(..., ge=0.0, le=24.0, description="Hora actual del día (0-24)")
     is_daytime: bool = Field(..., description="Si es de día (basado en hora)")
+    sun_position: CelestialPosition = Field(..., description="Posición 3D del sol en metros")
+    luna_position: CelestialPosition = Field(..., description="Posición 3D de la luna en metros")
 
 
 class TemperatureRequest(BaseModel):
