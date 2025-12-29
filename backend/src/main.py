@@ -94,9 +94,16 @@ async def lifespan(app: FastAPI):
         print("Seeds iniciados en segundo plano. La aplicación está lista para recibir peticiones.")
         
         # Iniciar servicio de tiempo celestial en segundo plano (no bloquea)
-        from src.api.routes.celestial import start_celestial_service_background_task
+        from src.api.routes.celestial import (
+            start_celestial_service_background_task,
+            start_particle_temperature_update_task
+        )
         asyncio.create_task(start_celestial_service_background_task())
         print("Servicio de tiempo celestial iniciado en segundo plano.")
+        
+        # Iniciar background task de temperatura de partículas (no bloquea)
+        asyncio.create_task(start_particle_temperature_update_task())
+        print("Background task de temperatura de partículas iniciado.")
     except Exception as e:
         print(f"Error inicializando base de datos: {e}")
     

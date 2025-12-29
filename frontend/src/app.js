@@ -20,6 +20,7 @@ import { CameraController } from './world/camera-controller.js';
 import { CelestialSystem, CelestialRenderer } from './world/__init__.js';
 // Herramientas de debugging inicializadas centralmente en dev-exposure.js
 import { exposeDevelopmentTools, initDevelopmentTools } from './dev-exposure.js';
+import { debugLogger } from './debug/logger.js';
 
 /**
  * @typedef {import('./types.js').Particle} Particle
@@ -100,6 +101,9 @@ export class App {
         
         // Jugador se creará después de cargar la dimensión
         this.playerId = null;
+        
+        // Bloque actual (se establecerá al cargar la dimensión)
+        this.currentBloqueId = null;
         
         // Controlador de cámara (se inicializará después de cargar la dimensión)
         this.cameraController = null;
@@ -183,14 +187,17 @@ export class App {
             // 3. Establecer bloque en estado
             actions.setDimension(this.store, demoDimension);
             
+            // Guardar bloqueId actual para uso en debugging y otras funciones
+            this.currentBloqueId = demoDimension.id;
+            
             // 3.5. Obtener tamaño del mundo completo y inicializar sistema celestial
             const worldSize = await this.bloquesApi.getWorldSize();
             if (!this.celestialSystem) {
                 this.celestialSystem = new CelestialSystem(null, worldSize);
                 this.celestialRenderer = new CelestialRenderer(this.scene.scene, this.celestialSystem);
             } else {
-                // Actualizar radio del mundo si ya existe
-                this.celestialSystem.updateWorldRadius(worldSize);
+                // Actualizar centro del mundo si ya existe (las posiciones vienen del backend)
+                this.celestialSystem.updateWorldCenter(worldSize);
             }
             
             // Sincronizar estado celestial inicial
@@ -365,6 +372,7 @@ export class App {
      */
     async syncCelestialState() {
         if (!this.celestialApi || !this.celestialSystem) {
+            debugLogger.warn('App', 'No se puede sincronizar estado celestial: falta celestialApi o celestialSystem');
             return;
         }
         
@@ -372,7 +380,7 @@ export class App {
             const state = await this.celestialApi.getState();
             this.celestialSystem.update(state);
         } catch (error) {
-            console.error('Error sincronizando estado celestial:', error);
+            debugLogger.error('App', 'Error sincronizando estado celestial', { error });
         }
     }
     
@@ -411,9 +419,14 @@ export class App {
                     this.celestialRenderer.update(interpolationFactor);
                 }
                 
-                // Actualizar iluminación
+                // Actualizar iluminación (esto actualiza el color de la luz del sol)
                 if (this.scene.lights) {
                     this.scene.lights.updateLighting(this.celestialSystem);
+                }
+                
+                // Actualizar color del cielo basado en la iluminación (como en el mundo real)
+                if (this.scene.renderer && this.scene.lights) {
+                    this.scene.renderer.updateSkyColor(this.celestialSystem, this.scene.lights);
                 }
             }
             

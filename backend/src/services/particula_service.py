@@ -9,6 +9,7 @@ Este módulo contiene funciones básicas para:
 
 from typing import Optional, List, Dict, Any
 import math
+import asyncpg
 from ..database.connection import get_connection
 
 
@@ -323,7 +324,7 @@ async def get_transiciones(tipo_particula_id: str) -> List[Dict[str, Any]]:
     
     Args:
         tipo_particula_id: UUID del tipo de partícula
-        
+    
     Returns:
         Lista de diccionarios con los datos de las transiciones
         (ordenadas por prioridad DESC)
@@ -339,4 +340,45 @@ async def get_transiciones(tipo_particula_id: str) -> List[Dict[str, Any]]:
             tipo_particula_id
         )
         return [dict(row) for row in rows]
+
+
+async def get_particulas_con_inercia(
+    bloque_id: str,
+    conn: asyncpg.Connection,
+    inercia_minima: float = 0.1
+) -> List[Dict[str, Any]]:
+    """
+    Obtener partículas de un bloque que tienen inercia_termica > 0.
+    
+    Estas partículas necesitan actualización periódica de temperatura.
+    
+    Args:
+        bloque_id: ID del bloque
+        conn: Conexión a la base de datos
+        inercia_minima: Valor mínimo de inercia_termica para incluir
+    
+    Returns:
+        Lista de partículas con sus tipos y propiedades
+    """
+    rows = await conn.fetch(
+        """
+        SELECT 
+            p.id,
+            p.celda_x,
+            p.celda_y,
+            p.celda_z,
+            p.temperatura,
+            tp.nombre as tipo_nombre,
+            tp.inercia_termica,
+            tp.conductividad_termica
+        FROM juego_dioses.particulas p
+        JOIN juego_dioses.tipos_particulas tp ON p.tipo_particula_id = tp.id
+        WHERE p.bloque_id = $1
+          AND p.extraida = false
+          AND tp.inercia_termica > $2
+        """,
+        bloque_id, inercia_minima
+    )
+    
+    return [dict(row) for row in rows]
 

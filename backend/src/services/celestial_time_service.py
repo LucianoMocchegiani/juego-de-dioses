@@ -13,6 +13,7 @@ Este servicio está diseñado para ser extensible y soportar:
 
 import math
 from typing import Dict
+from src.config import CELESTIAL_CONFIG
 
 
 class CelestialTimeService:
@@ -31,14 +32,20 @@ class CelestialTimeService:
     
     def __init__(
         self,
-        tiempo_inicial: float = 0.0,
-        velocidad_tiempo: float = 1.0
+        tiempo_inicial: float = None,
+        velocidad_tiempo: float = None
     ):
         """
         Args:
-            tiempo_inicial: Tiempo inicial del juego en segundos
-            velocidad_tiempo: Multiplicador de velocidad (1.0 = tiempo real, 60.0 = 60x más rápido)
+            tiempo_inicial: Tiempo inicial del juego en segundos (default: desde config)
+            velocidad_tiempo: Multiplicador de velocidad (default: desde config)
         """
+        # Usar valores de configuración si no se proporcionan
+        if tiempo_inicial is None:
+            tiempo_inicial = CELESTIAL_CONFIG['TIEMPO_INICIAL']
+        if velocidad_tiempo is None:
+            velocidad_tiempo = CELESTIAL_CONFIG['VELOCIDAD_TIEMPO']
+        
         self.tiempo_juego = tiempo_inicial  # Tiempo del juego en segundos (autoritativo)
         self.velocidad_tiempo = velocidad_tiempo
         self.tiempo_inicio = tiempo_inicial
@@ -71,8 +78,8 @@ class CelestialTimeService:
         Returns:
             Ángulo en radianes (0 = norte, π/2 = este, π = sur, 3π/2 = oeste)
         """
-        # Velocidad angular: 2π radianes en 24 horas
-        velocidad_angular = (2 * math.pi) / (24 * 60 * 60)
+        # Velocidad angular desde configuración
+        velocidad_angular = CELESTIAL_CONFIG['SOL_VELOCIDAD_ANGULAR']
         angulo = (self.tiempo_juego * velocidad_angular) % (2 * math.pi)
         return angulo
     
@@ -85,9 +92,10 @@ class CelestialTimeService:
         Returns:
             Ángulo en radianes
         """
-        # Velocidad angular: 2π radianes en 28 días
-        velocidad_angular = (2 * math.pi) / (28 * 24 * 60 * 60)
-        angulo = (self.tiempo_juego * velocidad_angular + math.pi) % (2 * math.pi)  # Empieza opuesta al sol
+        # Velocidad angular y desplazamiento desde configuración
+        velocidad_angular = CELESTIAL_CONFIG['LUNA_VELOCIDAD_ANGULAR']
+        desplazamiento = CELESTIAL_CONFIG['LUNA_DESPLAZAMIENTO_INICIAL']
+        angulo = (self.tiempo_juego * velocidad_angular + desplazamiento) % (2 * math.pi)
         return angulo
     
     def get_luna_phase(self) -> float:
@@ -111,7 +119,8 @@ class CelestialTimeService:
         angulo_sol = self.get_sun_angle()
         # Ajustar para que 0° = medianoche
         angulo_ajustado = (angulo_sol + math.pi) % (2 * math.pi)
-        hora = (angulo_ajustado / (2 * math.pi)) * 24.0
+        horas_por_dia = CELESTIAL_CONFIG['HORAS_POR_DIA']
+        hora = (angulo_ajustado / (2 * math.pi)) * horas_por_dia
         return hora
     
     def get_sun_intensity_at(self, celda_x: float, celda_y: float) -> float:
@@ -167,8 +176,47 @@ class CelestialTimeService:
         if diferencia_angular > math.pi:
             diferencia_angular = 2 * math.pi - diferencia_angular
         
-        # Si el sol está "cerca" del punto (dentro de 90°), es de día
-        return diferencia_angular < math.pi / 2
+        # Si el sol está "cerca" del punto (dentro del umbral), es de día
+        umbral = CELESTIAL_CONFIG['ANGULO_DIA_UMBRAL']
+        return diferencia_angular < umbral
+    
+    def get_sun_position(self) -> Dict[str, float]:
+        """
+        Calcular posición 3D del sol (autoritativo)
+        
+        Returns:
+            Diccionario con posición {x, y, z} en metros
+        """
+        angulo = self.get_sun_angle()
+        radio_orbita = CELESTIAL_CONFIG['SOL_RADIO_ORBITA']
+        altura = CELESTIAL_CONFIG['SOL_ALTURA']
+        
+        # Calcular posición en círculo alrededor del centro
+        # X e Y en el plano horizontal, Z es altura
+        x = math.cos(angulo) * radio_orbita
+        y = math.sin(angulo) * radio_orbita
+        z = altura
+        
+        return {"x": x, "y": y, "z": z}
+    
+    def get_luna_position(self) -> Dict[str, float]:
+        """
+        Calcular posición 3D de la luna (autoritativo)
+        
+        Returns:
+            Diccionario con posición {x, y, z} en metros
+        """
+        angulo = self.get_luna_angle()
+        radio_orbita = CELESTIAL_CONFIG['LUNA_RADIO_ORBITA']
+        altura = CELESTIAL_CONFIG['LUNA_ALTURA']
+        
+        # Calcular posición en círculo alrededor del centro
+        # X e Y en el plano horizontal, Z es altura
+        x = math.cos(angulo) * radio_orbita
+        y = math.sin(angulo) * radio_orbita
+        z = altura
+        
+        return {"x": x, "y": y, "z": z}
     
     def get_celestial_state(self) -> Dict[str, float]:
         """
@@ -185,7 +233,9 @@ class CelestialTimeService:
                 "luna_angle": float,        # Ángulo de la luna en radianes
                 "luna_phase": float,         # Fase lunar (0.0 a 1.0)
                 "current_hour": float,       # Hora del día (0-24)
-                "is_daytime": bool           # Es de día (promedio mundial, simplificado)
+                "is_daytime": bool,          # Es de día (promedio mundial, simplificado)
+                "sun_position": dict,        # Posición del sol {x, y, z} en metros
+                "luna_position": dict        # Posición de la luna {x, y, z} en metros
             }
         """
         return {
@@ -194,6 +244,10 @@ class CelestialTimeService:
             "luna_angle": self.get_luna_angle(),
             "luna_phase": self.get_luna_phase(),
             "current_hour": self.get_current_hour(),
-            "is_daytime": 6.0 <= self.get_current_hour() <= 18.0  # Simplificado: día entre 6am y 6pm
+            "is_daytime": (
+                CELESTIAL_CONFIG['HORA_AMANECER'] <= self.get_current_hour() <= CELESTIAL_CONFIG['HORA_ATARDECER']
+            ),
+            "sun_position": self.get_sun_position(),
+            "luna_position": self.get_luna_position()
         }
 
