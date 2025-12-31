@@ -50,11 +50,14 @@ export class CelestialRenderer {
             
             // Crear luna
             const lunaGeometry = new THREE.SphereGeometry(this.lunaRadius, 32, 32);
-            // Usar MeshStandardMaterial para soportar emissive y emissiveIntensity
+            // Usar MeshStandardMaterial para reflejo automático de la luz del sol
+            // La luna NO emite luz propia, solo refleja la luz del sol
             const lunaMaterial = new THREE.MeshStandardMaterial({
                 color: this.lunaColor,
-                emissive: this.lunaColor,
-                emissiveIntensity: 0.3
+                emissive: 0x000000,          // NO emite luz propia (era: this.lunaColor)
+                emissiveIntensity: 0.0,      // Sin emisión (era: 0.3)
+                metalness: 0.2,              // Poco metálico (roca lunar)
+                roughness: 0.8               // Muy rugoso (superficie lunar)
             });
             this.lunaMesh = new THREE.Mesh(lunaGeometry, lunaMaterial);
             this.scene.add(this.lunaMesh);
@@ -123,25 +126,22 @@ export class CelestialRenderer {
     
     /**
      * Actualizar apariencia de la luna según su fase
+     * 
+     * Nota: La fase visual se calcula automáticamente por Three.js según la dirección
+     * de la luz direccional (sol). La luz direccional se mueve según la posición del sol
+     * calculada por el backend usando el modelo de Gleason.
+     * 
+     * Este método se mantiene para compatibilidad, pero no es necesario modificar
+     * el material ya que Three.js calcula automáticamente qué parte está iluminada.
      */
     updateLunaPhase() {
         if (!this.lunaMesh) {
             return;
         }
         
-        const phase = this.celestialSystem.getLunaPhase();
-        
-        // Crear textura o material que muestre la fase lunar
-        // Simplificado: ajustar opacidad o crear geometría que muestre la fase
-        // Para implementación completa, se podría usar una textura o shader personalizado
-        
-        // Por ahora, ajustar intensidad emisiva según fase
-        // Fase 0.0 = nueva (mínima), 0.5 = llena (máxima), 1.0 = nueva (mínima)
-        const intensity = phase < 0.5 
-            ? phase * 2.0  // Creciente: 0.0 a 1.0
-            : (1.0 - phase) * 2.0; // Menguante: 1.0 a 0.0
-        
-        this.lunaMesh.material.emissiveIntensity = intensity * 0.3;
+        // La fase visual se calcula automáticamente por Three.js según la dirección
+        // de la luz direccional (sol). No es necesario ajustar el material aquí.
+        // La luz direccional ya se mueve según la posición del sol (en lights.js).
     }
     
     /**

@@ -13,7 +13,7 @@ export const COLOR_LUZ_DIRECCIONAL = 0xffffff;
 // Configuración de cámara
 export const CAMERA_FOV = 75;
 export const CAMERA_NEAR = 0.1;
-export const CAMERA_FAR = 1000;
+export const CAMERA_FAR = 3000; // Aumentado para ver sol y luna que orbitan a ~1500m del centro
 export const CAMERA_POSITION_X = 15;
 export const CAMERA_POSITION_Y = 15;
 export const CAMERA_POSITION_Z = 15;
