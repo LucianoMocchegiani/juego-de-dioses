@@ -123,6 +123,9 @@ export class App {
         // Inicializar herramientas de debugging (solo en desarrollo)
         this.initDevelopmentTools();
         
+        // Inicializar PerformanceLogger (opcional, solo si está habilitado)
+        this.initPerformanceLogger();
+        
         // Suscribirse a cambios de estado
         this.setupStateListeners();
     }
@@ -151,6 +154,31 @@ export class App {
                 console.log('[DebugTools] Modo desarrollo no detectado. Debugging deshabilitado.');
             }
         }
+    }
+    
+    /**
+     * Inicializar PerformanceLogger para logging estructurado
+     */
+    initPerformanceLogger() {
+        // Importar dinámicamente para no cargar en producción si no es necesario
+        import('./debug/performance-logger.js').then(({ PerformanceLogger }) => {
+            if (this.debugMetrics && this.scene) {
+                // Obtener renderer (ya está disponible porque scene se inicializa antes)
+                const renderer = this.scene?.renderer?.renderer || null;
+                
+                this.performanceLogger = new PerformanceLogger(
+                    this.debugMetrics,
+                    renderer
+                );
+                
+                // Iniciar si está habilitado en configuración
+                if (this.performanceLogger.enabled) {
+                    this.performanceLogger.start();
+                }
+            }
+        }).catch(err => {
+            console.warn('[PerformanceLogger] No se pudo inicializar:', err);
+        });
     }
     
     /**

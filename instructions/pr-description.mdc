@@ -141,6 +141,11 @@ El archivo `[TICKET-ID]_pr-description_[FECHA-HORA].md` generado debe contener l
 2. Usa el resultado para construir el nombre del archivo: `[TICKET-ID]_pr-description_[FECHA-HORA].md`
 3. Guarda el archivo en la carpeta `/instructions/prs/`
 4. Si hubo cambios fuera del plan, incluir sección "Anexo: Cambios Fuera del Plan"
+5. **IMPORTANTE:** Después de crear el archivo del PR, debes actualizar `instructions/pending-tickets.md`:
+   - Buscar la línea que contiene `- [ ] **[TICKET-ID]**` en la sección "Tickets Pendientes"
+   - Cambiar `- [ ]` por `- [x]` para marcar el ticket como completado
+   - Mover la línea de "Tickets Pendientes" a la sección "Tickets Completados (con PR)"
+   - Si el ticket no está en la lista de pendientes, agregarlo a la sección de completados
 
 El archivo debe guardarse como `[TICKET-ID]_pr-description_[FECHA-HORA].md` en la carpeta `/instructions/prs/`. Debe estar limpio y listo para copiar y pegar sin editar.
 

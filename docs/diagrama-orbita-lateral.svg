@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1200" height="600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .text-title { font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; fill: #333; }
+      .text-label { font-family: Arial, sans-serif; font-size: 14px; fill: #333; }
+      .text-value { font-family: Arial, sans-serif; font-size: 12px; fill: #666; }
+      .world-plane { fill: #8B4513; stroke: #654321; stroke-width: 2; }
+      .orbit-line { stroke: #999; stroke-width: 1.5; fill: none; stroke-dasharray: 5,5; opacity: 0.6; }
+      .sun-circle { fill: #FFD700; stroke: #FFA500; stroke-width: 2; }
+      .moon-circle { fill: #C0C0C0; stroke: #808080; stroke-width: 2; }
+      .ground-line { stroke: #654321; stroke-width: 3; }
+      .height-line { stroke: #666; stroke-width: 1; stroke-dasharray: 3,3; }
+      .legend-box { fill: white; stroke: #ccc; stroke-width: 1; }
+    </style>
+  </defs>
+  
+  <!-- Título -->
+  <text x="600" y="30" text-anchor="middle" class="text-title">Sistema de Órbitas Celestiales - Vista Lateral (Perfil)</text>
+  
+  <!-- Vista Lateral -->
+  <g id="vista-lateral" transform="translate(100, 300)">
+    <!-- Línea del suelo (nivel del mar) -->
+    <line x1="0" y1="250" x2="1000" y2="250" class="ground-line"/>
+    <text x="1010" y="255" class="text-label">Nivel del Mar (z=0)</text>
+    
+    <!-- Plano del mundo -->
+    <rect x="0" y="240" width="1000" height="20" class="world-plane" opacity="0.5"/>
+    
+    <!-- Centro del mundo (marcado) -->
+    <line x1="500" y1="240" x2="500" y2="260" stroke="#FF0000" stroke-width="3"/>
+    <text x="500" y="275" text-anchor="middle" class="text-label">Centro del Mundo</text>
+    
+    <!-- Órbita del Sol (círculo en el plano vertical) -->
+    <ellipse cx="500" cy="250" rx="300" ry="250" class="orbit-line" stroke="#FFD700"/>
+    <text x="850" y="50" class="text-label">Órbita del Sol</text>
+    
+    <!-- Sol en posición Este (ángulo 0) - a la derecha, altura media -->
+    <circle cx="800" cy="250" r="20" class="sun-circle"/>
+    <line x1="800" y1="250" x2="800" y2="250" class="height-line"/>
+    <text x="810" y="245" class="text-label">Sol</text>
+    <text x="830" y="225" class="text-value">Altura: 500m</text>
+    
+    <!-- Luna en posición Oeste (ángulo 180) - a la izquierda, altura media -->
+    <circle cx="200" cy="250" r="12" class="moon-circle"/>
+    <line x1="200" y1="250" x2="200" y2="250" class="height-line"/>
+    <text x="180" y="245" text-anchor="end" class="text-label">Luna</text>
+    <text x="150" y="225" text-anchor="end" class="text-value">Altura: 500m</text>
+    
+    <!-- Línea de altura de referencia -->
+    <line x1="50" y1="0" x2="50" y2="500" stroke="#999" stroke-width="1" stroke-dasharray="2,2"/>
+    <text x="60" y="10" class="text-label">Altura (Y en Three.js)</text>
+    <text x="60" y="500" class="text-value">0m (suelo)</text>
+    <text x="60" y="250" class="text-value">500m</text>
+    <text x="60" y="0" class="text-value">1000m</text>
+    
+    <!-- Línea horizontal de referencia -->
+    <line x1="0" y1="250" x2="1000" y2="250" stroke="#999" stroke-width="1" stroke-dasharray="2,2" opacity="0.5"/>
+    
+    <!-- Radio de órbita marcado -->
+    <line x1="500" y1="250" x2="800" y2="250" stroke="#FFD700" stroke-width="2" stroke-dasharray="5,5"/>
+    <text x="650" y="240" text-anchor="middle" class="text-value">Radio: 1500m</text>
+    
+    <!-- Nota sobre movimiento -->
+    <g transform="translate(50, 350)">
+      <rect x="0" y="0" width="900" height="120" class="legend-box" rx="5"/>
+      <text x="450" y="25" text-anchor="middle" class="text-label" font-weight="bold">Nota sobre el Movimiento</text>
+      <text x="20" y="50" class="text-value">• El sol y la luna orbitan en un círculo horizontal (plano XY) a una altura constante de 500m.</text>
+      <text x="20" y="70" class="text-value">• En esta vista lateral solo se ve la proyección: ambos están a la misma altura pero en posiciones horizontales diferentes.</text>
+      <text x="20" y="90" class="text-value">• El movimiento es circular horizontal: el sol gira alrededor del centro del mundo en 24 horas de juego.</text>
+      <text x="20" y="110" class="text-value">• La luna gira más lento (28 días de juego) y empieza opuesta al sol (180° de diferencia).</text>
+    </g>
+  </g>
+</svg>

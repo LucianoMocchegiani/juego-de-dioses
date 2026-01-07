@@ -35,6 +35,9 @@ from .temperature_service import (
     get_particle_temperature_modifier
 )
 
+# Servicio de Monitoreo de Rendimiento
+from .performance_monitor_service import PerformanceMonitorService
+
 __all__ = [
     'WorldBloque',
     'WorldBloqueManager',
@@ -58,6 +61,8 @@ __all__ = [
     'get_albedo_modifier',
     'calculate_cell_temperature',
     'update_particle_temperature',
-    'get_particle_temperature_modifier'
+    'get_particle_temperature_modifier',
+    # Servicio de Monitoreo de Rendimiento
+    'PerformanceMonitorService'
 ]
 

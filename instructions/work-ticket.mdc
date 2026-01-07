@@ -143,6 +143,12 @@ El archivo `[TICKET-ID]_work-ticket_[FECHA-HORA].md` generado debe contener las 
 1. Primero, ejecuta el comando para obtener la fecha y hora: `Get-Date -Format "yyyy-MM-dd_HH-mm-ss"`
 2. Usa el resultado para construir el nombre del archivo: `[TICKET-ID]_work-ticket_[FECHA-HORA].md`
 3. Guarda el archivo en la carpeta `/instructions/tickets/`
+4. **IMPORTANTE:** Después de crear el archivo del ticket, actualiza `instructions/pending-tickets.md`:
+   - Leer el archivo `instructions/pending-tickets.md`
+   - Extraer el título del ticket del archivo creado (primera línea después de `#`, formato: `# JDG-XXX - [Título]`)
+   - Agregar una nueva línea en la sección "Tickets Pendientes" con el formato: `- [ ] **[TICKET-ID]** - [Título del Ticket]`
+   - La línea debe agregarse en orden numérico (ordenar por número de ticket ascendente)
+   - Si el ticket ya existe en la lista, no duplicarlo
 
 El archivo debe guardarse como `[TICKET-ID]_work-ticket_[FECHA-HORA].md` en la carpeta `/instructions/tickets/`. Debe estar limpio y listo para usar.
 
@@ -236,6 +242,12 @@ Componentes: Backend, Base de Datos
 - Sigue el template de ticket del proyecto Juego de Dioses
 - Los desarrolladores pueden usar este contenido directamente en sistemas de gestión de proyectos
 - El archivo debe ser autocontenido y listo para usar
+- **IMPORTANTE:** Después de crear el archivo del ticket, debes actualizar `instructions/pending-tickets.md`:
+  - Leer el archivo `instructions/pending-tickets.md`
+  - Extraer el título del ticket del archivo creado (primera línea después de `#`)
+  - Agregar una nueva línea en la sección "Tickets Pendientes" con el formato: `- [ ] **[TICKET-ID]** - [Título del Ticket]`
+  - La línea debe agregarse en orden numérico (ordenar por número de ticket)
+  - Si el ticket ya existe en la lista, no duplicarlo
 
 ## Uso
 
