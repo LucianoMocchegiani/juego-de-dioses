@@ -103,10 +103,75 @@ export class DebugMetrics {
     }
     
     /**
+     * Obtener métricas de memoria del navegador
+     * @returns {Object|null} Métricas de memoria o null si no están disponibles
+     */
+    getMemoryMetrics() {
+        if (!this.enabled) return null;
+        
+        // performance.memory puede no estar disponible en todos los navegadores
+        if (!performance.memory) {
+            return null;
+        }
+        
+        const memory = performance.memory;
+        
+        return {
+            heapTotal: this._formatBytes(memory.totalJSHeapSize),
+            heapUsed: this._formatBytes(memory.usedJSHeapSize),
+            heapLimit: this._formatBytes(memory.jsHeapSizeLimit),
+            percent: ((memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100).toFixed(2) + "%"
+        };
+    }
+    
+    /**
+     * Formatear bytes a formato legible (MB, GB, etc.)
+     * @param {number} bytes - Bytes a formatear
+     * @returns {string} String formateado
+     */
+    _formatBytes(bytes) {
+        if (bytes === 0) return "0 B";
+        const k = 1024;
+        const sizes = ["B", "KB", "MB", "GB"];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return (bytes / Math.pow(k, i)).toFixed(2) + " " + sizes[i];
+    }
+    
+    /**
+     * Obtener métricas de GPU desde Three.js renderer
+     * @param {THREE.WebGLRenderer} renderer - Renderer de Three.js (opcional)
+     * @returns {Object|null} Métricas de GPU o null si no están disponibles
+     */
+    getGPUMetrics(renderer = null) {
+        if (!this.enabled) return null;
+        
+        if (!renderer) {
+            return null; // Por ahora retornar null si no está disponible
+        }
+        
+        if (!renderer.info) {
+            return null;
+        }
+        
+        const info = renderer.info;
+        
+        return {
+            drawCalls: info.render.calls || 0,
+            triangles: info.render.triangles || 0,
+            points: info.render.points || 0,
+            lines: info.render.lines || 0,
+            geometries: info.memory.geometries || 0,
+            textures: info.memory.textures || 0,
+            programs: info.programs?.length || 0
+        };
+    }
+    
+    /**
      * Obtener estadísticas
+     * @param {THREE.WebGLRenderer} renderer - Renderer de Three.js (opcional, para métricas de GPU)
      * @returns {Object|null} Estadísticas de performance o null si está deshabilitado
      */
-    getStats() {
+    getStats(renderer = null) {
         if (!this.enabled) return null;
         
         const stats = {
@@ -116,6 +181,8 @@ export class DebugMetrics {
                 max: this.metrics.frameTime.length > 0 ? Math.max(...this.metrics.frameTime) : 0,
                 count: this.metrics.frameTime.length
             },
+            memory: this.getMemoryMetrics(),
+            gpu: this.getGPUMetrics(renderer),
             systems: {}
         };
         

@@ -240,44 +240,59 @@ export class DebugInterface extends BaseInterface {
      * @returns {HTMLElement} Contenido del tab
      */
     createMetricsTab() {
+        // Obtener renderer desde app si está disponible
+        const getRenderer = () => {
+            if (window.app?.scene?.renderer?.renderer) {
+                return window.app.scene.renderer.renderer;
+            }
+            return null;
+        };
+        
+        // Crear contenedor primero
         const container = this.createTabContainer('Métricas de Performance', () => {
             const elements = [];
             
-            // Botón para obtener métricas usando patrón reutilizable
-            const metricsAction = this.createActionResultPattern({
-                buttonText: 'Obtener Métricas',
-                onAction: () => window.developmentTools?.metrics?.getStats(),
-                resultTitle: 'Métricas de Performance',
-                onError: () => 'Métricas no disponibles'
+            // Usar la función refreshMetrics del scope externo (guardada en container._refreshMetrics)
+            const refreshMetrics = () => {
+                if (container._refreshMetrics) {
+                    container._refreshMetrics();
+                }
+            };
+            
+            // Botón para refrescar manualmente
+            const refreshBtn = this.createButton('🔄 Refrescar Métricas', refreshMetrics, {
+                variant: 'primary',
+                margin: '0 0 10px 0'
             });
-            elements.push(metricsAction);
+            elements.push(refreshBtn);
             
             // Botón para resetear
             const resetBtn = this.createButton('Resetear Métricas', () => {
                 window.developmentTools?.metrics?.reset();
                 this.showInfo(container, 'Métricas reseteadas');
+                setTimeout(refreshMetrics, 200);
             }, { variant: 'warning', margin: '0 0 0 10px' });
             elements.push(resetBtn);
             
-            // Auto-refresh
-            let autoRefreshInterval = null;
+            // Auto-refresh - usar la referencia del container para poder limpiarlo
             const { container: autoRefreshContainer } = this.createCheckbox({
-                labelText: 'Auto-refresh cada 2 segundos',
-                checked: false,
+                labelText: 'Auto-refresh cada 3 segundos',
+                checked: false,  // Deshabilitado por defecto
                 containerStyle: 'margin-top: 15px;',
                 onChange: (checked) => {
+                    // Limpiar intervalo anterior si existe (usar la referencia del container)
+                    if (container._autoRefreshInterval) {
+                        clearInterval(container._autoRefreshInterval);
+                        container._autoRefreshInterval = null;
+                    }
+                    
                     if (checked) {
-                        autoRefreshInterval = setInterval(() => {
-                            const metrics = window.developmentTools?.metrics?.getStats();
-                            if (metrics) {
-                                this.showResult(container, 'Métricas de Performance (Auto-refresh)', metrics, true);
+                        // Crear nuevo intervalo y guardarlo en el container
+                        container._autoRefreshInterval = setInterval(() => {
+                            if (container._refreshMetrics) {
+                                container._refreshMetrics();
                             }
-                        }, 2000);
-                    } else {
-                        if (autoRefreshInterval) {
-                            clearInterval(autoRefreshInterval);
-                            autoRefreshInterval = null;
-                        }
+                        }, 3000);
                     }
                 }
             });
@@ -285,6 +300,131 @@ export class DebugInterface extends BaseInterface {
             
             return elements;
         });
+        
+        // Función para refrescar métricas - debe estar definida fuera del callback para poder ser usada
+        // por el checkbox y por el setTimeout inicial
+        const refreshMetrics = () => {
+            try {
+                console.log('[DebugInterface] Refrescando métricas...');
+                
+                // Verificar si las métricas están disponibles
+                if (!window.developmentTools?.metrics) {
+                    console.warn('[DebugInterface] Sistema de métricas no disponible');
+                    this.showError(container, 'Sistema de métricas no disponible. ¿El debugger está habilitado?');
+                    return;
+                }
+                
+                // Verificar si está habilitado
+                if (!window.developmentTools.metrics.enabled) {
+                    console.warn('[DebugInterface] Métricas deshabilitadas');
+                    this.showError(container, 'Métricas deshabilitadas. Habilitá el debugger para ver métricas.');
+                    return;
+                }
+                
+                const renderer = getRenderer();
+                console.log('[DebugInterface] Renderer disponible:', !!renderer);
+                const metrics = window.developmentTools.metrics.getStats(renderer);
+                console.log('[DebugInterface] Métricas obtenidas:', !!metrics, metrics);
+                
+                if (metrics) {
+                    // Crear un objeto más legible con toda la información
+                    const displayData = {};
+                    
+                    // Frame Time - mostrar siempre, incluso si no hay datos
+                    const frameCount = metrics.frameTime?.count || 0;
+                    if (frameCount > 0) {
+                        displayData['Frame Time'] = {
+                            'Promedio (ms)': metrics.frameTime.avg.toFixed(2),
+                            'Mínimo (ms)': metrics.frameTime.min.toFixed(2),
+                            'Máximo (ms)': metrics.frameTime.max.toFixed(2),
+                            'Frames medidos': frameCount,
+                            'FPS (estimado)': metrics.frameTime.avg > 0 ? (1000 / metrics.frameTime.avg).toFixed(2) : 'N/A'
+                        };
+                    } else {
+                        displayData['Frame Time'] = {
+                            'Estado': 'Sin datos aún. El juego necesita estar corriendo para recopilar métricas.',
+                            'Nota': 'Las métricas se recopilan mientras el juego está en ejecución.'
+                        };
+                    }
+                    
+                    // Agregar memoria si está disponible
+                    if (metrics.memory) {
+                        displayData['Memoria'] = {
+                            'Heap Total': metrics.memory.heapTotal,
+                            'Heap Usado': metrics.memory.heapUsed,
+                            'Heap Límite': metrics.memory.heapLimit,
+                            'Porcentaje': metrics.memory.percent
+                        };
+                    } else {
+                        displayData['Memoria'] = {
+                            'Estado': 'No disponible (performance.memory no está disponible en este navegador)'
+                        };
+                    }
+                    
+                    // Agregar GPU si está disponible
+                    if (metrics.gpu) {
+                        displayData['GPU'] = {
+                            'Draw Calls': metrics.gpu.drawCalls,
+                            'Triángulos': metrics.gpu.triangles.toLocaleString(),
+                            'Geometrías': metrics.gpu.geometries,
+                            'Texturas': metrics.gpu.textures,
+                            'Programas': metrics.gpu.programs
+                        };
+                    } else {
+                        displayData['GPU'] = {
+                            'Estado': 'No disponible (renderer no disponible)'
+                        };
+                    }
+                    
+                    // Agregar sistemas ECS si hay datos
+                    if (metrics.systems && Object.keys(metrics.systems).length > 0) {
+                        displayData['Sistemas ECS'] = {};
+                        for (const [systemName, systemData] of Object.entries(metrics.systems)) {
+                            displayData['Sistemas ECS'][systemName] = {
+                                'Tiempo Promedio (ms)': systemData.avgTime.toFixed(2),
+                                'Tiempo Mínimo (ms)': systemData.minTime.toFixed(2),
+                                'Tiempo Máximo (ms)': systemData.maxTime.toFixed(2),
+                                'Entidades Promedio': systemData.avgEntities.toFixed(0)
+                            };
+                        }
+                    } else {
+                        displayData['Sistemas ECS'] = {
+                            'Estado': 'Sin datos aún. El juego necesita estar corriendo para recopilar métricas.'
+                        };
+                    }
+                    
+                    this.showResult(container, 'Métricas de Performance', displayData, true);
+                } else {
+                    // Mostrar información útil incluso si getStats retorna null
+                    const debugInfo = {
+                        'Estado del Sistema': {
+                            'Métricas habilitadas': window.developmentTools.metrics.enabled ? 'Sí' : 'No',
+                            'Métricas disponibles': window.developmentTools.metrics ? 'Sí' : 'No',
+                            'Renderer disponible': getRenderer() ? 'Sí' : 'No',
+                            'Juego corriendo': window.app?.ecs ? 'Sí' : 'No'
+                        },
+                        'Nota': {
+                            'Mensaje': 'Las métricas se recopilan mientras el juego está corriendo. Asegurate de que el juego esté activo para ver métricas.',
+                            'Cómo verificar': 'Abrí la consola del navegador (F12) y ejecutá: window.developmentTools.metrics.getStats(window.app.scene.renderer.renderer)'
+                        }
+                    };
+                    this.showResult(container, 'Estado del Sistema de Métricas', debugInfo, true);
+                }
+            } catch (error) {
+                console.error('[DebugInterface] Error al obtener métricas:', error);
+                this.showError(container, `Error al obtener métricas: ${error.message}`);
+            }
+        };
+        
+        // Exponer refreshMetrics al scope del callback para que los botones puedan usarla
+        container._refreshMetrics = refreshMetrics;
+        
+        // Mostrar métricas automáticamente al abrir el tab (solo una vez)
+        setTimeout(() => {
+            refreshMetrics();
+        }, 100);
+        
+        // No iniciar auto-refresh automáticamente (el checkbox está desactivado por defecto)
         
         return container;
     }
