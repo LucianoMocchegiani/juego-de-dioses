@@ -1,0 +1,134 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="1400" height="900" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      .text-title { font-family: Arial, sans-serif; font-size: 24px; font-weight: bold; fill: #333; }
+      .text-label { font-family: Arial, sans-serif; font-size: 14px; fill: #333; }
+      .text-value { font-family: Arial, sans-serif; font-size: 12px; fill: #666; }
+      .sun-path { stroke: #FFD700; stroke-width: 3; fill: none; }
+      .moon-path { stroke: #C0C0C0; stroke-width: 2; fill: none; }
+      .sun-circle { fill: #FFD700; stroke: #FFA500; stroke-width: 2; }
+      .moon-circle { fill: #C0C0C0; stroke: #808080; stroke-width: 2; }
+      .center-point { fill: #FF0000; stroke: #000; stroke-width: 2; }
+      .time-marker { stroke: #999; stroke-width: 1; stroke-dasharray: 2,2; }
+      .legend-box { fill: white; stroke: #ccc; stroke-width: 1; }
+      .timeline-axis { stroke: #333; stroke-width: 2; }
+    </style>
+  </defs>
+  
+  <!-- Título -->
+  <text x="700" y="30" text-anchor="middle" class="text-title">Ciclos Temporales del Sol y la Luna</text>
+  
+  <!-- Vista Superior con Posiciones en Diferentes Momentos -->
+  <g id="vista-temporal" transform="translate(700, 400)">
+    <!-- Centro del mundo -->
+    <circle cx="0" cy="0" r="5" class="center-point"/>
+    <text x="0" y="-280" text-anchor="middle" class="text-label">Centro del Mundo</text>
+    
+    <!-- Órbita del Sol -->
+    <circle cx="0" cy="0" r="250" class="sun-path" opacity="0.3"/>
+    
+    <!-- Órbita de la Luna -->
+    <circle cx="0" cy="0" r="250" class="moon-path" opacity="0.3"/>
+    
+    <!-- Posiciones en diferentes momentos -->
+    
+    <!-- Momento 1: Inicio (t=0) -->
+    <g id="momento-1" transform="translate(0, -280)">
+      <text x="0" y="-15" text-anchor="middle" class="text-label" font-weight="bold">Momento 1: Inicio (t=0)</text>
+      <circle cx="250" cy="280" r="12" class="sun-circle"/>
+      <text x="270" y="285" class="text-label">Sol (0°)</text>
+      <circle cx="-250" cy="280" r="8" class="moon-circle"/>
+      <text x="-270" y="285" text-anchor="end" class="text-label">Luna (180°)</text>
+      <line x1="0" y1="280" x2="250" y2="280" stroke="#FFD700" stroke-width="1" stroke-dasharray="3,3"/>
+      <line x1="0" y1="280" x2="-250" y2="280" stroke="#C0C0C0" stroke-width="1" stroke-dasharray="3,3"/>
+    </g>
+    
+    <!-- Momento 2: 6 horas de juego (sol a 90°) -->
+    <g id="momento-2" transform="translate(0, -130)">
+      <text x="0" y="-15" text-anchor="middle" class="text-label" font-weight="bold">Momento 2: 6 horas (sol a 90°)</text>
+      <circle cx="280" cy="130" r="12" class="sun-circle"/>
+      <text x="300" y="135" class="text-label">Sol (90°)</text>
+      <circle cx="-220" cy="130" r="8" class="moon-circle"/>
+      <text x="-240" y="135" text-anchor="end" class="text-label">Luna (~184°)</text>
+      <line x1="0" y1="130" x2="280" y2="130" stroke="#FFD700" stroke-width="1" stroke-dasharray="3,3"/>
+      <line x1="0" y1="130" x2="-220" y2="130" stroke="#C0C0C0" stroke-width="1" stroke-dasharray="3,3"/>
+    </g>
+    
+    <!-- Momento 3: 12 horas de juego (sol a 180°) -->
+    <g id="momento-3" transform="translate(0, 20)">
+      <text x="0" y="-15" text-anchor="middle" class="text-label" font-weight="bold">Momento 3: 12 horas (sol a 180°)</text>
+      <circle cx="-250" cy="20" r="12" class="sun-circle"/>
+      <text x="-270" y="25" text-anchor="end" class="text-label">Sol (180°)</text>
+      <circle cx="250" cy="20" r="8" class="moon-circle"/>
+      <text x="270" y="25" class="text-label">Luna (180°)</text>
+      <line x1="0" y1="20" x2="-250" y2="20" stroke="#FFD700" stroke-width="1" stroke-dasharray="3,3"/>
+      <line x1="0" y1="20" x2="250" y2="20" stroke="#C0C0C0" stroke-width="1" stroke-dasharray="3,3"/>
+      <text x="0" y="50" text-anchor="middle" class="text-value">¡Luna llena! (sol y luna opuestos)</text>
+    </g>
+    
+    <!-- Momento 4: 24 horas de juego (sol completa 1 ciclo, vuelve a 0°) -->
+    <g id="momento-4" transform="translate(0, 170)">
+      <text x="0" y="-15" text-anchor="middle" class="text-label" font-weight="bold">Momento 4: 24 horas (sol completa 1 día, vuelve a 0°)</text>
+      <circle cx="250" cy="170" r="12" class="sun-circle"/>
+      <text x="270" y="175" class="text-label">Sol (360° = 0°)</text>
+      <circle cx="-248" cy="170" r="8" class="moon-circle"/>
+      <text x="-268" y="175" text-anchor="end" class="text-label">Luna (~185°)</text>
+      <line x1="0" y1="170" x2="250" y2="170" stroke="#FFD700" stroke-width="1" stroke-dasharray="3,3"/>
+      <line x1="0" y1="170" x2="-248" y2="170" stroke="#C0C0C0" stroke-width="1" stroke-dasharray="3,3"/>
+      <text x="0" y="200" text-anchor="middle" class="text-value">Sol vuelve al inicio, luna avanzó solo ~1.07° (muy lento)</text>
+    </g>
+  </g>
+  
+  <!-- Gráfico de velocidad angular -->
+  <g id="grafico-velocidad" transform="translate(100, 700)">
+    <rect x="0" y="0" width="500" height="160" class="legend-box" rx="5"/>
+    <text x="250" y="25" text-anchor="middle" class="text-label" font-weight="bold">Velocidades Comparadas</text>
+    
+    <!-- Eje X -->
+    <line x1="50" y1="120" x2="450" y2="120" class="timeline-axis"/>
+    <text x="250" y="140" text-anchor="middle" class="text-label">Tiempo (días de juego)</text>
+    
+    <!-- Eje Y -->
+    <line x1="50" y1="120" x2="50" y2="40" class="timeline-axis"/>
+    <text x="20" y="80" text-anchor="middle" class="text-label" transform="rotate(-90 20 80)">Rotaciones Completas</text>
+    
+    <!-- Línea del Sol (24 horas = 1 día = 1 rotación) -->
+    <line x1="50" y1="80" x2="450" y2="40" stroke="#FFD700" stroke-width="3"/>
+    <circle cx="450" cy="40" r="5" fill="#FFD700"/>
+    <text x="460" y="45" class="text-label">Sol: 1 rotación/día</text>
+    <text x="460" y="60" class="text-value">(28 rotaciones en 28 días)</text>
+    
+    <!-- Línea de la Luna (28 días = 1 rotación) -->
+    <line x1="50" y1="120" x2="450" y2="118" stroke="#C0C0C0" stroke-width="2"/>
+    <circle cx="450" cy="118" r="5" fill="#C0C0C0"/>
+    <text x="460" y="123" class="text-label">Luna: 1 rotación/28 días</text>
+    
+    <!-- Marcadores -->
+    <line x1="150" y1="115" x2="150" y2="125" stroke="#666" stroke-width="1"/>
+    <text x="150" y="135" text-anchor="middle" class="text-value">7 días</text>
+    
+    <line x1="250" y1="115" x2="250" y2="125" stroke="#666" stroke-width="1"/>
+    <text x="250" y="135" text-anchor="middle" class="text-value">14 días</text>
+    
+    <line x1="350" y1="115" x2="350" y2="125" stroke="#666" stroke-width="1"/>
+    <text x="350" y="135" text-anchor="middle" class="text-value">21 días</text>
+    
+    <line x1="450" y1="115" x2="450" y2="125" stroke="#666" stroke-width="1"/>
+    <text x="450" y="135" text-anchor="middle" class="text-value">28 días</text>
+  </g>
+  
+  <!-- Información de ciclos -->
+  <g id="info-ciclos" transform="translate(650, 700)">
+    <rect x="0" y="0" width="650" height="160" class="legend-box" rx="5"/>
+    <text x="325" y="25" text-anchor="middle" class="text-label" font-weight="bold">Información de los Ciclos</text>
+    
+    <text x="20" y="50" class="text-label" font-weight="bold">Sol:</text>
+    <text x="30" y="70" class="text-value">• Completa 1 rotación completa en 24 horas de juego</text>
+    <text x="30" y="90" class="text-value">• Velocidad angular: 2π / 86400 segundos de juego ≈ 7.27×10⁻⁵ rad/s</text>
+    <text x="30" y="110" class="text-value">• En 28 días: 28 rotaciones completas</text>
+    
+    <text x="20" y="135" class="text-label" font-weight="bold">Luna:</text>
+    <text x="30" y="155" class="text-value">• Completa 1 rotación completa en 28 días de juego (mucho más lento)</text>
+  </g>
+</svg>

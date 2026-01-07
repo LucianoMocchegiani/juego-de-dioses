@@ -38,6 +38,17 @@ manager = ConnectionManager()
 # Importar módulo de base de datos
 from src.database.connection import create_pool, close_pool, health_check as db_health_check
 
+# Configurar logging al importar el módulo
+import logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+)
+
+# Configurar logger específico para el servicio de monitoreo
+perf_logger = logging.getLogger('src.services.performance_monitor_service')
+perf_logger.setLevel(logging.INFO)
+
 # Lifespan events
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -104,6 +115,13 @@ async def lifespan(app: FastAPI):
         # Iniciar background task de temperatura de partículas (no bloquea)
         asyncio.create_task(start_particle_temperature_update_task())
         print("Background task de temperatura de partículas iniciado.")
+        
+        # Iniciar monitoreo de rendimiento
+        from src.services.performance_monitor_service import PerformanceMonitorService
+        performance_monitor = PerformanceMonitorService()
+        performance_monitor.start()
+        app.state.performance_monitor = performance_monitor  # Guardar referencia
+        print("Monitoreo de rendimiento iniciado.")
     except Exception as e:
         print(f"Error inicializando base de datos: {e}")
     
@@ -111,6 +129,12 @@ async def lifespan(app: FastAPI):
     
     # Shutdown
     print("Cerrando conexiones...")
+    
+    # Detener monitoreo de rendimiento
+    if hasattr(app.state, 'performance_monitor'):
+        app.state.performance_monitor.stop()
+        print("Monitoreo de rendimiento detenido.")
+    
     await close_pool()
 
 # Crear aplicación FastAPI
@@ -201,6 +225,7 @@ if __name__ == "__main__":
         "main:app",
         host="0.0.0.0",
         port=port,
-        reload=True
+        reload=True,
+        log_level="info"  # Mostrar logs INFO de uvicorn
     )
 
