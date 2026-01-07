@@ -101,55 +101,115 @@ async def update_particle_temperatures_periodically():
             
             # Obtener bloques activos (por ahora, todos los bloques con partículas)
             # Optimización futura: solo bloques activos (con jugadores)
-            async with get_connection() as conn:
-                # Obtener todos los bloques únicos
-                bloques = await conn.fetch(
-                    """
-                    SELECT DISTINCT bloque_id
-                    FROM juego_dioses.particulas
-                    WHERE extraida = false
-                    """
-                )
-                
-                for bloque_row in bloques:
-                    bloque_id = str(bloque_row['bloque_id'])
+            pool_closed = False
+            try:
+                async with get_connection() as conn:
+                    # Obtener todos los bloques únicos
+                    try:
+                        bloques = await conn.fetch(
+                            """
+                            SELECT DISTINCT bloque_id
+                            FROM juego_dioses.particulas
+                            WHERE extraida = false
+                            """
+                        )
+                    except Exception as e:
+                        error_msg = str(e).lower()
+                        if "pool is closing" in error_msg or "pool is closed" in error_msg:
+                            logger.debug("Pool de conexiones cerró, deteniendo actualización de temperatura")
+                            pool_closed = True
+                            break
+                        raise
                     
-                    # Obtener partículas con inercia_termica
-                    particulas = await get_particulas_con_inercia(bloque_id, conn)
+                    if pool_closed:
+                        break
                     
-                    if not particulas:
-                        continue
-                    
-                    # Actualizar temperatura de cada partícula
-                    for particula in particulas:
-                        try:
-                            # Calcular temperatura ambiental en la posición de la partícula
-                            temp_ambiente = await calculate_cell_temperature(
-                                celda_x=float(particula['celda_x']),
-                                celda_y=float(particula['celda_y']),
-                                celda_z=float(particula['celda_z']),
-                                bloque_id=bloque_id,
-                                celestial_time_service=celestial_service
-                            )
+                    for bloque_row in bloques:
+                        if pool_closed:
+                            break
                             
-                            # Actualizar temperatura de la partícula
-                            await update_particle_temperature(
-                                particula_id=str(particula['id']),
-                                temp_ambiente=temp_ambiente,
-                                tipo_particula={
-                                    'inercia_termica': float(particula['inercia_termica'])
-                                },
-                                conn=conn
-                            )
+                        bloque_id = str(bloque_row['bloque_id'])
+                        
+                        # Obtener partículas con inercia_termica
+                        try:
+                            particulas = await get_particulas_con_inercia(bloque_id, conn)
                         except Exception as e:
-                            logger.error(f"Error actualizando temperatura de partícula {particula.get('id')}: {e}")
+                            error_msg = str(e).lower()
+                            if "pool is closing" in error_msg or "pool is closed" in error_msg:
+                                logger.debug("Pool cerró al obtener partículas")
+                                pool_closed = True
+                                break
                             continue
+                        
+                        if not particulas:
+                            continue
+                        
+                        # Actualizar temperatura de cada partícula
+                        for particula in particulas:
+                            if pool_closed:
+                                break
+                                
+                            try:
+                                # Calcular temperatura ambiental en la posición de la partícula
+                                temp_ambiente = await calculate_cell_temperature(
+                                    celda_x=float(particula['celda_x']),
+                                    celda_y=float(particula['celda_y']),
+                                    celda_z=float(particula['celda_z']),
+                                    bloque_id=bloque_id,
+                                    celestial_time_service=celestial_service
+                                )
+                                
+                                # Actualizar temperatura de la partícula
+                                await update_particle_temperature(
+                                    particula_id=str(particula['id']),
+                                    temp_ambiente=temp_ambiente,
+                                    tipo_particula={
+                                        'inercia_termica': float(particula['inercia_termica'])
+                                    },
+                                    conn=conn
+                                )
+                            except asyncio.CancelledError:
+                                raise  # Re-lanzar para salir del loop
+                            except Exception as e:
+                                # Ignorar errores de "pool is closing" - son esperados durante shutdown
+                                error_msg = str(e).lower()
+                                if "pool is closing" in error_msg or "pool is closed" in error_msg:
+                                    logger.debug(f"Pool cerró durante actualización de partícula {particula.get('id')}")
+                                    pool_closed = True
+                                    break
+                                else:
+                                    # Solo loguear errores que no sean de pool cerrado
+                                    logger.debug(f"Error actualizando temperatura de partícula {particula.get('id')}: {e}")
+                                continue
+                            
+            except (asyncio.CancelledError, RuntimeError) as e:
+                # Pool cerrado o tarea cancelada
+                error_msg = str(e).lower()
+                if "pool is closing" in error_msg or "pool is closed" in error_msg or isinstance(e, asyncio.CancelledError):
+                    logger.debug("Pool de conexiones cerró o tarea fue cancelada")
+                    break
+                raise
+            except Exception as e:
+                error_msg = str(e).lower()
+                if "pool is closing" in error_msg or "pool is closed" in error_msg:
+                    logger.debug("Pool de conexiones cerró, deteniendo actualización de temperatura")
+                    break
+                raise
+                    
+            if pool_closed:
+                break
                         
         except asyncio.CancelledError:
             logger.info("Tarea de actualización de temperatura de partículas cancelada")
             break
         except Exception as e:
+            # Ignorar errores de pool cerrado durante shutdown
+            error_msg = str(e).lower()
+            if "pool is closing" in error_msg or "pool is closed" in error_msg:
+                logger.debug("Pool de conexiones cerró, deteniendo tarea de temperatura")
+                break
             logger.error(f"Error actualizando temperatura de partículas: {e}")
+            # Continuar el loop después de un error no relacionado con pool
 
 
 async def start_particle_temperature_update_task():

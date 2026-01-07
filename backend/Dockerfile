@@ -24,4 +24,4 @@ EXPOSE 8000
 # Comando por defecto
 # Agregar src al PYTHONPATH para imports
 ENV PYTHONPATH=/app
-CMD ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["python", "-m", "uvicorn", "src.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload", "--log-level", "debug"]

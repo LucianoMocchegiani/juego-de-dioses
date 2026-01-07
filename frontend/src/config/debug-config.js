@@ -48,5 +48,11 @@ export const DEBUG_CONFIG = {
         enabled: true,
         toggleKey: 'F3',
         autoUpdateInterval: 1000 // ms
+    },
+    
+    // Configuración de logging de rendimiento
+    performanceLogging: {
+        enabled: false,  // Deshabilitado por defecto para no saturar consola
+        interval: 30000  // 30 segundos
     }
 };
