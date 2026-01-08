@@ -717,12 +717,16 @@ export class DebugInterface extends BaseInterface {
                 { label: 'Resetear Métricas', command: 'metrics.reset()' },
                 { label: 'Limpiar Eventos', command: 'events.clearHistory()' },
                 { label: 'Verificar Optimizaciones', command: 'checkOptimizations()', returnsValue: false },
-                { label: 'Monitorear Object Pool', command: 'monitorObjectPool(5)', returnsValue: false }
+                { label: 'Monitorear Object Pool', command: 'monitorObjectPool(5)', returnsValue: false },
+                { label: 'Verificar Optimizaciones Avanzadas', command: 'checkAdvancedOptimizations()', returnsValue: false },
+                { label: 'Monitorear Optimizaciones Avanzadas', command: 'monitorAdvancedOptimizations(5)', returnsValue: false }
             ];
             
             // Estado para botones especiales que no devuelven valor
             let monitorInterval = null;
             let monitorBtn = null;
+            let monitorJDG048Interval = null;
+            let monitorJDG048Btn = null;
             
             commands.forEach(cmd => {
                 const btn = this.createButton(cmd.label, () => {
@@ -764,6 +768,42 @@ export class DebugInterface extends BaseInterface {
                             return;
                         }
                         
+                        if (cmd.label === 'Verificar Optimizaciones Avanzadas') {
+                            if (typeof window.checkAdvancedOptimizations === 'function') {
+                                window.checkAdvancedOptimizations();
+                                this.showInfo(container, 'Verificación de optimizaciones avanzadas ejecutada. Revisa los logs en el tab Logger.');
+                            } else {
+                                this.showError(container, 'Función checkAdvancedOptimizations no está disponible. Asegúrate de que el juego esté cargado.');
+                            }
+                            return;
+                        }
+                        
+                        if (cmd.label === 'Monitorear Optimizaciones Avanzadas') {
+                            if (typeof window.monitorAdvancedOptimizations === 'function') {
+                                if (monitorJDG048Interval) {
+                                    // Detener monitoreo
+                                    if (window._advancedOptimizationsMonitor) {
+                                        clearInterval(window._advancedOptimizationsMonitor);
+                                        window._advancedOptimizationsMonitor = null;
+                                    }
+                                    monitorJDG048Interval = null;
+                                    monitorJDG048Btn.textContent = 'Monitorear Optimizaciones Avanzadas';
+                                    this.showInfo(container, 'Monitoreo detenido.');
+                                } else {
+                                    // Iniciar monitoreo
+                                    const monitor = window.monitorAdvancedOptimizations(5);
+                                    if (monitor) {
+                                        monitorJDG048Interval = monitor;
+                                        monitorJDG048Btn.textContent = 'Detener Monitoreo';
+                                        this.showInfo(container, 'Monitoreo iniciado cada 5 segundos. Revisa los logs en el tab Logger. Presiona el botón nuevamente para detener.');
+                                    }
+                                }
+                            } else {
+                                this.showError(container, 'Función monitorAdvancedOptimizations no está disponible.');
+                            }
+                            return;
+                        }
+                        
                         // Comandos normales que devuelven valor
                         const result = this.evaluateCommand(cmd.command);
                         this.showResult(container, `Resultado: ${cmd.label}`, result);
@@ -779,9 +819,12 @@ export class DebugInterface extends BaseInterface {
                     textAlign: 'left'
                 });
                 
-                // Guardar referencia al botón de monitoreo para poder cambiar su texto
+                // Guardar referencia a los botones de monitoreo para poder cambiar su texto
                 if (cmd.label === 'Monitorear Object Pool') {
                     monitorBtn = btn;
+                }
+                if (cmd.label === 'Monitorear Optimizaciones Avanzadas') {
+                    monitorJDG048Btn = btn;
                 }
                 
                 elements.push(btn);
@@ -795,7 +838,7 @@ export class DebugInterface extends BaseInterface {
             
             customSection.appendChild(this.createLabel('Comando personalizado (permite copiar/pegar):'));
             const textarea = this.createTextarea({
-                placeholder: 'Ej: inspector.inspectEntity(1)\nEj: metrics.getStats()\nEj: logger.info("Test", "Mensaje")\nEj: checkOptimizations()\nEj: monitorObjectPool(5)',
+                placeholder: 'Ej: inspector.inspectEntity(1)\nEj: metrics.getStats()\nEj: logger.info("Test", "Mensaje")\nEj: checkOptimizations()\nEj: monitorObjectPool(5)\nEj: checkAdvancedOptimizations()\nEj: monitorAdvancedOptimizations(5)',
                 width: '100%',
                 maxWidth: '600px',
                 minHeight: '100px'

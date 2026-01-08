@@ -21,13 +21,15 @@ import { stateValidator } from '../../debug/validator.js';
 const gltfLoader = new GLTFLoader();
 
 export class AnimationMixerSystem extends System {
-    constructor() {
+    constructor(lodManager = null) {
         super();
         this.requiredComponents = [
             ECS_CONSTANTS.COMPONENT_NAMES.RENDER,
             ECS_CONSTANTS.COMPONENT_NAMES.ANIMATION
         ];
         this.priority = 2.5; // Entre AnimationStateSystem (2) y RenderSystem (3)
+        this.lodManager = lodManager;
+        this.frameCounter = 0; // Para LOD update frequency
 
         // Cache de animaciones cargadas
         this.animationCache = new Map();
@@ -593,6 +595,7 @@ export class AnimationMixerSystem extends System {
      * @param {number} deltaTime - Tiempo transcurrido desde el último frame
      */
     update(deltaTime) {
+        this.frameCounter++;
         const entities = this.getEntities();
 
         for (const entityId of entities) {
@@ -606,6 +609,20 @@ export class AnimationMixerSystem extends System {
             if (!render || !render.mesh || !animation) continue;
 
             const mesh = render.mesh;
+            
+            // Actualizar LOD si está disponible
+            if (this.lodManager) {
+                this.lodManager.updateLOD(entityId, render, animation);
+            }
+            
+            // Verificar LOD update frequency si está configurado
+            let shouldUpdate = true;
+            if (this.lodManager && animation) {
+                animation.updateFrequency = animation.updateFrequency || 1;
+                shouldUpdate = (this.frameCounter % animation.updateFrequency === 0);
+            }
+            
+            if (!shouldUpdate) continue;
 
             // Guardar referencia a la entidad en el mesh para uso posterior
             mesh.userData.entityId = entityId;

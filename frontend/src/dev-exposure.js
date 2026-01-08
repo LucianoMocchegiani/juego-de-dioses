@@ -338,6 +338,159 @@ export function exposeDevelopmentTools(app, options = {}) {
         };
     };
     
+    // Función para verificar optimizaciones avanzadas (Frustum Culling, LOD, Render Batching)
+    window.checkAdvancedOptimizations = () => {
+        debugLogger.info('Optimizations', 'Verificación de Optimizaciones Avanzadas');
+        
+        // 1. Verificar Frustum Culling
+        if (app.frustumCuller) {
+            debugLogger.info('Optimizations', 'Frustum Culling está inicializado');
+            const frustumStats = app.frustumCuller.getStats();
+            
+            // Contar entidades totales para contexto
+            const totalEntities = app.ecs ? app.ecs.query().size : 0;
+            
+            debugLogger.info('Optimizations', 'Estadísticas de Frustum Culling:', {
+                'Total entidades ECS': totalEntities,
+                'Total verificaciones': frustumStats.totalChecks,
+                'Objetos visibles': frustumStats.visibleObjects,
+                'Objetos culled': frustumStats.culledObjects,
+                'Tasa de culling': frustumStats.cullRate,
+                'Eficiencia': frustumStats.efficiency
+            });
+            
+            if (frustumStats.totalChecks > 0) {
+                const cullRateNum = parseFloat(frustumStats.cullRate);
+                if (cullRateNum > 30) {
+                    debugLogger.info('Optimizations', 'Excelente! Frustum Culling está eliminando muchos objetos invisibles');
+                } else if (cullRateNum > 10) {
+                    debugLogger.info('Optimizations', 'Frustum Culling está funcionando correctamente');
+                } else if (totalEntities <= 5) {
+                    debugLogger.info('Optimizations', 'Frustum Culling: 0% culling es normal con pocas entidades. Todas están visibles.');
+                } else {
+                    debugLogger.warn('Optimizations', 'Frustum Culling tiene baja eficiencia. Puede ser que todas las entidades estén dentro del frustum, o que necesite ajustes.');
+                    debugLogger.info('Optimizations', 'Sugerencia: Mueve la cámara lejos o rota para ver si objetos se cullen correctamente.');
+                }
+            }
+        } else {
+            debugLogger.error('Optimizations', 'Frustum Culling NO está inicializado');
+        }
+        
+        // 2. Verificar LOD Manager
+        if (app.lodManager) {
+            debugLogger.info('Optimizations', 'LOD Manager está inicializado');
+            const lodStats = app.lodManager.getStats();
+            debugLogger.info('Optimizations', 'Estadísticas de LOD:', {
+                'Total actualizaciones': lodStats.totalUpdates,
+                'LOD Alto': lodStats.highLODCount,
+                'LOD Bajo': lodStats.lowLODCount,
+                'Tasa LOD Alto': lodStats.highLODRate,
+                'Tasa LOD Bajo': lodStats.lowLODRate,
+                'Eficiencia': lodStats.efficiency
+            });
+            
+            debugLogger.info('Optimizations', 'Configuración LOD:', {
+                'Distancia cercana': app.lodManager.nearDistance + ' unidades',
+                'Distancia lejana': app.lodManager.farDistance + ' unidades'
+            });
+            
+            if (lodStats.totalUpdates > 0) {
+                const lowLODRateNum = parseFloat(lodStats.lowLODRate);
+                if (lowLODRateNum > 30) {
+                    debugLogger.info('Optimizations', 'Excelente! Muchas entidades están usando LOD bajo');
+                } else if (lowLODRateNum > 10) {
+                    debugLogger.info('Optimizations', 'LOD está funcionando correctamente');
+                } else {
+                    debugLogger.info('Optimizations', 'LOD: Baja tasa indica que las entidades están cerca de la cámara. Esto es normal si hay pocas entidades o están concentradas.');
+                    debugLogger.info('Optimizations', 'Sugerencia: El LOD será más útil cuando haya muchas entidades distribuidas en un área grande.');
+                }
+            }
+        } else {
+            debugLogger.error('Optimizations', 'LOD Manager NO está inicializado');
+        }
+        
+        // 3. Verificar Render Batching
+        // Nota: Render Batching puede no estar en uso aún, pero verificar si existe
+        if (app.renderBatcher) {
+            debugLogger.info('Optimizations', 'Render Batcher está inicializado');
+            const batchStats = app.renderBatcher.getStats();
+            debugLogger.info('Optimizations', 'Estadísticas de Render Batching:', {
+                'Total meshes': batchStats.totalMeshes,
+                'Total batches': batchStats.totalBatches,
+                'Tamaño promedio batch': batchStats.averageBatchSize,
+                'Eficiencia': batchStats.efficiency
+            });
+            
+            if (batchStats.totalBatches > 0) {
+                if (parseFloat(batchStats.averageBatchSize) > 5) {
+                    debugLogger.info('Optimizations', 'Excelente! Render Batching está agrupando eficientemente');
+                } else if (parseFloat(batchStats.averageBatchSize) > 2) {
+                    debugLogger.info('Optimizations', 'Render Batching está funcionando correctamente');
+                } else {
+                    debugLogger.warn('Optimizations', 'Render Batching podría mejorar (batches pequeños)');
+                }
+            }
+        } else {
+            debugLogger.warn('Optimizations', 'Render Batcher no está inicializado (opcional, puede agregarse cuando sea necesario)');
+        }
+        
+        debugLogger.info('Optimizations', 'Fin de Verificación de Optimizaciones Avanzadas');
+    };
+    
+    // Función para monitorear optimizaciones avanzadas en tiempo real
+    window.monitorAdvancedOptimizations = (intervalSeconds = 5) => {
+        debugLogger.info('Optimizations', `Monitoreando Optimizaciones Avanzadas cada ${intervalSeconds} segundos...`);
+        debugLogger.info('Optimizations', 'Ejecuta clearInterval(window._advancedOptimizationsMonitor) para detener');
+        
+        const interval = setInterval(() => {
+            debugLogger.info('Optimizations', `Monitoreo Optimizaciones Avanzadas - ${new Date().toLocaleTimeString()}`);
+            
+            // Frustum Culling
+            if (app.frustumCuller) {
+                const frustumStats = app.frustumCuller.getStats();
+                debugLogger.info('Optimizations', 'Frustum Culling', {
+                    'Verificaciones': frustumStats.totalChecks,
+                    'Visibles': frustumStats.visibleObjects,
+                    'Culled': frustumStats.culledObjects,
+                    'Tasa culling': frustumStats.cullRate
+                });
+            }
+            
+            // LOD Manager
+            if (app.lodManager) {
+                const lodStats = app.lodManager.getStats();
+                debugLogger.info('Optimizations', 'LOD Manager', {
+                    'Actualizaciones': lodStats.totalUpdates,
+                    'LOD Alto': lodStats.highLODCount,
+                    'LOD Bajo': lodStats.lowLODCount,
+                    'Tasa LOD Bajo': lodStats.lowLODRate
+                });
+            }
+            
+            // Render Batching
+            if (app.renderBatcher) {
+                const batchStats = app.renderBatcher.getStats();
+                debugLogger.info('Optimizations', 'Render Batching', {
+                    'Meshes': batchStats.totalMeshes,
+                    'Batches': batchStats.totalBatches,
+                    'Promedio': batchStats.averageBatchSize
+                });
+            }
+        }, intervalSeconds * 1000);
+        
+        // Guardar interval para poder detenerlo
+        window._advancedOptimizationsMonitor = interval;
+        
+        return {
+            stop: () => {
+                clearInterval(interval);
+                debugLogger.info('Optimizations', 'Monitoreo de Optimizaciones Avanzadas detenido');
+            }
+        };
+    };
+    
+    // Informar sobre funciones de verificación disponibles
+    debugLogger.info('Optimizations', 'Funciones de verificación disponibles: checkOptimizations(), monitorObjectPool(seconds), checkAdvancedOptimizations(), monitorAdvancedOptimizations(seconds)');
     
     // Retornar las herramientas para que puedan ser guardadas en app si es necesario
     return developmentTools;
