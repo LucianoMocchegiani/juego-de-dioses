@@ -78,19 +78,28 @@ export class WeaponEquipSystem extends System {
             }
         };
         
+        // Obtener referencia al object pool (optimización JDG-047)
+        // Intenta obtener desde window.app primero, luego desde el scene si está disponible
+        const objectPool = (typeof window !== 'undefined' && window.app?.objectPool) || 
+                          (this.scene && this.scene.userData?.app?.objectPool) || 
+                          null;
+        
         // Función recursiva para construir la jerarquía
         const buildHierarchy = (object, parent = null, depth = 0, path = []) => {
             const currentPath = [...path, object.name || object.type || 'unnamed'];
             
-            // Calcular posición mundial acumulada
-            const worldPos = new THREE.Vector3();
-            const worldQuat = new THREE.Quaternion();
-            const worldRot = new THREE.Euler();
-            const worldScale = new THREE.Vector3();
-            object.getWorldPosition(worldPos);
-            object.getWorldQuaternion(worldQuat);
-            worldRot.setFromQuaternion(worldQuat); // Convertir quaternion a euler
-            object.getWorldScale(worldScale);
+            // Obtener objetos del pool o crear nuevos si el pool no está disponible (optimización JDG-047)
+            const worldPos = objectPool?.vector3?.acquire() || new THREE.Vector3();
+            const worldQuat = objectPool?.quaternion?.acquire() || new THREE.Quaternion();
+            const worldRot = objectPool?.euler?.acquire() || new THREE.Euler();
+            const worldScale = objectPool?.vector3?.acquire() || new THREE.Vector3();
+            
+            try {
+                // Calcular posición mundial acumulada
+                object.getWorldPosition(worldPos);
+                object.getWorldQuaternion(worldQuat);
+                worldRot.setFromQuaternion(worldQuat); // Convertir quaternion a euler
+                object.getWorldScale(worldScale);
             
             const objInfo = {
                 depth: depth,
@@ -197,10 +206,20 @@ export class WeaponEquipSystem extends System {
             
             structure.hierarchy.push(objInfo);
             
-            // Recursión para hijos
-            object.children.forEach(child => {
-                buildHierarchy(child, object, depth + 1, currentPath);
-            });
+                // Recursión para hijos
+                object.children.forEach(child => {
+                    buildHierarchy(child, object, depth + 1, currentPath);
+                });
+            } finally {
+                // SIEMPRE devolver objetos al pool después de usarlos (optimización JDG-047)
+                // Esto garantiza que los objetos se liberen incluso si hay errores
+                if (objectPool) {
+                    objectPool.vector3?.release(worldPos);
+                    objectPool.quaternion?.release(worldQuat);
+                    objectPool.euler?.release(worldRot);
+                    objectPool.vector3?.release(worldScale);
+                }
+            }
         };
         
         // Construir jerarquía completa

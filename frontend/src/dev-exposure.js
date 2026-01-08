@@ -140,10 +140,7 @@ export function exposeDevelopmentTools(app, options = {}) {
         // También exponer directamente para fácil acceso
         window.testInterface = developmentTools.testInterface;
         
-        console.log('[DebugTools] Herramientas de debugging inicializadas. Usa window.developmentTools para acceder.');
-        console.log('[DebugTools] Interface disponible:', developmentTools.interface ? 'Sí' : 'No');
-        console.log('[DebugTools] Interface enabled:', developmentTools.interface?.enabled);
-        console.log('[DebugTools] Test Interface disponible: F6 para abrir/cerrar');
+        debugLogger.info('DebugTools', 'Herramientas de debugging inicializadas. Usa window.developmentTools para acceder.');
     }
     
     // Exponer utilidades de armas (funciones lazy que buscan playerId dinámicamente)
@@ -190,6 +187,157 @@ export function exposeDevelopmentTools(app, options = {}) {
     } else {
         debugLogger.warn('WeaponUtils', 'app.ecs no disponible. Funciones de armas no expuestas.');
     }
+    
+    // Exponer funciones de verificación de optimizaciones JDG-047
+    window.checkOptimizations = () => {
+        debugLogger.info('Optimizations', 'Verificación de Optimizaciones');
+        
+        // 1. Verificar Object Pool
+        if (app.objectPool) {
+            debugLogger.info('Optimizations', 'Object Pool está inicializado');
+            const poolStats = {};
+            for (const [poolName, pool] of Object.entries(app.objectPool)) {
+                const stats = pool.getStats();
+                poolStats[poolName] = {
+                    'Objetos en pool': stats.poolSize,
+                    'Total creados': stats.totalCreated,
+                    'Total reutilizados': stats.totalReused,
+                    'Tasa de reutilización': stats.reuseRate.toFixed(2) + '%'
+                };
+            }
+            debugLogger.info('Optimizations', 'Estadísticas de pools:', poolStats);
+            
+            // Calcular tasa de reutilización global
+            let totalCreated = 0;
+            let totalReused = 0;
+            for (const pool of Object.values(app.objectPool)) {
+                const stats = pool.getStats();
+                totalCreated += stats.totalCreated;
+                totalReused += stats.totalReused;
+            }
+            const globalReuseRate = totalCreated + totalReused > 0 
+                ? (totalReused / (totalCreated + totalReused)) * 100 
+                : 0;
+            debugLogger.info('Optimizations', `Tasa de reutilización global: ${globalReuseRate.toFixed(2)}%`);
+            if (globalReuseRate > 50) {
+                debugLogger.info('Optimizations', 'Excelente! El pool está siendo utilizado eficientemente');
+            } else if (globalReuseRate > 20) {
+                debugLogger.warn('Optimizations', 'El pool se está usando, pero podría mejorar');
+            } else {
+                debugLogger.warn('Optimizations', 'El pool no se está usando mucho. ¿Hay objetos siendo creados?');
+            }
+        } else {
+            debugLogger.error('Optimizations', 'Object Pool NO está inicializado');
+        }
+        
+        // 2. Verificar Cache de Sistemas ECS
+        if (app.ecs) {
+            const hasCache = app.ecs.sortedSystems !== null && app.ecs.sortedSystems !== undefined;
+            const isDirty = app.ecs.systemsDirty;
+            const stats = app.ecs.cacheStats || { totalUpdates: 0, cacheHits: 0, cacheMisses: 0 };
+            const hitRate = stats.totalUpdates > 0 ? (stats.cacheHits / stats.totalUpdates) * 100 : 0;
+            
+            debugLogger.info('Optimizations', 'ECS Manager está disponible');
+            debugLogger.info('Optimizations', 'Cache de sistemas:', {
+                'Cache existe': hasCache ? 'Sí' : 'No',
+                'Sistemas en cache': hasCache ? app.ecs.sortedSystems.length : 0,
+                'Total sistemas': app.ecs.systems.length,
+                'Flag dirty': isDirty ? 'Sí (necesita reordenar)' : 'No (cache válido)'
+            });
+            
+            if (stats.totalUpdates > 0) {
+                debugLogger.info('Optimizations', 'Estadísticas de cache:', {
+                    'Total updates': stats.totalUpdates,
+                    'Cache hits': stats.cacheHits,
+                    'Cache misses': stats.cacheMisses,
+                    'Tasa de hit': hitRate.toFixed(2) + '%'
+                });
+                if (hitRate > 90) {
+                    debugLogger.info('Optimizations', 'Excelente! El cache está funcionando muy bien');
+                } else if (hitRate > 50) {
+                    debugLogger.info('Optimizations', 'El cache está funcionando correctamente');
+                } else {
+                    debugLogger.warn('Optimizations', 'El cache podría mejorar (muchos misses)');
+                }
+            }
+            
+            if (hasCache && !isDirty) {
+                debugLogger.info('Optimizations', 'El cache está funcionando correctamente. Los sistemas solo se ordenarán cuando cambien');
+            } else if (isDirty) {
+                debugLogger.warn('Optimizations', 'El cache está marcado como dirty (esto es normal si acabas de agregar sistemas)');
+            }
+        } else {
+            debugLogger.error('Optimizations', 'ECS Manager NO está disponible');
+        }
+        
+        // 3. Verificar Dirty Flag del Cielo
+        if (app.scene && app.scene.renderer) {
+            const renderer = app.scene.renderer;
+            const hasDirtyFlag = renderer.lastSkyColor !== undefined || 
+                                renderer.lastSunIntensity !== undefined;
+            
+            debugLogger.info('Optimizations', 'Renderer está disponible');
+            const skyStats = renderer.getSkyColorStats ? renderer.getSkyColorStats() : null;
+            debugLogger.info('Optimizations', 'Dirty Flag del Cielo:', {
+                'Sistema implementado': hasDirtyFlag ? 'Sí' : 'No',
+                'Última intensidad solar': renderer.lastSunIntensity !== undefined 
+                    ? renderer.lastSunIntensity.toFixed(3) 
+                    : 'N/A',
+                'Último color del cielo': renderer.lastSkyColor 
+                    ? `RGB(${renderer.lastSkyColor.r.toFixed(3)}, ${renderer.lastSkyColor.g.toFixed(3)}, ${renderer.lastSkyColor.b.toFixed(3)})` 
+                    : 'N/A',
+                'Threshold': renderer.skyColorChangeThreshold || 'N/A',
+                'Flag dirty': renderer.skyColorDirty ? 'Sí' : 'No'
+            });
+            
+            if (skyStats) {
+                debugLogger.info('Optimizations', 'Estadísticas de uso:', skyStats);
+                if (parseFloat(skyStats.skipRate) > 50) {
+                    debugLogger.info('Optimizations', 'Excelente! El dirty flag está evitando muchas actualizaciones innecesarias');
+                }
+            }
+        } else {
+            debugLogger.error('Optimizations', 'Renderer NO está disponible');
+        }
+        
+        debugLogger.info('Optimizations', 'Fin de Verificación');
+    };
+    
+    // Función para monitorear uso del object pool en tiempo real
+    window.monitorObjectPool = (intervalSeconds = 5) => {
+        if (!app.objectPool) {
+            debugLogger.error('Optimizations', 'Object Pool no está disponible');
+            return;
+        }
+        
+        debugLogger.info('Optimizations', `Monitoreando Object Pool cada ${intervalSeconds} segundos...`);
+        debugLogger.info('Optimizations', 'Ejecuta clearInterval(window._objectPoolMonitor) para detener');
+        
+        const interval = setInterval(() => {
+            const poolStats = {};
+            for (const [poolName, pool] of Object.entries(app.objectPool)) {
+                const stats = pool.getStats();
+                poolStats[poolName] = {
+                    'En pool': stats.poolSize,
+                    'Creados': stats.totalCreated,
+                    'Reutilizados': stats.totalReused,
+                    'Reutilización': stats.reuseRate.toFixed(2) + '%'
+                };
+            }
+            debugLogger.info('Optimizations', `Monitoreo de Object Pool - ${new Date().toLocaleTimeString()}`, poolStats);
+        }, intervalSeconds * 1000);
+        
+        // Guardar interval para poder detenerlo
+        window._objectPoolMonitor = interval;
+        
+        return {
+            stop: () => {
+                clearInterval(interval);
+                debugLogger.info('Optimizations', 'Monitoreo detenido');
+            }
+        };
+    };
+    
     
     // Retornar las herramientas para que puedan ser guardadas en app si es necesario
     return developmentTools;
