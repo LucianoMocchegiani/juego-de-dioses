@@ -8,7 +8,7 @@ import { ECS_CONSTANTS } from '../../config/ecs-constants.js';
 import { ANIMATION_CONSTANTS } from '../../config/animation-constants.js';
 
 export class RenderSystem extends System {
-    constructor(cellSize) {
+    constructor(cellSize, frustumCuller = null) {
         super();
         this.requiredComponents = [
             ECS_CONSTANTS.COMPONENT_NAMES.RENDER,
@@ -16,6 +16,7 @@ export class RenderSystem extends System {
         ];
         this.cellSize = cellSize;
         this.priority = 3; // Ejecutar al final, después de todos los demás sistemas
+        this.frustumCuller = frustumCuller;
     }
 
     /**
@@ -25,7 +26,18 @@ export class RenderSystem extends System {
     update(_deltaTime) {
         const entities = this.getEntities();
 
-        for (const entityId of entities) {
+        // Si hay frustum culling disponible, filtrar entidades visibles
+        let entitiesToProcess = entities;
+        if (this.frustumCuller) {
+            // Convertir entidades a meshes y filtrar visibles
+            entitiesToProcess = Array.from(entities).filter(entityId => {
+                const render = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.RENDER);
+                if (!render || !render.mesh) return false;
+                return this.frustumCuller.isVisible(render.mesh);
+            });
+        }
+
+        for (const entityId of entitiesToProcess) {
             const render = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.RENDER);
             const position = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.POSITION);
 

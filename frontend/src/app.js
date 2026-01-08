@@ -22,6 +22,8 @@ import { CelestialSystem, CelestialRenderer } from './world/__init__.js';
 import { exposeDevelopmentTools, initDevelopmentTools } from './dev-exposure.js';
 import { debugLogger } from './debug/logger.js';
 import { ObjectPool } from './core/optimizations/object-pool.js';
+import { FrustumCuller } from './core/optimizations/frustum-culling.js';
+import { LODManager } from './core/optimizations/lod-manager.js';
 import * as THREE from 'three';
 
 /**
@@ -116,7 +118,8 @@ export class App {
         this.combatSystem = new CombatSystem(this.inputManager);
         this.comboSystem = new ComboSystem(this.inputManager);
         this.animationStateSystem = new AnimationStateSystem();
-        this.animationMixerSystem = new AnimationMixerSystem();
+        // AnimationMixerSystem se inicializará después de cargar la escena (necesita LOD manager)
+        this.animationMixerSystem = null;
         // RenderSystem, CollisionSystem y WeaponEquipSystem se inicializarán después de cargar la dimensión
         this.renderSystem = null;
         this.collisionSystem = null;
@@ -129,7 +132,7 @@ export class App {
         this.ecs.registerSystem(this.combatSystem);        // Priority 1.4
         this.ecs.registerSystem(this.comboSystem);         // Priority 1.5
         this.ecs.registerSystem(this.animationStateSystem); // Priority 2
-        this.ecs.registerSystem(this.animationMixerSystem); // Priority 2.5
+        // AnimationMixerSystem se registrará después de cargar la escena
         
         // Jugador se creará después de cargar la dimensión
         this.playerId = null;
@@ -151,6 +154,12 @@ export class App {
         this.celestialSyncInterval = 5.0; // Sincronizar cada 5 segundos
         this.lastCelestialSync = 0;
         this.celestialInterpolationTime = 0; // Tiempo desde última sincronización
+        
+        // Sistema de frustum culling (se inicializará después de cargar la escena)
+        this.frustumCuller = null;
+        
+        // Sistema de LOD (se inicializará después de cargar la escena)
+        this.lodManager = null;
         
         // Inicializar herramientas de debugging (solo en desarrollo)
         this.initDevelopmentTools();
@@ -311,19 +320,40 @@ export class App {
                 this.collisionSystem.setParticles(particlesData.particles);
             }
             
-            // 13. Inicializar RenderSystem con cellSize de la dimensión
-            if (!this.renderSystem) {
-                this.renderSystem = new RenderSystem(demoDimension.tamano_celda);
-                this.ecs.registerSystem(this.renderSystem);
+            // 13. Inicializar FrustumCuller y LODManager si no existen (después de que la cámara esté lista)
+            if (!this.frustumCuller && this.scene && this.scene.camera) {
+                this.frustumCuller = new FrustumCuller(this.scene.camera.camera);
             }
             
-            // 14. Inicializar WeaponEquipSystem (necesita la escena)
+            if (!this.lodManager && this.scene && this.scene.camera) {
+                this.lodManager = new LODManager(this.scene.camera.camera);
+            }
+            
+            // Inicializar AnimationMixerSystem con LOD manager si no existe
+            if (!this.animationMixerSystem) {
+                this.animationMixerSystem = new AnimationMixerSystem(this.lodManager);
+                this.ecs.registerSystem(this.animationMixerSystem); // Priority 2.5
+            } else if (this.lodManager) {
+                // Si el animationMixerSystem ya existe pero no tiene lodManager, asignarlo
+                this.animationMixerSystem.lodManager = this.lodManager;
+            }
+            
+            // 14. Inicializar RenderSystem con cellSize de la dimensión y frustum culler
+            if (!this.renderSystem) {
+                this.renderSystem = new RenderSystem(demoDimension.tamano_celda, this.frustumCuller);
+                this.ecs.registerSystem(this.renderSystem);
+            } else if (this.frustumCuller) {
+                // Si el renderSystem ya existe pero no tiene frustumCuller, asignarlo
+                this.renderSystem.frustumCuller = this.frustumCuller;
+            }
+            
+            // 15. Inicializar WeaponEquipSystem (necesita la escena)
             if (!this.weaponEquipSystem) {
                 this.weaponEquipSystem = new WeaponEquipSystem(this.scene.scene);
                 this.ecs.registerSystem(this.weaponEquipSystem);
             }
             
-            // 15. Crear jugador después de cargar dimensión
+            // 16. Crear jugador después de cargar dimensión
             if (!this.playerId) {
                 // Primero intentar cargar personaje existente
                 let characterId = null;
@@ -360,7 +390,7 @@ export class App {
                 
                 // console.log(`✓ Jugador creado/cargado. Entity ID: ${this.playerId}, Character ID: ${characterId || 'nuevo'}`);
                 
-                // 16. Inicializar controlador de cámara y configurarlo para seguir al jugador
+                // 17. Inicializar controlador de cámara y configurarlo para seguir al jugador
                 if (!this.cameraController) {
                     this.cameraController = new CameraController(
                         this.scene.camera,
@@ -380,11 +410,11 @@ export class App {
                 }
             }
             
-            // 17. Iniciar profiling de performance
+            // 18. Iniciar profiling de performance
             this.performanceManager.startProfiling();
             // console.log('Performance profiling iniciado. Las métricas aparecerán cada segundo en consola.');
             
-            // 18. Iniciar animación (con medición de FPS y actualización de ECS)
+            // 19. Iniciar animación (con medición de FPS y actualización de ECS)
             // Usar nuestro propio loop de animación que incluye ECS
             this.startAnimation();
             
@@ -464,6 +494,11 @@ export class App {
                 });
                 this.lastCelestialSync = currentTimeSeconds;
                 this.celestialInterpolationTime = 0;
+            }
+            
+            // Actualizar frustum culling (una vez por frame antes de actualizar sistemas)
+            if (this.frustumCuller) {
+                this.frustumCuller.update();
             }
             
             // Actualizar interpolación celestial
