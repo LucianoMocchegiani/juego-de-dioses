@@ -24,6 +24,9 @@ import { debugLogger } from './debug/logger.js';
 import { ObjectPool } from './core/optimizations/object-pool.js';
 import { FrustumCuller } from './core/optimizations/frustum-culling.js';
 import { LODManager } from './core/optimizations/lod-manager.js';
+import { FrameScheduler } from './core/optimizations/frame-scheduler.js';
+import { SpatialGrid } from './core/optimizations/spatial-partition.js';
+import { InstancingManager } from './core/optimizations/instancing-manager.js';
 import * as THREE from 'three';
 
 /**
@@ -109,6 +112,9 @@ export class App {
         // Inicializar ECS
         this.ecs = new ECSManager();
         
+        // Integrar Frame Scheduler en ECS Manager
+        this.ecs.setFrameScheduler(this.frameScheduler);
+        
         // Inicializar InputManager
         this.inputManager = new InputManager();
         
@@ -160,6 +166,15 @@ export class App {
         
         // Sistema de LOD (se inicializará después de cargar la escena)
         this.lodManager = null;
+        
+        // Frame Scheduler para distribuir trabajo entre frames (JDG-049)
+        this.frameScheduler = new FrameScheduler();
+        
+        // Spatial Grid para queries espaciales eficientes (JDG-049)
+        this.spatialGrid = null;
+        
+        // Instancing Manager para agrupar entidades similares (JDG-049)
+        this.instancingManager = null;
         
         // Inicializar herramientas de debugging (solo en desarrollo)
         this.initDevelopmentTools();
@@ -302,7 +317,18 @@ export class App {
             // 11. Finalizar carga
             actions.setLoading(this.store, false);
             
-            // 12. Inicializar CollisionDetector y CollisionSystem
+            // 12. Inicializar Spatial Grid si no existe
+            if (!this.spatialGrid) {
+                // Usar tamaño de celda del juego como tamaño de celda del grid
+                this.spatialGrid = new SpatialGrid(demoDimension.tamano_celda * 5); // Grid de 5 celdas de juego
+            }
+            
+            // 13. Inicializar Instancing Manager si no existe
+            if (!this.instancingManager && this.scene) {
+                this.instancingManager = new InstancingManager(this.scene.scene);
+            }
+            
+            // 14. Inicializar CollisionDetector y CollisionSystem
             if (!this.collisionDetector) {
                 this.collisionDetector = new CollisionDetector(
                     this.particlesApi,
@@ -312,15 +338,20 @@ export class App {
                     this.collisionDetector,
                     demoDimension.id,
                     demoDimension,
-                    particlesData.particles // Usar partículas ya cargadas
+                    particlesData.particles, // Usar partículas ya cargadas
+                    this.spatialGrid // Pasar spatial grid
                 );
                 this.ecs.registerSystem(this.collisionSystem);
             } else {
                 // Actualizar partículas en CollisionSystem si ya existe
                 this.collisionSystem.setParticles(particlesData.particles);
+                // Asignar spatial grid si no lo tiene
+                if (this.spatialGrid && !this.collisionSystem.spatialGrid) {
+                    this.collisionSystem.spatialGrid = this.spatialGrid;
+                }
             }
             
-            // 13. Inicializar FrustumCuller y LODManager si no existen (después de que la cámara esté lista)
+            // 15. Inicializar FrustumCuller y LODManager si no existen (después de que la cámara esté lista)
             if (!this.frustumCuller && this.scene && this.scene.camera) {
                 this.frustumCuller = new FrustumCuller(this.scene.camera.camera);
             }
@@ -338,7 +369,7 @@ export class App {
                 this.animationMixerSystem.lodManager = this.lodManager;
             }
             
-            // 14. Inicializar RenderSystem con cellSize de la dimensión y frustum culler
+            // 16. Inicializar RenderSystem con cellSize de la dimensión y frustum culler
             if (!this.renderSystem) {
                 this.renderSystem = new RenderSystem(demoDimension.tamano_celda, this.frustumCuller);
                 this.ecs.registerSystem(this.renderSystem);
@@ -347,13 +378,13 @@ export class App {
                 this.renderSystem.frustumCuller = this.frustumCuller;
             }
             
-            // 15. Inicializar WeaponEquipSystem (necesita la escena)
+            // 17. Inicializar WeaponEquipSystem (necesita la escena)
             if (!this.weaponEquipSystem) {
                 this.weaponEquipSystem = new WeaponEquipSystem(this.scene.scene);
                 this.ecs.registerSystem(this.weaponEquipSystem);
             }
             
-            // 16. Crear jugador después de cargar dimensión
+            // 18. Crear jugador después de cargar dimensión
             if (!this.playerId) {
                 // Primero intentar cargar personaje existente
                 let characterId = null;
@@ -390,7 +421,7 @@ export class App {
                 
                 // console.log(`✓ Jugador creado/cargado. Entity ID: ${this.playerId}, Character ID: ${characterId || 'nuevo'}`);
                 
-                // 17. Inicializar controlador de cámara y configurarlo para seguir al jugador
+                // 19. Inicializar controlador de cámara y configurarlo para seguir al jugador
                 if (!this.cameraController) {
                     this.cameraController = new CameraController(
                         this.scene.camera,
@@ -410,11 +441,11 @@ export class App {
                 }
             }
             
-            // 18. Iniciar profiling de performance
+            // 20. Iniciar profiling de performance
             this.performanceManager.startProfiling();
             // console.log('Performance profiling iniciado. Las métricas aparecerán cada segundo en consola.');
             
-            // 19. Iniciar animación (con medición de FPS y actualización de ECS)
+            // 21. Iniciar animación (con medición de FPS y actualización de ECS)
             // Usar nuestro propio loop de animación que incluye ECS
             this.startAnimation();
             
