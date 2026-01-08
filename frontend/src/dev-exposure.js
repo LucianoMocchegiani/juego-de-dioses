@@ -434,6 +434,89 @@ export function exposeDevelopmentTools(app, options = {}) {
             debugLogger.warn('Optimizations', 'Render Batcher no está inicializado (opcional, puede agregarse cuando sea necesario)');
         }
         
+        // 4. Verificar Instancing Manager (JDG-049)
+        if (app.instancingManager) {
+            debugLogger.info('Optimizations', 'Instancing Manager está inicializado');
+            const instancingStats = app.instancingManager.getStats();
+            debugLogger.info('Optimizations', 'Estadísticas de Instancing:', {
+                'Total grupos': instancingStats.totalGroups,
+                'Total instancias': instancingStats.totalInstances,
+                'Draw calls ahorrados': instancingStats.savedDrawCalls,
+                'Eficiencia': instancingStats.efficiency
+            });
+            
+            if (instancingStats.totalInstances > 0) {
+                if (instancingStats.savedDrawCalls > 50) {
+                    debugLogger.info('Optimizations', 'Excelente! Instancing está ahorrando muchos draw calls');
+                } else if (instancingStats.savedDrawCalls > 10) {
+                    debugLogger.info('Optimizations', 'Instancing está funcionando correctamente');
+                } else {
+                    debugLogger.info('Optimizations', 'Instancing creado pero con poco uso. Será más útil con muchas entidades similares.');
+                }
+            }
+        } else {
+            debugLogger.warn('Optimizations', 'Instancing Manager no está inicializado');
+        }
+        
+        // 5. Verificar Frame Scheduler (JDG-049)
+        if (app.frameScheduler) {
+            debugLogger.info('Optimizations', 'Frame Scheduler está inicializado');
+            const schedulerStats = app.frameScheduler.getStats();
+            debugLogger.info('Optimizations', 'Estadísticas de Frame Scheduler:', {
+                'Total registraciones': schedulerStats.totalRegistrations,
+                'Total updates': schedulerStats.totalUpdates,
+                'Updates saltados': schedulerStats.skippedUpdates,
+                'Total programados': schedulerStats.totalScheduled,
+                'Tasa de skip': schedulerStats.skipRate,
+                'Eficiencia': schedulerStats.efficiency
+            });
+            
+            if (schedulerStats.totalScheduled > 0) {
+                const skipRateNum = parseFloat(schedulerStats.skipRate);
+                if (skipRateNum > 30) {
+                    debugLogger.info('Optimizations', 'Excelente! Frame Scheduler está distribuyendo carga eficientemente');
+                } else if (skipRateNum > 10) {
+                    debugLogger.info('Optimizations', 'Frame Scheduler está funcionando correctamente');
+                } else {
+                    debugLogger.info('Optimizations', 'Frame Scheduler creado pero con poco uso. Los sistemas pueden usarlo opcionalmente.');
+                }
+            }
+        } else {
+            debugLogger.error('Optimizations', 'Frame Scheduler NO está inicializado');
+        }
+        
+        // 6. Verificar Spatial Grid (JDG-049)
+        if (app.spatialGrid) {
+            debugLogger.info('Optimizations', 'Spatial Grid está inicializado');
+            const spatialStats = app.spatialGrid.getStats();
+            debugLogger.info('Optimizations', 'Estadísticas de Spatial Grid:', {
+                'Total entidades': spatialStats.totalEntities,
+                'Total celdas': spatialStats.totalCells,
+                'Queries realizadas': spatialStats.queries,
+                'Promedio entidades por celda': spatialStats.averageEntitiesPerCell,
+                'Eficiencia': spatialStats.efficiency
+            });
+            
+            debugLogger.info('Optimizations', 'Configuración Spatial Grid:', {
+                'Tamaño de celda': app.spatialGrid.cellSize + ' unidades'
+            });
+            
+            if (spatialStats.totalEntities > 0) {
+                const avgPerCell = parseFloat(spatialStats.averageEntitiesPerCell);
+                if (avgPerCell < 10) {
+                    debugLogger.info('Optimizations', 'Excelente! Spatial Grid está distribuido eficientemente');
+                } else if (avgPerCell < 50) {
+                    debugLogger.info('Optimizations', 'Spatial Grid está funcionando correctamente');
+                } else {
+                    debugLogger.warn('Optimizations', 'Spatial Grid tiene muchas entidades por celda. Considera aumentar tamaño de celda.');
+                }
+            } else {
+                debugLogger.info('Optimizations', 'Spatial Grid creado pero sin entidades aún. Se actualizará cuando las entidades se muevan.');
+            }
+        } else {
+            debugLogger.warn('Optimizations', 'Spatial Grid no está inicializado');
+        }
+        
         debugLogger.info('Optimizations', 'Fin de Verificación de Optimizaciones Avanzadas');
     };
     
@@ -474,6 +557,38 @@ export function exposeDevelopmentTools(app, options = {}) {
                     'Meshes': batchStats.totalMeshes,
                     'Batches': batchStats.totalBatches,
                     'Promedio': batchStats.averageBatchSize
+                });
+            }
+            
+            // Instancing Manager
+            if (app.instancingManager) {
+                const instancingStats = app.instancingManager.getStats();
+                debugLogger.info('Optimizations', 'Instancing Manager', {
+                    'Grupos': instancingStats.totalGroups,
+                    'Instancias': instancingStats.totalInstances,
+                    'Draw calls ahorrados': instancingStats.savedDrawCalls
+                });
+            }
+            
+            // Frame Scheduler
+            if (app.frameScheduler) {
+                const schedulerStats = app.frameScheduler.getStats();
+                debugLogger.info('Optimizations', 'Frame Scheduler', {
+                    'Programados': schedulerStats.totalScheduled,
+                    'Updates': schedulerStats.totalUpdates,
+                    'Saltados': schedulerStats.skippedUpdates,
+                    'Tasa skip': schedulerStats.skipRate
+                });
+            }
+            
+            // Spatial Grid
+            if (app.spatialGrid) {
+                const spatialStats = app.spatialGrid.getStats();
+                debugLogger.info('Optimizations', 'Spatial Grid', {
+                    'Entidades': spatialStats.totalEntities,
+                    'Celdas': spatialStats.totalCells,
+                    'Queries': spatialStats.queries,
+                    'Promedio/celda': spatialStats.averageEntitiesPerCell
                 });
             }
         }, intervalSeconds * 1000);
