@@ -17,6 +17,16 @@ export class Renderer {
         this.renderer.setSize(width, height);
         this.renderer.setClearColor(COLOR_CIELO);
         container.appendChild(this.renderer.domElement);
+        
+        // Cache para dirty flag del color del cielo (optimización JDG-047)
+        this.lastSkyColor = null;
+        this.lastSunIntensity = null;
+        this.skyColorDirty = true;
+        this.skyColorChangeThreshold = 0.05; // Threshold para cambios significativos (5% de cambio)
+        
+        // Estadísticas de uso (para debugging)
+        this.skyColorUpdates = 0;
+        this.skyColorSkips = 0;
     }
     
     /**
@@ -50,9 +60,36 @@ export class Renderer {
         
         const sunIntensity = celestialSystem.getSunIntensity();
         const directionalLight = lights.directionalLight;
-        
-        // Obtener el color actual de la luz direccional (sol)
         const sunColor = directionalLight.color;
+        
+        // Verificar si hay cambio significativo en intensidad (optimización JDG-047)
+        const intensityChanged = this.lastSunIntensity === null || 
+            Math.abs(sunIntensity - this.lastSunIntensity) > this.skyColorChangeThreshold;
+        
+        // Verificar si hay cambio significativo en color RGB
+        const colorChanged = this.lastSkyColor === null ||
+            Math.abs(sunColor.r - this.lastSkyColor.r) > this.skyColorChangeThreshold ||
+            Math.abs(sunColor.g - this.lastSkyColor.g) > this.skyColorChangeThreshold ||
+            Math.abs(sunColor.b - this.lastSkyColor.b) > this.skyColorChangeThreshold;
+        
+        // Solo actualizar si hay cambio significativo O si está marcado como dirty
+        if (!intensityChanged && !colorChanged && !this.skyColorDirty) {
+            this.skyColorSkips++; // Estadística: cuántas veces se saltó la actualización
+            return; // No hay cambio significativo, no recalcular (AHORRO DE PERFORMANCE)
+        }
+        
+        this.skyColorUpdates++; // Estadística: cuántas veces se actualizó realmente
+        
+        // Marcar como limpio
+        this.skyColorDirty = false;
+        
+        // Guardar valores actuales para comparación en el próximo frame
+        this.lastSunIntensity = sunIntensity;
+        this.lastSkyColor = {
+            r: sunColor.r,
+            g: sunColor.g,
+            b: sunColor.b
+        };
         
         // En el mundo real, el color del cielo es causado por la dispersión de la luz
         // Durante el día: el sol es blanco/amarillo, pero el cielo es azul (dispersión de Rayleigh)
@@ -104,6 +141,30 @@ export class Renderer {
         }
         
         this.renderer.setClearColor(skyColor);
+    }
+    
+    /**
+     * Forzar actualización del color del cielo en el próximo frame
+     * Útil cuando hay cambios externos al estado celestial
+     */
+    forceSkyColorUpdate() {
+        this.skyColorDirty = true;
+    }
+    
+    /**
+     * Obtener estadísticas de uso del dirty flag
+     * @returns {Object} Estadísticas de uso
+     */
+    getSkyColorStats() {
+        const total = this.skyColorUpdates + this.skyColorSkips;
+        const skipRate = total > 0 ? (this.skyColorSkips / total) * 100 : 0;
+        return {
+            updates: this.skyColorUpdates,
+            skips: this.skyColorSkips,
+            total: total,
+            skipRate: skipRate.toFixed(2) + '%',
+            efficiency: skipRate > 50 ? 'Excelente' : skipRate > 20 ? 'Regular' : '❌ Baja'
+        };
     }
     
     /**
