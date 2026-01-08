@@ -715,12 +715,56 @@ export class DebugInterface extends BaseInterface {
                 { label: 'Buscar Animation', command: 'inspector.findEntities({ hasComponent: "Animation" })' },
                 { label: 'Buscar Combat', command: 'inspector.findEntities({ hasComponent: "Combat" })' },
                 { label: 'Resetear Métricas', command: 'metrics.reset()' },
-                { label: 'Limpiar Eventos', command: 'events.clearHistory()' }
+                { label: 'Limpiar Eventos', command: 'events.clearHistory()' },
+                { label: 'Verificar Optimizaciones', command: 'checkOptimizations()', returnsValue: false },
+                { label: 'Monitorear Object Pool', command: 'monitorObjectPool(5)', returnsValue: false }
             ];
+            
+            // Estado para botones especiales que no devuelven valor
+            let monitorInterval = null;
+            let monitorBtn = null;
             
             commands.forEach(cmd => {
                 const btn = this.createButton(cmd.label, () => {
                     try {
+                        // Comandos especiales que manejan su propia lógica
+                        if (cmd.label === 'Verificar Optimizaciones') {
+                            if (typeof window.checkOptimizations === 'function') {
+                                window.checkOptimizations();
+                                this.showInfo(container, 'Verificación de optimizaciones ejecutada. Revisa los logs en el tab Logger.');
+                            } else {
+                                this.showError(container, 'Función checkOptimizations no está disponible. Asegúrate de que el juego esté cargado.');
+                            }
+                            return;
+                        }
+                        
+                        if (cmd.label === 'Monitorear Object Pool') {
+                            if (typeof window.monitorObjectPool === 'function') {
+                                if (monitorInterval) {
+                                    // Detener monitoreo
+                                    if (window._objectPoolMonitor) {
+                                        clearInterval(window._objectPoolMonitor);
+                                        window._objectPoolMonitor = null;
+                                    }
+                                    monitorInterval = null;
+                                    monitorBtn.textContent = 'Monitorear Object Pool';
+                                    this.showInfo(container, 'Monitoreo detenido.');
+                                } else {
+                                    // Iniciar monitoreo
+                                    const monitor = window.monitorObjectPool(5);
+                                    if (monitor) {
+                                        monitorInterval = monitor;
+                                        monitorBtn.textContent = 'Detener Monitoreo';
+                                        this.showInfo(container, 'Monitoreo iniciado cada 5 segundos. Revisa los logs en el tab Logger. Presiona el botón nuevamente para detener.');
+                                    }
+                                }
+                            } else {
+                                this.showError(container, 'Función monitorObjectPool no está disponible.');
+                            }
+                            return;
+                        }
+                        
+                        // Comandos normales que devuelven valor
                         const result = this.evaluateCommand(cmd.command);
                         this.showResult(container, `Resultado: ${cmd.label}`, result);
                     } catch (error) {
@@ -734,6 +778,12 @@ export class DebugInterface extends BaseInterface {
                     maxWidth: '400px',
                     textAlign: 'left'
                 });
+                
+                // Guardar referencia al botón de monitoreo para poder cambiar su texto
+                if (cmd.label === 'Monitorear Object Pool') {
+                    monitorBtn = btn;
+                }
+                
                 elements.push(btn);
             });
             
@@ -745,7 +795,7 @@ export class DebugInterface extends BaseInterface {
             
             customSection.appendChild(this.createLabel('Comando personalizado (permite copiar/pegar):'));
             const textarea = this.createTextarea({
-                placeholder: 'Ej: inspector.inspectEntity(1)\nEj: metrics.getStats()\nEj: logger.info("Test", "Mensaje")',
+                placeholder: 'Ej: inspector.inspectEntity(1)\nEj: metrics.getStats()\nEj: logger.info("Test", "Mensaje")\nEj: checkOptimizations()\nEj: monitorObjectPool(5)',
                 width: '100%',
                 maxWidth: '600px',
                 minHeight: '100px'
@@ -787,7 +837,9 @@ export class DebugInterface extends BaseInterface {
             logger: window.developmentTools?.logger,
             validator: window.developmentTools?.validator,
             events: window.developmentTools?.events,
-            panel: window.developmentTools?.panel
+            panel: window.developmentTools?.panel,
+            checkOptimizations: window.checkOptimizations,
+            monitorObjectPool: window.monitorObjectPool
         };
         
         const func = new Function(...Object.keys(context), `return ${command}`);

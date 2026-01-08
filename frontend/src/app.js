@@ -21,6 +21,8 @@ import { CelestialSystem, CelestialRenderer } from './world/__init__.js';
 // Herramientas de debugging inicializadas centralmente en dev-exposure.js
 import { exposeDevelopmentTools, initDevelopmentTools } from './dev-exposure.js';
 import { debugLogger } from './debug/logger.js';
+import { ObjectPool } from './core/optimizations/object-pool.js';
+import * as THREE from 'three';
 
 /**
  * @typedef {import('./types.js').Particle} Particle
@@ -48,6 +50,36 @@ export class App {
         
         // Inicializar Registry de Geometrías
         this.geometryRegistry = new GeometryRegistry();
+        
+        // Inicializar Object Pools para optimización de rendimiento
+        // Estos pools reducen garbage collection reutilizando objetos temporales
+        this.objectPool = {
+            vector3: new ObjectPool(
+                () => new THREE.Vector3(),
+                (v) => v.set(0, 0, 0),
+                50  // Pool inicial de 50 objetos (suficiente para jerarquías complejas)
+            ),
+            quaternion: new ObjectPool(
+                () => new THREE.Quaternion(),
+                (q) => q.set(0, 0, 0, 1),
+                25  // Pool inicial de 25 objetos
+            ),
+            euler: new ObjectPool(
+                () => new THREE.Euler(),
+                (e) => e.set(0, 0, 0),
+                25  // Pool inicial de 25 objetos
+            ),
+            matrix4: new ObjectPool(
+                () => new THREE.Matrix4(),
+                (m) => m.identity(),
+                10  // Pool para Matrix4 (usado en particle-renderer y otros lugares)
+            )
+        };
+        
+        // Exponer pools globalmente para fácil acceso desde otros módulos
+        if (typeof window !== 'undefined') {
+            window.app = this; // Se sobrescribirá después, pero esto asegura que esté disponible
+        }
         
         // Inicializar API
         const apiClient = new ApiClient();
