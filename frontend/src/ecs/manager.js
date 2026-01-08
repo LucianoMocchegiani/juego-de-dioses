@@ -41,6 +41,28 @@ export class ECSManager {
          * @type {Map<string, Set<number>>}
          */
         this.queryCache = new Map();
+        
+        /**
+         * Cache del ordenamiento de sistemas (optimización JDG-047)
+         * @type {Array<System>|null}
+         */
+        this.sortedSystems = null;
+        
+        /**
+         * Flag para indicar que el ordenamiento de sistemas está desactualizado
+         * @type {boolean}
+         */
+        this.systemsDirty = true;
+        
+        /**
+         * Estadísticas de uso del cache (para debugging)
+         * @type {Object}
+         */
+        this.cacheStats = {
+            totalUpdates: 0,
+            cacheHits: 0,
+            cacheMisses: 0
+        };
     }
     
     /**
@@ -205,6 +227,7 @@ export class ECSManager {
     registerSystem(system) {
         this.systems.push(system);
         system.setECSManager(this);
+        this.systemsDirty = true; // Marcar como sucio para reordenar
     }
     
     /**
@@ -216,6 +239,7 @@ export class ECSManager {
         if (index !== -1) {
             this.systems.splice(index, 1);
             system.setECSManager(null);
+            this.systemsDirty = true; // Marcar como sucio para reordenar
         }
     }
     
@@ -237,10 +261,20 @@ export class ECSManager {
             this.debugMetrics.startFrame();
         }
         
-        // Ordenar sistemas por prioridad (menor número = mayor prioridad)
-        const sortedSystems = [...this.systems].sort((a, b) => a.priority - b.priority);
+        // Reordenar sistemas solo si es necesario (optimización JDG-047)
+        // Esto evita O(n log n) cada frame cuando los sistemas no cambian
+        if (this.systemsDirty || !this.sortedSystems) {
+            this.sortedSystems = [...this.systems].sort((a, b) => a.priority - b.priority);
+            this.systemsDirty = false;
+            this.cacheStats.cacheMisses++;
+            this.cacheStats.totalUpdates++;
+        } else {
+            // Cache hit: se está usando el cache
+            this.cacheStats.cacheHits++;
+            this.cacheStats.totalUpdates++;
+        }
         
-        for (const system of sortedSystems) {
+        for (const system of this.sortedSystems) {
             if (system.enabled) {
                 if (this.debugMetrics) {
                     const entityCount = system.getEntities().size;
