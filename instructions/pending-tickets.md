@@ -9,7 +9,6 @@ Lista de tickets que aún no tienen un Pull Request completado.
 - [ ] **JDG-037** - Sistema de Física Avanzado
 - [ ] **JDG-043** - Sistema de Sombras Dinámicas
 - [ ] **JDG-044** - Implementar Movimiento en Espiral del Sol y Luna (Modelo de Gleason)
-- [ ] **JDG-049** - Optimizaciones Avanzadas para Mejorar FPS (Fase 3)
 
 ## Tickets Completados (con PR)
 
@@ -53,9 +52,10 @@ Lista de tickets que aún no tienen un Pull Request completado.
 - [x] **JDG-045** - Sistema de Logging de Rendimiento (RAM, GPU, CPU)
 - [x] **JDG-047** - Optimizaciones de Bajo Riesgo para Mejorar FPS (Fase 1)
 - [x] **JDG-048** - Optimizaciones de Medio Riesgo para Mejorar FPS (Fase 2)
+- [x] **JDG-049** - Optimizaciones Avanzadas para Mejorar FPS (Fase 3)
 
 ## Notas
 
 - Esta lista se actualiza automáticamente cuando se crea un nuevo ticket o se completa un PR
 - Los tickets se marcan como completados cuando se genera el PR description correspondiente
-- Total: 6 tickets pendientes, 40 tickets completados
+- Total: 5 tickets pendientes, 41 tickets completados

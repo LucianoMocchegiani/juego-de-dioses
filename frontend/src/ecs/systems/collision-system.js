@@ -14,8 +14,9 @@ export class CollisionSystem extends System {
      * @param {string} bloqueId - ID del bloque
      * @param {Object} [dimension] - Información del bloque (para límites)
      * @param {Array} [particles] - Partículas ya cargadas del viewport (opcional)
+     * @param {SpatialGrid} [spatialGrid] - Grid espacial para optimizar queries (opcional)
      */
-    constructor(collisionDetector, bloqueId, dimension = null, particles = null) {
+    constructor(collisionDetector, bloqueId, dimension = null, particles = null, spatialGrid = null) {
         super();
         this.requiredComponents = [
             ECS_CONSTANTS.COMPONENT_NAMES.POSITION,
@@ -25,6 +26,7 @@ export class CollisionSystem extends System {
         this.bloqueId = bloqueId;
         this.dimension = dimension;
         this.particles = particles;
+        this.spatialGrid = spatialGrid;
         this.priority = 2; // Ejecutar después de PhysicsSystem (priority 1)
         
         /**
@@ -95,6 +97,11 @@ export class CollisionSystem extends System {
             const physics = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.PHYSICS);
             
             if (!position || !physics) continue;
+            
+            // Actualizar spatial grid si está disponible
+            if (this.spatialGrid) {
+                this.spatialGrid.update(entityId, position.x, position.y, position.z);
+            }
             
             // Usar partículas cargadas si están disponibles, sino usar cache o consultar
             let occupiedCells = this.loadedOccupiedCells;

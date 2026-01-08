@@ -63,6 +63,28 @@ export class ECSManager {
             cacheHits: 0,
             cacheMisses: 0
         };
+        
+        /**
+         * Frame Scheduler para distribuir trabajo entre frames (optimización JDG-049)
+         * @type {FrameScheduler|null}
+         */
+        this.frameScheduler = null;
+    }
+    
+    /**
+     * Establecer Frame Scheduler
+     * @param {FrameScheduler} frameScheduler - Instancia de FrameScheduler
+     */
+    setFrameScheduler(frameScheduler) {
+        this.frameScheduler = frameScheduler;
+    }
+    
+    /**
+     * Obtener Frame Scheduler
+     * @returns {FrameScheduler|null} Frame Scheduler o null si no está configurado
+     */
+    getFrameScheduler() {
+        return this.frameScheduler;
     }
     
     /**
