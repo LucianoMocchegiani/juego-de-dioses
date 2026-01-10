@@ -25,6 +25,7 @@ export const ANIMATION_CONSTANTS = {
         MOVEMENT: 'movement',
         COMBO: 'combo',
         COMBAT: 'combat',
+        WATER: 'water',
     },
     
     // Valores numéricos del sistema
@@ -95,7 +96,7 @@ export const ANIMATION_CONSTANTS = {
     INPUT: {
         // Velocidades de movimiento (celdas/segundo)
         WALK_SPEED: 200,  // Aumentado de 15 a 30
-        RUN_SPEED: 1500,   // Aumentado de 30 a 60
+        RUN_SPEED: 800,   // Aumentado de 30 a 60
         
         // Thresholds
         DIRECTION_NORMALIZE_THRESHOLD: 0.01,
@@ -135,6 +136,12 @@ export const ANIMATION_CONSTANTS = {
         
         // Estado de partícula sólida
         PARTICLE_STATE_SOLID: 'solido',
+        
+        // Estado de partícula líquida
+        PARTICLE_STATE_LIQUID: 'liquido',
+        
+        // Tipos específicos de líquidos conocidos
+        LIQUID_TYPES: ['agua', 'agua_sucia', 'lava', 'pantano'],
         
         // Valores de respawn por defecto
         DEFAULT_RESPAWN: {

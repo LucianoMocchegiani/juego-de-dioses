@@ -119,7 +119,7 @@ export const ANIMATION_STATES = [
             { type: 'physics', property: 'isFlying', operator: 'equals', value: false }
         ],
         animation: 'regular_jump', // Fallback: Si no existe, AnimationMixerSystem usará 'combat_stance'
-        transitions: ['idle', 'walk', 'run', 'flying']
+        transitions: ['idle', 'walk', 'run', 'flying', 'swim', 'swim_idle']
     },
     {
         id: 'flying',
@@ -129,7 +129,32 @@ export const ANIMATION_STATES = [
             { type: 'physics', property: 'isFlying', operator: 'equals', value: true }
         ],
         animation: 'combat_stance', // Usar animación de combate mientras vuela (o idle si está disponible)
-        transitions: ['idle', 'walk', 'run', 'jump']
+        transitions: ['idle', 'walk', 'run', 'jump', 'swim', 'swim_idle']
+    },
+    {
+        id: 'swim',
+        type: 'movement',
+        priority: 7.5, // Mayor que walk/run (4-5) pero menor que jump (9) y combat (10-12)
+        conditions: [
+            { type: 'water', operator: 'isInWater' },
+            { type: 'movement', operator: 'hasMovement' },
+            { type: 'physics', property: 'isFlying', operator: 'equals', value: false } // No nadar si está volando
+        ],
+        animation: 'swim_forward', // Usar animación de natación hacia adelante
+        interruptOnInputRelease: true,
+        transitions: ['swim_idle', 'idle', 'walk', 'run']
+    },
+    {
+        id: 'swim_idle',
+        type: 'idle',
+        priority: 7.5, // Misma prioridad que swim
+        conditions: [
+            { type: 'water', operator: 'isInWater' },
+            { type: 'movement', operator: 'noMovement' },
+            { type: 'physics', property: 'isFlying', operator: 'equals', value: false }
+        ],
+        animation: 'swim_idle', // Usar animación de flotación
+        transitions: ['swim', 'idle', 'walk', 'run']
     },
     {
         id: 'crouch_walk',
@@ -141,7 +166,7 @@ export const ANIMATION_STATES = [
         ],
         animation: 'crouch_walk_forward',
         interruptOnInputRelease: true,
-        transitions: ['crouch_idle', 'walk', 'run', 'idle']
+        transitions: ['crouch_idle', 'walk', 'run', 'idle', 'swim', 'swim_idle']
     },
     {
         id: 'crouch_idle',
@@ -152,7 +177,7 @@ export const ANIMATION_STATES = [
             { type: 'movement', operator: 'noMovement' }
         ],
         animation: 'crouch_walk_forward', // Temporal: usar misma animación con velocidad 0
-        transitions: ['crouch_walk', 'idle']
+        transitions: ['crouch_walk', 'idle', 'swim', 'swim_idle']
     },
     {
         id: 'run',
@@ -165,7 +190,7 @@ export const ANIMATION_STATES = [
         ],
         animation: 'run',
         interruptOnInputRelease: true, // Se interrumpe cuando se suelta la tecla de movimiento
-        transitions: ['idle', 'walk', 'attack', 'crouch_walk']
+        transitions: ['idle', 'walk', 'attack', 'crouch_walk', 'swim', 'swim_idle']
     },
     {
         id: 'walk',
@@ -173,19 +198,22 @@ export const ANIMATION_STATES = [
         priority: 4,
         conditions: [
             { type: 'movement', operator: 'hasMovement' },
-            { type: 'input', property: 'wantsToCrouch', operator: 'equals', value: false } // Excluir agachado
+            { type: 'input', property: 'wantsToCrouch', operator: 'equals', value: false }, // Excluir agachado
+            { type: 'water', operator: 'notInWater' } // Solo caminar si no está en agua
         ],
         animation: 'walk',
         interruptOnInputRelease: true, // Se interrumpe cuando se suelta la tecla de movimiento
-        transitions: ['idle', 'run', 'attack', 'crouch_walk']
+        transitions: ['idle', 'run', 'attack', 'crouch_walk', 'swim', 'swim_idle']
     },
     {
         id: 'idle',
         type: 'idle',
         priority: 1,
-        conditions: [],  // Estado por defecto
+        conditions: [
+            { type: 'water', operator: 'notInWater' } // Solo idle si no está en agua (swim_idle tiene prioridad)
+        ],
         animation: 'combat_stance',
-        transitions: ['walk', 'run', 'attack', 'jump', 'crouch_walk', 'crouch_idle']
+        transitions: ['walk', 'run', 'attack', 'jump', 'crouch_walk', 'crouch_idle', 'swim', 'swim_idle']
     }
 ];
 
