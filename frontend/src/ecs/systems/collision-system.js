@@ -75,6 +75,39 @@ export class CollisionSystem extends System {
     }
     
     /**
+     * Detectar si hay líquidos en la posición dada
+     * @param {Object} position - Posición {x, y, z}
+     * @returns {boolean} True si hay líquidos en la posición
+     */
+    detectLiquidAtPosition(position) {
+        // Opción 1: Usar partículas ya cargadas (si están disponibles)
+        if (this.particles && this.particles.length > 0) {
+            const cellX = Math.floor(position.x);
+            const cellY = Math.floor(position.y);
+            const cellZ = Math.floor(position.z);
+            
+            const particlesAtPosition = this.particles.filter(p => 
+                p.celda_x === cellX &&
+                p.celda_y === cellY &&
+                p.celda_z === cellZ &&
+                !p.extraida
+            );
+            
+            // Verificar si hay líquidos
+            const hasLiquid = particlesAtPosition.some(p => 
+                p.estado_nombre === ANIMATION_CONSTANTS.COLLISION.PARTICLE_STATE_LIQUID ||
+                ANIMATION_CONSTANTS.COLLISION.LIQUID_TYPES.includes(p.tipo_nombre)
+            );
+            
+            return hasLiquid;
+        }
+        
+        // Opción 2: Si no hay partículas cargadas, retornar false
+        // (puede extenderse en el futuro para consultar API)
+        return false;
+    }
+    
+    /**
      * Establecer partículas cargadas
      * @param {Array} particles - Partículas del viewport
      */
@@ -220,6 +253,9 @@ export class CollisionSystem extends System {
                     this.entityCollisionCache.delete(entityId);
                 }
             }
+            
+            // Detectar agua/líquidos
+            physics.isInWater = this.detectLiquidAtPosition(position);
             
             // Actualizar última posición conocida
             this.lastEntityPositions.set(entityId, {

@@ -6,6 +6,7 @@ import { PhysicsCondition } from './physics-condition.js';
 import { MovementCondition } from './movement-condition.js';
 import { ComboCondition } from './combo-condition.js';
 import { CombatCondition } from './combat-condition.js';
+import { WaterCondition } from './water-condition.js';
 import { ANIMATION_CONSTANTS } from '../../config/animation-constants.js';
 
 export class ConditionFactory {
@@ -23,6 +24,8 @@ export class ConditionFactory {
                 return new ComboCondition(conditionConfig);
             case ANIMATION_CONSTANTS.CONDITION_TYPES.COMBAT:
                 return new CombatCondition(conditionConfig);
+            case ANIMATION_CONSTANTS.CONDITION_TYPES.WATER:
+                return new WaterCondition(conditionConfig);
             default:
                 console.warn(`Tipo de condición desconocido: ${type}`);
                 return null;
