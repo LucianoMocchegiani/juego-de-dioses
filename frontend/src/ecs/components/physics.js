@@ -15,6 +15,7 @@ export class PhysicsComponent {
      * @param {number} [options.groundFriction] - Fricción con el suelo (0-1)
      * @param {number} [options.airFriction] - Fricción en el aire (0-1)
      * @param {Object} [options.maxVelocity] - Velocidad máxima {x, y, z}
+     * @param {boolean} [options.isInWater] - Si la entidad está en agua/líquidos
      */
     constructor(options = {}) {
         this.velocity = options.velocity || { x: 0, y: 0, z: 0 };
@@ -33,6 +34,9 @@ export class PhysicsComponent {
         this.lastJumpTime = 0; // Tiempo del último salto (para resetear contador si pasa mucho tiempo)
         this.isFlying = false; // Estado de vuelo
         this.flySpeed = 400; // Velocidad de vuelo en celdas/segundo (aumentado para alcanzar sol/luna a 500m = 2000 celdas en ~4 segundos)
+        
+        // Detección de ambiente
+        this.isInWater = options.isInWater !== undefined ? options.isInWater : false;
     }
     
     /**
