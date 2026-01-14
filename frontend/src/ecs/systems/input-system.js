@@ -7,6 +7,7 @@ import { System } from '../system.js';
 import { INPUT_MAP } from '../../config/input-map-config.js';
 import { ECS_CONSTANTS } from '../../config/ecs-constants.js';
 import { ANIMATION_CONSTANTS } from '../../config/animation-constants.js';
+import { COMBAT_ACTIONS } from '../../config/combat-actions-config.js';
 
 export class InputSystem extends System {
     constructor(inputManager, cameraController = null) {
@@ -90,6 +91,7 @@ export class InputSystem extends System {
         for (const entityId of entities) {
             const input = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.INPUT);
             const physics = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.PHYSICS);
+            const combat = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.COMBAT);
 
             if (!input || !physics) continue;
 
@@ -115,137 +117,169 @@ export class InputSystem extends System {
                 input.releaseKey(key);
             }
 
+            // Verificar si hay acción activa que bloquea movimiento
+            let shouldBlockMovement = false;
+            if (combat && combat.activeAction) {
+                const actionConfig = COMBAT_ACTIONS[combat.activeAction];
+                // Bloquear movimiento si la acción NO tiene hasMovement: true
+                if (!actionConfig || !actionConfig.hasMovement) {
+                    shouldBlockMovement = true;
+                }
+            }
+
             // Obtener rotación de la cámara desde RenderComponent
             const render = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.RENDER);
             const cameraRotation = render && render.rotationY !== undefined ? render.rotationY : 0;
 
-            // Calcular dirección de movimiento en espacio local (relativo a la cámara)
-            // En espacio local: X = izquierda/derecha, Y = adelante/atrás
-            let localX = 0;
-            let localY = 0;
+            // Calcular dirección de movimiento solo si no está bloqueado
+            if (!shouldBlockMovement) {
+                // Calcular dirección de movimiento en espacio local (relativo a la cámara)
+                // En espacio local: X = izquierda/derecha, Y = adelante/atrás
+                let localX = 0;
+                let localY = 0;
 
-            if (this.checkAction('moveForward')) {
-                localY += ANIMATION_CONSTANTS.INPUT.DIRECTION.FORWARD; // Adelante (negativo Y en espacio local)
-            }
-            if (this.checkAction('moveBackward')) {
-                localY += ANIMATION_CONSTANTS.INPUT.DIRECTION.BACKWARD; // Atrás (positivo Y en espacio local)
-            }
-            if (this.checkAction('moveLeft')) {
-                localX += ANIMATION_CONSTANTS.INPUT.DIRECTION.LEFT; // Izquierda (negativo X en espacio local)
-            }
-            if (this.checkAction('moveRight')) {
-                localX += ANIMATION_CONSTANTS.INPUT.DIRECTION.RIGHT; // Derecha (positivo X en espacio local)
-            }
+                if (this.checkAction('moveForward')) {
+                    localY += ANIMATION_CONSTANTS.INPUT.DIRECTION.FORWARD; // Adelante (negativo Y en espacio local)
+                }
+                if (this.checkAction('moveBackward')) {
+                    localY += ANIMATION_CONSTANTS.INPUT.DIRECTION.BACKWARD; // Atrás (positivo Y en espacio local)
+                }
+                if (this.checkAction('moveLeft')) {
+                    localX += ANIMATION_CONSTANTS.INPUT.DIRECTION.LEFT; // Izquierda (negativo X en espacio local)
+                }
+                if (this.checkAction('moveRight')) {
+                    localX += ANIMATION_CONSTANTS.INPUT.DIRECTION.RIGHT; // Derecha (positivo X en espacio local)
+                }
 
-            // Si está volando, calcular movimiento en 3D basado en la dirección de la cámara
-            if (physics.isFlying) {
-                // Obtener rotación vertical de la cámara
-                const cameraVerticalRotation = this.cameraController ? this.cameraController.rotation.vertical : 0;
-                
-                // Calcular dirección 3D basada en rotación horizontal y vertical de la cámara
-                const cosH = Math.cos(cameraRotation); // Horizontal
-                const sinH = Math.sin(cameraRotation);
-                const cosV = Math.cos(cameraVerticalRotation); // Vertical
-                const sinV = Math.sin(cameraVerticalRotation);
-                
-                // Calcular dirección forward en 3D (incluyendo componente vertical)
-                // Si presiona W (moveForward), se mueve en la dirección que mira la cámara
-                // Nota: localY es negativo para forward (W), positivo para backward (S)
-                if (localY !== 0) {
-                    // Dirección forward/backward con componente vertical
-                    // forwardX y forwardY apuntan hacia adelante (dirección que mira la cámara)
-                    const forwardX = -sinH * cosV;
-                    const forwardY = -cosH * cosV;
-                    // forwardZ: positivo cuando cámara apunta hacia arriba (sinV > 0), negativo hacia abajo (sinV < 0)
-                    const forwardZ = -sinV; // Invertir signo: cuando cámara apunta arriba, queremos subir (Z positivo)
+                // Si está volando, calcular movimiento en 3D basado en la dirección de la cámara
+                if (physics.isFlying) {
+                    // Obtener rotación vertical de la cámara
+                    const cameraVerticalRotation = this.cameraController ? this.cameraController.rotation.vertical : 0;
                     
-                    // Aplicar dirección forward/backward
-                    // localY es negativo para W (forward), positivo para S (backward)
-                    input.moveDirection.x = forwardX * -localY; // Invertir localY para que W sea adelante
-                    input.moveDirection.y = forwardY * -localY;
-                    input.moveDirection.z = forwardZ * -localY; // Vertical: W con cámara arriba = subir
+                    // Calcular dirección 3D basada en rotación horizontal y vertical de la cámara
+                    const cosH = Math.cos(cameraRotation); // Horizontal
+                    const sinH = Math.sin(cameraRotation);
+                    const cosV = Math.cos(cameraVerticalRotation); // Vertical
+                    const sinV = Math.sin(cameraVerticalRotation);
+                    
+                    // Calcular dirección forward en 3D (incluyendo componente vertical)
+                    // Si presiona W (moveForward), se mueve en la dirección que mira la cámara
+                    // Nota: localY es negativo para forward (W), positivo para backward (S)
+                    if (localY !== 0) {
+                        // Dirección forward/backward con componente vertical
+                        // forwardX y forwardY apuntan hacia adelante (dirección que mira la cámara)
+                        const forwardX = -sinH * cosV;
+                        const forwardY = -cosH * cosV;
+                        // forwardZ: positivo cuando cámara apunta hacia arriba (sinV > 0), negativo hacia abajo (sinV < 0)
+                        const forwardZ = -sinV; // Invertir signo: cuando cámara apunta arriba, queremos subir (Z positivo)
+                        
+                        // Aplicar dirección forward/backward
+                        // localY es negativo para W (forward), positivo para S (backward)
+                        input.moveDirection.x = forwardX * -localY; // Invertir localY para que W sea adelante
+                        input.moveDirection.y = forwardY * -localY;
+                        input.moveDirection.z = forwardZ * -localY; // Vertical: W con cámara arriba = subir
+                    } else {
+                        input.moveDirection.z = 0;
+                    }
+                    
+                    // Agregar movimiento lateral (izquierda/derecha) - solo horizontal
+                    if (localX !== 0) {
+                        const rightX = cosH;
+                        const rightY = -sinH;
+                        input.moveDirection.x += rightX * localX;
+                        input.moveDirection.y += rightY * localX;
+                    }
+                    
+                    // Normalizar dirección 3D
+                    const length3D = Math.sqrt(
+                        input.moveDirection.x ** 2 +
+                        input.moveDirection.y ** 2 +
+                        input.moveDirection.z ** 2
+                    );
+                    if (length3D > ANIMATION_CONSTANTS.INPUT.DIRECTION_NORMALIZE_THRESHOLD) {
+                        input.moveDirection.x /= length3D;
+                        input.moveDirection.y /= length3D;
+                        input.moveDirection.z /= length3D;
+                    } else {
+                        input.moveDirection.x = ANIMATION_CONSTANTS.INPUT.DIRECTION.NONE;
+                        input.moveDirection.y = ANIMATION_CONSTANTS.INPUT.DIRECTION.NONE;
+                        input.moveDirection.z = 0;
+                    }
                 } else {
-                    input.moveDirection.z = 0;
+                    // Movimiento normal (no volando)
+                    const cos = Math.cos(cameraRotation);
+                    const sin = Math.sin(cameraRotation);
+
+                    // Rotar vector (localX, localY) por el ángulo cameraRotation
+                    // Invertimos el signo de Y en la rotación porque Y negativo es adelante
+                    input.moveDirection.x = localX * cos - (-localY) * sin;
+                    input.moveDirection.y = localX * sin + (-localY) * cos;
+                    // Invertimos Y de vuelta
+                    input.moveDirection.y = -input.moveDirection.y;
+                    input.moveDirection.z = ANIMATION_CONSTANTS.INPUT.DIRECTION.NONE;
                 }
-                
-                // Agregar movimiento lateral (izquierda/derecha) - solo horizontal
-                if (localX !== 0) {
-                    const rightX = cosH;
-                    const rightY = -sinH;
-                    input.moveDirection.x += rightX * localX;
-                    input.moveDirection.y += rightY * localX;
-                }
-                
-                // Normalizar dirección 3D
-                const length3D = Math.sqrt(
-                    input.moveDirection.x ** 2 +
-                    input.moveDirection.y ** 2 +
-                    input.moveDirection.z ** 2
-                );
-                if (length3D > ANIMATION_CONSTANTS.INPUT.DIRECTION_NORMALIZE_THRESHOLD) {
-                    input.moveDirection.x /= length3D;
-                    input.moveDirection.y /= length3D;
-                    input.moveDirection.z /= length3D;
-                } else {
-                    input.moveDirection.x = ANIMATION_CONSTANTS.INPUT.DIRECTION.NONE;
-                    input.moveDirection.y = ANIMATION_CONSTANTS.INPUT.DIRECTION.NONE;
-                    input.moveDirection.z = 0;
+
+                // Normalizar dirección solo si NO está volando (en vuelo ya se normalizó en 3D)
+                if (!physics.isFlying) {
+                    const length = Math.sqrt(
+                        input.moveDirection.x ** 2 +
+                        input.moveDirection.y ** 2
+                    );
+                    if (length > ANIMATION_CONSTANTS.INPUT.DIRECTION_NORMALIZE_THRESHOLD) {
+                        input.moveDirection.x /= length;
+                        input.moveDirection.y /= length;
+                    } else {
+                        input.moveDirection.x = ANIMATION_CONSTANTS.INPUT.DIRECTION.NONE;
+                        input.moveDirection.y = ANIMATION_CONSTANTS.INPUT.DIRECTION.NONE;
+                    }
                 }
             } else {
-                // Movimiento normal (no volando)
-                const cos = Math.cos(cameraRotation);
-                const sin = Math.sin(cameraRotation);
-
-                // Rotar vector (localX, localY) por el ángulo cameraRotation
-                // Invertimos el signo de Y en la rotación porque Y negativo es adelante
-                input.moveDirection.x = localX * cos - (-localY) * sin;
-                input.moveDirection.y = localX * sin + (-localY) * cos;
-                // Invertimos Y de vuelta
-                input.moveDirection.y = -input.moveDirection.y;
-                input.moveDirection.z = ANIMATION_CONSTANTS.INPUT.DIRECTION.NONE;
-            }
-
-            // Normalizar dirección solo si NO está volando (en vuelo ya se normalizó en 3D)
-            if (!physics.isFlying) {
-                const length = Math.sqrt(
-                    input.moveDirection.x ** 2 +
-                    input.moveDirection.y ** 2
-                );
-                if (length > ANIMATION_CONSTANTS.INPUT.DIRECTION_NORMALIZE_THRESHOLD) {
-                    input.moveDirection.x /= length;
-                    input.moveDirection.y /= length;
+                // Bloquear movimiento: dejar moveDirection en 0
+                input.moveDirection.x = ANIMATION_CONSTANTS.INPUT.DIRECTION.NONE;
+                input.moveDirection.y = ANIMATION_CONSTANTS.INPUT.DIRECTION.NONE;
+                if (!physics.isFlying) {
+                    input.moveDirection.z = ANIMATION_CONSTANTS.INPUT.DIRECTION.NONE;
                 } else {
-                    input.moveDirection.x = ANIMATION_CONSTANTS.INPUT.DIRECTION.NONE;
-                    input.moveDirection.y = ANIMATION_CONSTANTS.INPUT.DIRECTION.NONE;
+                    input.moveDirection.z = 0;
                 }
             }
 
             // Correr
             input.isRunning = this.checkAction('run');
 
-            // Resetear aceleración antes de aplicar nuevo input
-            physics.acceleration.x = ANIMATION_CONSTANTS.INPUT.DIRECTION.NONE;
-            physics.acceleration.y = ANIMATION_CONSTANTS.INPUT.DIRECTION.NONE;
-            if (physics.isFlying) {
-                physics.acceleration.z = 0; // Resetear aceleración vertical en vuelo
-            }
+            // Aplicar movimiento a física solo si no está bloqueado
+            if (!shouldBlockMovement) {
+                // Resetear aceleración antes de aplicar nuevo input
+                physics.acceleration.x = ANIMATION_CONSTANTS.INPUT.DIRECTION.NONE;
+                physics.acceleration.y = ANIMATION_CONSTANTS.INPUT.DIRECTION.NONE;
+                if (physics.isFlying) {
+                    physics.acceleration.z = 0; // Resetear aceleración vertical en vuelo
+                }
 
-            // Aplicar movimiento a física
-            if (physics.isFlying) {
-                // En vuelo: movimiento 3D basado en dirección de la cámara (solo si hay input)
-                // Como un juego de aviones: solo se mueve cuando presionas WASD
-                if (input.moveDirection.x !== 0 || input.moveDirection.y !== 0 || input.moveDirection.z !== 0) {
-                    const speed = physics.flySpeed;
+                // Aplicar movimiento a física
+                if (physics.isFlying) {
+                    // En vuelo: movimiento 3D basado en dirección de la cámara (solo si hay input)
+                    // Como un juego de aviones: solo se mueve cuando presionas WASD
+                    if (input.moveDirection.x !== 0 || input.moveDirection.y !== 0 || input.moveDirection.z !== 0) {
+                        const speed = physics.flySpeed;
+                        physics.acceleration.x = input.moveDirection.x * speed;
+                        physics.acceleration.y = input.moveDirection.y * speed;
+                        physics.acceleration.z = input.moveDirection.z * speed; // Movimiento vertical basado en dirección de cámara
+                    }
+                    // Si no hay input, la aceleración ya está en 0 (reseteada arriba) y la fricción frenará la velocidad
+                } else if (input.moveDirection.x !== 0 || input.moveDirection.y !== 0) {
+                    // Movimiento normal (no volando): solo horizontal
+                    const speed = input.isRunning ? ANIMATION_CONSTANTS.INPUT.RUN_SPEED : ANIMATION_CONSTANTS.INPUT.WALK_SPEED;
                     physics.acceleration.x = input.moveDirection.x * speed;
                     physics.acceleration.y = input.moveDirection.y * speed;
-                    physics.acceleration.z = input.moveDirection.z * speed; // Movimiento vertical basado en dirección de cámara
                 }
-                // Si no hay input, la aceleración ya está en 0 (reseteada arriba) y la fricción frenará la velocidad
-            } else if (input.moveDirection.x !== 0 || input.moveDirection.y !== 0) {
-                // Movimiento normal (no volando): solo horizontal
-                const speed = input.isRunning ? ANIMATION_CONSTANTS.INPUT.RUN_SPEED : ANIMATION_CONSTANTS.INPUT.WALK_SPEED;
-                physics.acceleration.x = input.moveDirection.x * speed;
-                physics.acceleration.y = input.moveDirection.y * speed;
+            } else {
+                // Si está bloqueado, resetear aceleración a 0
+                physics.acceleration.x = ANIMATION_CONSTANTS.INPUT.DIRECTION.NONE;
+                physics.acceleration.y = ANIMATION_CONSTANTS.INPUT.DIRECTION.NONE;
+                if (physics.isFlying) {
+                    physics.acceleration.z = 0;
+                }
             }
 
             // Saltar - Sistema de triple salto para activar vuelo
