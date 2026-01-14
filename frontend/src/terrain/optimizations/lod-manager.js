@@ -5,6 +5,10 @@
  * optimizando el rendimiento al reducir el número de polígonos renderizados.
  */
 import * as THREE from 'three';
+import {
+    LOD_DISTANCE_THRESHOLDS,
+    LOD_SPHERE_SEGMENTS
+} from '../../config/particle-optimization-config.js';
 
 export class LODManager {
     /**
@@ -15,11 +19,7 @@ export class LODManager {
         this.lodCache = new Map(); // Cache de geometrías LOD
         
         // Umbrales de distancia para cada nivel LOD (en metros)
-        this.distanceThresholds = {
-            high: 10,    // < 10m: detalle alto
-            medium: 30,  // 10-30m: detalle medio
-            low: 100     // > 30m: detalle bajo
-        };
+        this.distanceThresholds = LOD_DISTANCE_THRESHOLDS;
     }
     
     /**
@@ -82,12 +82,13 @@ export class LODManager {
         const lodParams = { ...originalParams };
         
         // Reducir segments según nivel LOD
+        // OPTIMIZACIÓN: Para esferas (agua), reducir EXTREMADAMENTE agresivamente
         if (geometryType === 'sphere') {
-            const originalSegments = originalParams.segments || 16;
+            const originalSegments = originalParams.segments || LOD_SPHERE_SEGMENTS.high;
             if (lodLevel === 'medium') {
-                lodParams.segments = Math.max(8, Math.floor(originalSegments * 0.5));
+                lodParams.segments = LOD_SPHERE_SEGMENTS.medium;
             } else if (lodLevel === 'low') {
-                lodParams.segments = Math.max(4, Math.floor(originalSegments * 0.25));
+                lodParams.segments = LOD_SPHERE_SEGMENTS.low;
             }
         } else if (geometryType === 'cylinder') {
             const originalSegments = originalParams.segments || 8;

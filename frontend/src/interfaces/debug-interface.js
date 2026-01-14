@@ -719,7 +719,8 @@ export class DebugInterface extends BaseInterface {
                 { label: 'Verificar Optimizaciones', command: 'checkOptimizations()', returnsValue: false },
                 { label: 'Monitorear Object Pool', command: 'monitorObjectPool(5)', returnsValue: false },
                 { label: 'Verificar Optimizaciones Avanzadas', command: 'checkAdvancedOptimizations()', returnsValue: false },
-                { label: 'Monitorear Optimizaciones Avanzadas', command: 'monitorAdvancedOptimizations(5)', returnsValue: false }
+                { label: 'Monitorear Optimizaciones Avanzadas', command: 'monitorAdvancedOptimizations(5)', returnsValue: false },
+                { label: 'Verificar Optimizaciones de Partículas', command: 'checkParticleOptimizations()', returnsValue: false }
             ];
             
             // Estado para botones especiales que no devuelven valor
@@ -804,6 +805,16 @@ export class DebugInterface extends BaseInterface {
                             return;
                         }
                         
+                        if (cmd.label === 'Verificar Optimizaciones de Partículas') {
+                            if (typeof window.checkParticleOptimizations === 'function') {
+                                window.checkParticleOptimizations();
+                                this.showInfo(container, 'Verificación de optimizaciones de partículas ejecutada. Revisa los logs en el tab Logger.');
+                            } else {
+                                this.showError(container, 'Función checkParticleOptimizations no está disponible. Asegúrate de que el juego esté cargado.');
+                            }
+                            return;
+                        }
+                        
                         // Comandos normales que devuelven valor
                         const result = this.evaluateCommand(cmd.command);
                         this.showResult(container, `Resultado: ${cmd.label}`, result);
@@ -838,7 +849,7 @@ export class DebugInterface extends BaseInterface {
             
             customSection.appendChild(this.createLabel('Comando personalizado (permite copiar/pegar):'));
             const textarea = this.createTextarea({
-                placeholder: 'Ej: inspector.inspectEntity(1)\nEj: metrics.getStats()\nEj: logger.info("Test", "Mensaje")\nEj: checkOptimizations()\nEj: monitorObjectPool(5)\nEj: checkAdvancedOptimizations()\nEj: monitorAdvancedOptimizations(5)',
+                placeholder: 'Ej: inspector.inspectEntity(1)\nEj: metrics.getStats()\nEj: logger.info("Test", "Mensaje")\nEj: checkOptimizations()\nEj: monitorObjectPool(5)\nEj: checkAdvancedOptimizations()\nEj: monitorAdvancedOptimizations(5)\nEj: checkParticleOptimizations()',
                 width: '100%',
                 maxWidth: '600px',
                 minHeight: '100px'
@@ -882,6 +893,7 @@ export class DebugInterface extends BaseInterface {
             events: window.developmentTools?.events,
             panel: window.developmentTools?.panel,
             checkOptimizations: window.checkOptimizations,
+            checkParticleOptimizations: window.checkParticleOptimizations,
             monitorObjectPool: window.monitorObjectPool
         };
         

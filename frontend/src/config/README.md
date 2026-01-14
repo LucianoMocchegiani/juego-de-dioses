@@ -4,6 +4,15 @@ Este directorio contiene todos los archivos de configuración del juego, central
 
 ## Archivos de Configuración
 
+- **`particle-optimization-config.js`**: Configuración de optimizaciones de partículas (límites, distancias, ratios, etc.)
+  - Define límites de partículas, distancias de densidad, configuración LOD
+  - Configuración de optimización de agua (reducción de densidad)
+  - **`RENDER_OPTIMIZATIONS`**: Flags para habilitar/deshabilitar optimizaciones:
+    - `frustumCulling`: false (deshabilitado para partículas de terreno)
+    - `lod`: true (habilitado por defecto)
+    - `particleLimiting`: true (habilitado por defecto)
+    - `adaptiveLimiting`: false (temporalmente deshabilitado para pruebas)
+
 ### Animación y Combate
 - **`animation-config.js`**: Define los estados de animación, prioridades, condiciones y transiciones (isOneShot, preventInterruption, animation, etc.). Las rutas de animaciones apuntan a la estructura organizada en `biped/male/animations/` por categorías (shield-and-one-hand-weapon, two-hands-weapon, movement, hit-reactions, transitions, etc.).
 - **`combat-actions-config.js`**: Define acciones de combate con propiedades específicas (cooldown, movimiento, i-frames). **Referencia** estados de animación en `animation-config.js` para evitar duplicación.
