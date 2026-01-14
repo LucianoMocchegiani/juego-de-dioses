@@ -605,7 +605,60 @@ export function exposeDevelopmentTools(app, options = {}) {
     };
     
     // Informar sobre funciones de verificación disponibles
-    debugLogger.info('Optimizations', 'Funciones de verificación disponibles: checkOptimizations(), monitorObjectPool(seconds), checkAdvancedOptimizations(), monitorAdvancedOptimizations(seconds)');
+        // Exponer función de verificación de optimizaciones de partículas (JDG-008)
+        window.checkParticleOptimizations = () => {
+            if (!app.terrain || !app.terrain.renderer) {
+                debugLogger.error('ParticleOptimizations', 'TerrainManager o ParticleRenderer no disponible');
+                return;
+            }
+            
+            debugLogger.info('ParticleOptimizations', 'Verificación de Optimizaciones de Partículas');
+            
+            const stats = app.terrain.renderer.getOptimizationStats();
+            const performanceMetrics = app.performanceManager?.getMetrics() || {};
+            
+            debugLogger.info('ParticleOptimizations', 'Estado de optimizaciones:', {
+                frustumCulling: stats.frustumCulling.enabled ? 'Habilitado' : 'Deshabilitado',
+                lod: stats.lod.enabled ? 'Habilitado' : 'Deshabilitado',
+                particleLimiting: stats.particleLimiting.enabled ? 'Habilitado' : 'Deshabilitado',
+                adaptiveLimiting: stats.adaptiveLimiting.enabled ? 'Habilitado' : 'Deshabilitado'
+            });
+            
+            if (stats.particleLimiting.enabled) {
+                const limitStats = stats.particleLimiting.stats;
+                debugLogger.info('ParticleOptimizations', 'Estadísticas de limitación:', {
+                    'Límite actual': stats.particleLimiting.currentLimit,
+                    'Partículas entrada': limitStats.totalInput || 0,
+                    'Partículas salida': limitStats.totalOutput || 0,
+                    'Cercanas (<20m)': limitStats.nearParticles || 0,
+                    'Medianas (20-50m)': `${limitStats.mediumParticles || 0} → ${limitStats.mediumSampled || 0}`,
+                    'Lejanas (>50m)': `${limitStats.farParticles || 0} → ${limitStats.farSampled || 0}`
+                });
+            }
+            
+            if (stats.adaptiveLimiting.enabled) {
+                debugLogger.info('ParticleOptimizations', 'Adaptación dinámica:', {
+                    'FPS actual': stats.adaptiveLimiting.fps || 'N/A',
+                    'Límite actual': stats.adaptiveLimiting.currentLimit,
+                    'Estado': stats.adaptiveLimiting.fps < 45 ? 'Crítico (reduciendo límite)' :
+                             stats.adaptiveLimiting.fps < 55 ? 'Bajo (límite reducido)' :
+                             stats.adaptiveLimiting.fps < 59 ? 'Medio (límite medio)' :
+                             stats.adaptiveLimiting.fps >= 60 ? 'Óptimo (límite máximo)' : 'Desconocido'
+                });
+            }
+            
+            debugLogger.info('ParticleOptimizations', 'Configuración de densidad:', {
+                'Distancia cercana': `${stats.densityLimiting.near}m (100% partículas)`,
+                'Distancia lejana': `${stats.densityLimiting.far}m (25% partículas)`
+            });
+            
+            debugLogger.info('ParticleOptimizations', 'Performance:', {
+                'FPS': performanceMetrics.fps || 'N/A',
+                'Draw Calls': performanceMetrics.drawCalls || 'N/A'
+            });
+        };
+        
+        debugLogger.info('Optimizations', 'Funciones de verificación disponibles: checkOptimizations(), monitorObjectPool(seconds), checkAdvancedOptimizations(), monitorAdvancedOptimizations(seconds), checkParticleOptimizations()');
     
     // Retornar las herramientas para que puedan ser guardadas en app si es necesario
     return developmentTools;
