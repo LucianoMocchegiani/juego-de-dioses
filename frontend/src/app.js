@@ -103,7 +103,8 @@ export class App {
             this.scene.scene,
             this.particlesApi,
             this.bloquesApi,
-            this.geometryRegistry
+            this.geometryRegistry,
+            this.performanceManager // Pasar PerformanceManager para adaptación dinámica
         );
         
         // Instanced meshes actuales (para compatibilidad temporal)
@@ -206,9 +207,7 @@ export class App {
             });
         } else {
             // Log si no está en desarrollo
-            if (typeof window !== 'undefined' && window.console) {
-                console.log('[DebugTools] Modo desarrollo no detectado. Debugging deshabilitado.');
-            }
+            debugLogger.info('DebugTools', 'Modo desarrollo no detectado. Debugging deshabilitado.');
         }
     }
     
@@ -233,7 +232,7 @@ export class App {
                 }
             }
         }).catch(err => {
-            console.warn('[PerformanceLogger] No se pudo inicializar:', err);
+            debugLogger.warn('PerformanceLogger', 'No se pudo inicializar', { error: err.message || err });
         });
     }
     
@@ -310,6 +309,13 @@ export class App {
             
             // 9. Actualizar matrices de la cámara para que frustum culling funcione correctamente
             this.scene.camera.camera.updateMatrixWorld();
+            
+            // 9.5. Establecer cámara en TerrainManager para optimizaciones de renderizado
+            if (this.terrain && this.scene.camera) {
+                this.terrain.setCamera(this.scene.camera.camera);
+            }
+            
+            // NOTA: PlayerPositionGetter se configura después de crear el jugador (ver línea ~446)
             
             // 10. Contar draw calls después de renderizar
             this.performanceManager.countDrawCalls(this.currentInstancedMeshes);
@@ -421,6 +427,30 @@ export class App {
                 
                 // console.log(`✓ Jugador creado/cargado. Entity ID: ${this.playerId}, Character ID: ${characterId || 'nuevo'}`);
                 
+                // 9.6. Establecer función para obtener posición del jugador (DESPUÉS de crear el jugador)
+                // Esto permite que las optimizaciones de partículas prioricen alrededor del jugador, no de la cámara
+                if (this.terrain && this.playerId && this.ecs) {
+                    this.terrain.setPlayerPositionGetter(() => {
+                        const positionComponent = this.ecs.getComponent(this.playerId, 'Position');
+                        if (positionComponent && this.terrain.currentDimension) {
+                            const cellSize = this.terrain.currentDimension.tamano_celda;
+                            return {
+                                x: positionComponent.x * cellSize,
+                                y: positionComponent.y * cellSize,
+                                z: positionComponent.z * cellSize
+                            };
+                        }
+                        return null;
+                    });
+                    debugLogger.info('App', 'PlayerPositionGetter configurado para TerrainManager');
+                } else {
+                    debugLogger.warn('App', 'No se pudo configurar PlayerPositionGetter', {
+                        hasTerrain: !!this.terrain,
+                        hasPlayerId: !!this.playerId,
+                        hasEcs: !!this.ecs
+                    });
+                }
+                
                 // 19. Inicializar controlador de cámara y configurarlo para seguir al jugador
                 if (!this.cameraController) {
                     this.cameraController = new CameraController(
@@ -521,7 +551,7 @@ export class App {
             const currentTimeSeconds = performance.now() / 1000; // Tiempo en segundos
             if (this.celestialSystem && currentTimeSeconds - this.lastCelestialSync >= this.celestialSyncInterval) {
                 this.syncCelestialState().catch(err => {
-                    console.error('Error sincronizando estado celestial:', err);
+                    debugLogger.error('App', 'Error sincronizando estado celestial', { error: err.message || err });
                 });
                 this.lastCelestialSync = currentTimeSeconds;
                 this.celestialInterpolationTime = 0;
@@ -568,6 +598,13 @@ export class App {
             } else {
                 // Si no hay controlador de cámara, actualizar OrbitControls
             this.scene.controls.update();
+            }
+            
+            // Actualizar partículas según posición del jugador (re-renderiza si el jugador se movió)
+            if (this.terrain) {
+                this.terrain.updateForPlayerMovement().catch(err => {
+                    debugLogger.error('App', 'Error actualizando partículas por movimiento del jugador', { error: err.message || err });
+                });
             }
             
             // Limpiar frame de InputManager DESPUÉS de que todos los sistemas procesen el input

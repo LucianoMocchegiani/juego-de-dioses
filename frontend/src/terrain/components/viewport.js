@@ -81,7 +81,7 @@ export class Viewport {
             }
             zRange = zMax - zMin + 1;
             totalCells = xRange * yRange * zRange;
-            console.warn(`Viewport ajustado para no exceder límite: ${totalCells} celdas (Z: ${zMin} a ${zMax})`);
+            // Viewport ajustado para no exceder límite - esto es esperado y normal
         }
         
         return {

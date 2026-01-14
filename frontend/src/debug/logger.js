@@ -20,6 +20,10 @@ export class DebugLogger {
             warn: 2,
             error: 3
         };
+        
+        // Throttling: rastrear último tiempo de log por clave
+        // Clave: `${system}:${message}:${throttleKey}` o `${system}:${message}` si no hay throttleKey
+        this.lastLogTimes = new Map();
     }
     
     /**
@@ -53,9 +57,26 @@ export class DebugLogger {
      * @param {string} system - Nombre del sistema
      * @param {string} message - Mensaje
      * @param {Object} data - Datos adicionales
+     * @param {Object} options - Opciones adicionales { throttleMs, throttleKey }
+     *   - throttleMs: Intervalo mínimo entre logs del mismo tipo (ms). Si se proporciona, el log se throttling automáticamente.
+     *   - throttleKey: Clave opcional para throttling. Si no se proporciona, se usa `${system}:${message}`
      */
-    log(level, system, message, data = {}) {
+    log(level, system, message, data = {}, options = {}) {
         if (!this.shouldLog(level, system)) return;
+        
+        // Aplicar throttling si se especifica
+        if (options.throttleMs && options.throttleMs > 0) {
+            const throttleKey = options.throttleKey || `${system}:${message}`;
+            const fullKey = `${system}:${throttleKey}`;
+            const now = performance.now();
+            const lastTime = this.lastLogTimes.get(fullKey);
+            
+            if (lastTime && (now - lastTime) < options.throttleMs) {
+                return; // Skip log por throttling
+            }
+            
+            this.lastLogTimes.set(fullKey, now);
+        }
         
         const logEntry = {
             timestamp: performance.now(),
@@ -114,20 +135,48 @@ export class DebugLogger {
     }
     
     // Helpers para cada nivel
-    debug(system, message, data) { 
-        this.log('debug', system, message, data); 
+    /**
+     * Log de debug
+     * @param {string} system - Nombre del sistema
+     * @param {string} message - Mensaje
+     * @param {Object} data - Datos adicionales
+     * @param {Object} options - Opciones { throttleMs, throttleKey }
+     */
+    debug(system, message, data, options) { 
+        this.log('debug', system, message, data, options); 
     }
     
-    info(system, message, data) { 
-        this.log('info', system, message, data); 
+    /**
+     * Log de info
+     * @param {string} system - Nombre del sistema
+     * @param {string} message - Mensaje
+     * @param {Object} data - Datos adicionales
+     * @param {Object} options - Opciones { throttleMs, throttleKey }
+     */
+    info(system, message, data, options) { 
+        this.log('info', system, message, data, options); 
     }
     
-    warn(system, message, data) { 
-        this.log('warn', system, message, data); 
+    /**
+     * Log de warning
+     * @param {string} system - Nombre del sistema
+     * @param {string} message - Mensaje
+     * @param {Object} data - Datos adicionales
+     * @param {Object} options - Opciones { throttleMs, throttleKey }
+     */
+    warn(system, message, data, options) { 
+        this.log('warn', system, message, data, options); 
     }
     
-    error(system, message, data) { 
-        this.log('error', system, message, data); 
+    /**
+     * Log de error
+     * @param {string} system - Nombre del sistema
+     * @param {string} message - Mensaje
+     * @param {Object} data - Datos adicionales
+     * @param {Object} options - Opciones { throttleMs, throttleKey }
+     */
+    error(system, message, data, options) { 
+        this.log('error', system, message, data, options); 
     }
     
     /**

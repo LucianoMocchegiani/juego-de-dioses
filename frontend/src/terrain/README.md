@@ -30,7 +30,6 @@ terrain/
 ### Systems (Lógica)
 - `viewport-system.js` - Sistema de cálculo de viewports
 - `style-system.js` - Sistema de cache y procesamiento de estilos
-- `optimization-system.js` - Sistema que orquesta LOD, culling y limiting
 - `update-system.js` - Sistema de actualización dinámica de partículas
 
 ### Renderers
@@ -39,7 +38,6 @@ terrain/
 ### Optimizations
 - `lod-manager.js` - Level of Detail (migrado de `renderers/optimizations/lod-manager.js`)
 - `particle-limiter.js` - Limitación de partículas (migrado de `renderers/optimizations/particle-limiter.js`)
-- `culling-manager.js` - Wrapper para frustum culling
 
 ### Utils
 - `culling.js` - Utilidades de frustum culling (migrado de `utils/culling.js`)
