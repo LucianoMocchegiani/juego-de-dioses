@@ -18,7 +18,7 @@ export class DebugPanel {
         this.inspector = null;
         this.metrics = null;
         this.recentLogs = []; // Últimos logs para mostrar
-        this.maxRecentLogs = 10; // Máximo de logs a mostrar
+        this.maxRecentLogs = 50; // Máximo de logs a mantener en memoria
         this.currentTemperature = null; // Temperatura actual del bloque
         this.temperatureError = null; // Error al calcular temperatura
         this.lastTemperatureUpdate = 0; // Timestamp de última actualización de temperatura
@@ -42,13 +42,12 @@ export class DebugPanel {
             top: 10px;
             right: 10px;
             width: 400px;
-            max-height: 80vh;
             background: rgba(0, 0, 0, 0.9);
             color: #0f0;
             padding: 15px;
             font-family: 'Courier New', monospace;
             font-size: 12px;
-            overflow-y: auto;
+            overflow: visible;
             z-index: 10000;
             display: none;
             border: 2px solid #0f0;
@@ -305,12 +304,12 @@ export class DebugPanel {
             </div>
         `;
         
-        // Recent Logs (últimas 10 líneas)
+        // Recent Logs (últimos 6 logs, sin scroll)
         if (this.recentLogs.length > 0) {
             html += `
                 <div style="margin-bottom: 15px;">
                     <h4 style="margin: 0 0 5px 0; color: #0f0;">Recent Logs (F4 for details)</h4>
-                    <div style="margin-left: 10px; font-size: 10px; max-height: 250px; overflow: hidden;">
+                    <div style="margin-left: 10px; font-size: 10px; overflow: visible;">
             `;
             
             // Colores según nivel
@@ -321,8 +320,8 @@ export class DebugPanel {
                 error: '#f00'
             };
             
-            // Mostrar solo los últimos logs
-            const logsToShow = this.recentLogs.slice(-this.maxRecentLogs);
+            // Mostrar solo los últimos 6 logs
+            const logsToShow = this.recentLogs.slice(-6);
             logsToShow.forEach(logEntry => {
                 const time = new Date(logEntry.timestampISO).toLocaleTimeString();
                 const levelColor = levelColors[logEntry.level] || '#fff';
@@ -330,7 +329,7 @@ export class DebugPanel {
                 const message = this.escapeHtml(logEntry.message);
                 
                 html += `
-                    <div style="margin-bottom: 3px; border-bottom: 1px solid #333; padding-bottom: 2px;">
+                    <div style="margin-bottom: 3px; border-bottom: 1px solid #333; padding-bottom: 2px; word-wrap: break-word; white-space: normal;">
                         <span style="color: #666;">[${time}]</span>
                         <span style="color: #888;">[${system}]</span>
                         <span style="color: ${levelColor};">[${logEntry.level.toUpperCase()}]</span>
