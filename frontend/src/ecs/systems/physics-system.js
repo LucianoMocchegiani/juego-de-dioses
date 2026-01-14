@@ -142,6 +142,25 @@ export class PhysicsSystem extends System {
                 }
             }
             
+            // Verificar si debemos bloquear movimiento normal (medida de seguridad adicional)
+            // Nota: La aceleración normal ya está bloqueada en InputSystem, pero esta verificación
+            // asegura que no se aplique movimiento normal incluso si hay algún problema con InputSystem
+            let shouldBlockNormalMovement = false;
+            if (combat && combat.activeAction) {
+                const actionConfig = COMBAT_ACTIONS[combat.activeAction];
+                // Bloquear movimiento normal si la acción NO tiene hasMovement: true
+                if (!actionConfig || !actionConfig.hasMovement) {
+                    shouldBlockNormalMovement = true;
+                }
+            }
+            
+            // Si está bloqueado, asegurar que aceleración horizontal esté en 0
+            // (la aceleración ya debería estar bloqueada en InputSystem, pero esto es una medida de seguridad)
+            if (shouldBlockNormalMovement) {
+                physics.acceleration.x = 0;
+                physics.acceleration.y = 0;
+            }
+            
             // Aplicar gravedad (Z es altura) - solo si no está volando
             if (physics.useGravity && !physics.isGrounded && !physics.isFlying) {
                 physics.acceleration.z += this.gravity;
@@ -162,8 +181,18 @@ export class PhysicsSystem extends System {
             } else {
                 // Movimiento normal: solo fricción horizontal
                 const friction = physics.isGrounded ? physics.groundFriction : physics.airFriction;
-                physics.velocity.x *= friction; // Izquierda/derecha
-                physics.velocity.y *= friction; // Adelante/atrás
+                
+                // Si el movimiento está bloqueado, aplicar fricción extra para transición más suave
+                if (shouldBlockNormalMovement) {
+                    // Fricción más agresiva cuando está bloqueado para reducir velocidad más rápido
+                    // Esto evita transiciones bruscas cuando la animación termina
+                    const blockFriction = 0.7; // Fricción extra (reduce velocidad más rápido)
+                    physics.velocity.x *= blockFriction;
+                    physics.velocity.y *= blockFriction;
+                } else {
+                    physics.velocity.x *= friction; // Izquierda/derecha
+                    physics.velocity.y *= friction; // Adelante/atrás
+                }
             }
             
             // Limitar velocidad máxima

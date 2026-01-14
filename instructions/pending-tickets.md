@@ -4,11 +4,14 @@ Lista de tickets que aún no tienen un Pull Request completado.
 
 ## Tickets Pendientes
 
-- [ ] **JDG-008** - Mejora del ParticleLimiter para Alcanzar 60 FPS
 - [ ] **JDG-037** - Sistema de Física Avanzado
 - [ ] **JDG-043** - Sistema de Sombras Dinámicas
 - [ ] **JDG-044** - Implementar Movimiento en Espiral del Sol y Luna (Modelo de Gleason)
 - [ ] **JDG-050** - Refactorizar renderParticles() en Métodos Más Pequeños
+- [ ] **JDG-051** - Animaciones Direccionales de Caminar (Adelante, Atrás, Izquierda, Derecha)
+- [ ] **JDG-052** - Animaciones Direccionales de Agacharse y Caminar Agachado
+- [ ] **JDG-053** - Restricción de Movimiento en el Aire al Saltar e Inercia + Animaciones Direccionales de Nadar
+- [ ] **JDG-014** - Sistema de Daño por Partes del Cuerpo (Limb Damage System) ⚠️ POSPUESTO
 
 ## Tickets Completados (con PR)
 
@@ -19,6 +22,7 @@ Lista de tickets que aún no tienen un Pull Request completado.
 - [x] **JDG-005** - Componentización y Reorganización para Escalabilidad
 - [x] **JDG-006** - Componentización y Reorganización del Frontend para Escalabilidad
 - [x] **JDG-007** - Optimización de Rendimiento del Frontend (FPS Bajo)
+- [x] **JDG-008** - Mejora del ParticleLimiter para Alcanzar 60 FPS
 - [x] **JDG-009** - Crear Terreno de Prueba para Primer Humano
 - [x] **JDG-010** - Primer Personaje Jugable (Humano)
 - [x] **JDG-011** - Sistema de Personajes desde Base de Datos usando Templates/Builders/Creators
@@ -55,9 +59,10 @@ Lista de tickets que aún no tienen un Pull Request completado.
 - [x] **JDG-049** - Optimizaciones Avanzadas para Mejorar FPS (Fase 3)
 - [x] **JDG-024** - Sistema de Ambiente y Natación
 - [x] **JDG-008-2** - Mejoras de Buenas Prácticas en Optimizaciones de Partículas
+- [x] **JDG-034** - Bloquear Movimiento WASD Durante Animaciones de Habilidades
 
 ## Notas
 
 - Esta lista se actualiza automáticamente cuando se crea un nuevo ticket o se completa un PR
 - Los tickets se marcan como completados cuando se genera el PR description correspondiente
-- Total: 5 tickets pendientes, 43 tickets completados
+- Total: 8 tickets pendientes, 45 tickets completados
