@@ -89,7 +89,7 @@ export class AnimationMixerSystem extends System {
         )) {
             return null;
         }
-        
+
         // Prioridad 1: Combo (si hay combo activo)
         // Usar componente cacheado si está disponible, sino buscarlo
         const comboComp = combo || this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.COMBO);
@@ -101,7 +101,7 @@ export class AnimationMixerSystem extends System {
             });
             return comboComp.comboAnimation;
         }
-        
+
         // Prioridad 2: Combate (si hay acción activa)
         // Usar componente cacheado si está disponible, sino buscarlo
         const combatComp = combat || this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.COMBAT);
@@ -113,7 +113,7 @@ export class AnimationMixerSystem extends System {
             });
             return combatComp.combatAnimation;
         }
-        
+
         // Prioridad 3: Resolver desde configuración (estado normal)
         const animationName = this.getAnimationNameForState(stateId);
         debugLogger.debug('AnimationMixer', 'Resolved animation from state', {
@@ -294,7 +294,7 @@ export class AnimationMixerSystem extends System {
         // IMPORTANTE: 'state' puede ser el ID del estado (ej: 'parry') o el nombre de la animación (ej: 'sword_parry_backward')
         // Si es un ID de estado, obtener el nombre de animación desde la configuración
         // Si no encuentra en clips con el ID, asumir que 'state' es directamente el nombre de la animación
-        
+
         let animationName = null;
         if (clips[state]) {
             // Si existe en clips con el ID del estado, usarlo directamente
@@ -302,13 +302,13 @@ export class AnimationMixerSystem extends System {
         } else {
             // Si no existe, 'state' podría ser un ID de estado, obtener nombre de animación
             animationName = this.getAnimationNameForState(state);
-            
+
             // Si todavía no existe, intentar usar 'state' como nombre de animación directamente
             if (!animationName || !clips[animationName]) {
                 animationName = state;
             }
         }
-        
+
         // Si la animación no existe en los clips, no hacer nada
         if (!clips[animationName]) {
             return;
@@ -331,7 +331,7 @@ export class AnimationMixerSystem extends System {
         // Si el estado actual tiene preventInterruption (ej: ataques), no permitir NINGÚN cambio de estado
         // hasta que la animación termine (combatAction sea null).
         const hasActiveCombatAction = mesh.userData.combatAction && mesh.userData.combatAction.isRunning();
-        
+
         if (stateChanged && currentState && hasActiveCombatAction) {
             const currentStateConfig = this.stateConfigMap.get(currentState);
             if (currentStateConfig && currentStateConfig.preventInterruption) {
@@ -355,12 +355,13 @@ export class AnimationMixerSystem extends System {
             }
         }
 
-        // Siempre hacer fadeOut de animación anterior si existe y está corriendo y el estado cambió
-        // (igual que playAnimationByName para transiciones más suaves)
-        if (currentAction && currentAction.isRunning() && stateChanged) {
+        // Detener animación actual si existe y es diferente (excepto si la nueva es combat_stance)
+        if (currentAction && currentState !== state && state !== ANIMATION_MIXER.defaultState) {
+            currentAction.fadeOut(ANIMATION_MIXER.defaultTransitionDuration);
+        } else if (currentAction && currentState !== state && state === ANIMATION_MIXER.defaultState) {
+            // Si se transiciona a combat_stance, hacer fadeOut suave
             currentAction.fadeOut(ANIMATION_MIXER.defaultTransitionDuration);
         }
-
         // Crear y reproducir nueva animación
         const action = mixer.clipAction(clip);
         action.reset();
@@ -377,12 +378,12 @@ export class AnimationMixerSystem extends System {
             // Usar clampWhenFinished = true (igual que playAnimationByName)
             // Esto mantiene la animación en el último frame, evitando saltos visuales
             action.clampWhenFinished = true;
-            
+
             // Verificar si es acción de combate (del nuevo sistema)
             // Todas las acciones de combate (attack, parry, dodge, etc.) ahora usan activeAction
             const entityId = mesh.userData.entityId;
             const combat = entityId ? this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.COMBAT) : null;
-            
+
             if (combat && combat.activeAction) {
                 // Acción del nuevo sistema (attack, parry, dodge, heavy, charged, special)
                 mesh.userData.combatAction = action;
@@ -422,7 +423,7 @@ export class AnimationMixerSystem extends System {
             });
             return false;
         }
-        
+
         // Obtener componentes necesarios
         const render = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.RENDER);
         if (!render || !render.mesh) {
@@ -431,11 +432,11 @@ export class AnimationMixerSystem extends System {
             });
             return false;
         }
-        
+
         const mesh = render.mesh;
         const mixer = mesh.userData.animationMixer;
         const clips = mesh.userData.animationClips;
-        
+
         // Verificar que el mixer esté inicializado
         if (!mixer || !clips) {
             debugLogger.warn('AnimationMixer', 'playAnimationByName: Mixer no inicializado para entidad', {
@@ -445,10 +446,10 @@ export class AnimationMixerSystem extends System {
             });
             return false;
         }
-        
+
         // Buscar clip por nombre
         let clip = clips[animationName];
-        
+
         // Si no existe, la animación no está cargada
         if (!clip) {
             debugLogger.warn('AnimationMixer', 'playAnimationByName: Animación no encontrada en clips', {
@@ -458,19 +459,19 @@ export class AnimationMixerSystem extends System {
             });
             return false;
         }
-        
+
         // Detener animación actual si existe
         const currentAction = mesh.userData.currentAction;
         if (currentAction && currentAction.isRunning()) {
             currentAction.fadeOut(ANIMATION_MIXER.defaultTransitionDuration);
         }
-        
+
         // Limpiar referencias de combate si existen
         if (mesh.userData.combatAction) {
             mesh.userData.combatAction = null;
         }
         mesh.userData.isAttacking = false;
-        
+
         // Crear y reproducir nueva animación
         const action = mixer.clipAction(clip);
         action.reset();
@@ -478,22 +479,22 @@ export class AnimationMixerSystem extends System {
         action.clampWhenFinished = true;
         action.fadeIn(ANIMATION_MIXER.defaultTransitionDuration);
         action.play();
-        
+
         // Marcar que estamos en modo de prueba para evitar que el sistema automático interrumpa
         mesh.userData.isTestingAnimation = true;
         mesh.userData.testAnimationName = animationName;
-        
+
         // El flag se limpiará automáticamente en el método update() cuando la animación termine
-        
+
         // Guardar referencias
         mesh.userData.currentAction = action;
         mesh.userData.currentAnimationState = animationName;
-        
+
         debugLogger.debug('AnimationMixer', 'playAnimationByName: Animación reproducida', {
             entityId,
             animationName
         });
-        
+
         return true;
     }
 
@@ -512,33 +513,33 @@ export class AnimationMixerSystem extends System {
     updateCombatAction(entityId, combat, input, anim, mesh, action) {
         const actionDuration = action.getClip().duration;
         const progress = actionDuration > 0 ? action.time / actionDuration : 1.0;
-        
+
         if (!combat || !combat.activeAction) return false;
-        
+
         const combatConfig = COMBAT_ACTIONS[combat.activeAction];
         const finishedActionId = combat.activeAction;
-        
+
         // Actualizar i-frames si corresponde
         if (combatConfig && combatConfig.hasIFrames) {
-            combat.hasIFrames = progress >= combatConfig.iFrameStart && 
-                               progress <= combatConfig.iFrameEnd;
+            combat.hasIFrames = progress >= combatConfig.iFrameStart &&
+                progress <= combatConfig.iFrameEnd;
         }
-        
+
         // Early cleanup: Limpiar defenseType antes de que termine completamente
         const shouldEarlyCleanup = progress >= COMBAT_CONSTANTS.EARLY_CLEANUP_THRESHOLD && progress < 1.0;
-        if (shouldEarlyCleanup && (finishedActionId === COMBAT_CONSTANTS.ACTION_IDS.PARRY || 
-                                   finishedActionId === COMBAT_CONSTANTS.ACTION_IDS.DODGE)) {
+        if (shouldEarlyCleanup && (finishedActionId === COMBAT_CONSTANTS.ACTION_IDS.PARRY ||
+            finishedActionId === COMBAT_CONSTANTS.ACTION_IDS.DODGE)) {
             combat.cleanupDefenseType(finishedActionId, input);
         }
-        
+
         // Verificar si la animación terminó completamente
         const animationFinished = progress >= ANIMATION_CONSTANTS.NUMERIC.PROGRESS_COMPLETE || (!action.isRunning() && action.time >= actionDuration);
-        
+
         if (animationFinished) {
             this.cleanupFinishedCombatAction(entityId, finishedActionId, combat, input, anim, mesh);
             return true;
         }
-        
+
         return false;
     }
 
@@ -555,12 +556,12 @@ export class AnimationMixerSystem extends System {
      */
     cleanupFinishedCombatAction(entityId, finishedActionId, combat, input, anim, mesh) {
         // Guardar si parry todavía se quiere (para reactivación)
-        const parryStillWanted = finishedActionId === COMBAT_CONSTANTS.ACTION_IDS.PARRY && 
-                                 input && input.wantsToParry;
-        
+        const parryStillWanted = finishedActionId === COMBAT_CONSTANTS.ACTION_IDS.PARRY &&
+            input && input.wantsToParry;
+
         // Limpiar todo el estado de combate
         combat.clearCombatState();
-        
+
         // Lógica especial por tipo de acción usando el helper centralizado
         if (parryStillWanted) {
             // Mantener defenseType para reactivación
@@ -569,21 +570,21 @@ export class AnimationMixerSystem extends System {
             // Limpiar defenseType según tipo de acción (usando helper)
             combat.cleanupDefenseType(finishedActionId, input);
         }
-        
+
         // Resetear wantsToDodge para evitar reactivación
         if (finishedActionId === COMBAT_CONSTANTS.ACTION_IDS.DODGE && input) {
             input.wantsToDodge = false;
         }
-        
+
         // Cambiar estado de animación a idle
         if (anim) {
             anim.currentState = ANIMATION_CONSTANTS.STATE_IDS.IDLE;
         }
-        
+
         // Limpiar referencias en mesh
         mesh.userData.combatAction = null;
         mesh.userData.isAttacking = false;
-        
+
         // Resetear flag de movimiento aplicado
         if (mesh.userData.movementApplied !== undefined) {
             mesh.userData.movementApplied = false;
@@ -605,23 +606,23 @@ export class AnimationMixerSystem extends System {
             const combat = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.COMBAT);
             const input = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.INPUT);
             const combo = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.COMBO);
-            
+
             if (!render || !render.mesh || !animation) continue;
 
             const mesh = render.mesh;
-            
+
             // Actualizar LOD si está disponible
             if (this.lodManager) {
                 this.lodManager.updateLOD(entityId, render, animation);
             }
-            
+
             // Verificar LOD update frequency si está configurado
             let shouldUpdate = true;
             if (this.lodManager && animation) {
                 animation.updateFrequency = animation.updateFrequency || 1;
                 shouldUpdate = (this.frameCounter % animation.updateFrequency === 0);
             }
-            
+
             if (!shouldUpdate) continue;
 
             // Guardar referencia a la entidad en el mesh para uso posterior
@@ -659,12 +660,12 @@ export class AnimationMixerSystem extends System {
                 if (testAction) {
                     const testClip = testAction.getClip();
                     const progress = testClip.duration > 0 ? testAction.time / testClip.duration : 1.0;
-                    
+
                     // Si la animación terminó, limpiar el flag y volver al estado normal
                     if (progress >= 1.0 || !testAction.isRunning()) {
                         mesh.userData.isTestingAnimation = false;
                         mesh.userData.testAnimationName = null;
-                        
+
                         // Volver al estado idle para que el sistema normal retome
                         if (animation) {
                             animation.currentState = ANIMATION_MIXER.defaultState;
@@ -679,7 +680,7 @@ export class AnimationMixerSystem extends System {
                     mesh.userData.testAnimationName = null;
                 }
             }
-            
+
             // Reproducir animación según estado
             const clips = mesh.userData.animationClips;
             if (clips) {
