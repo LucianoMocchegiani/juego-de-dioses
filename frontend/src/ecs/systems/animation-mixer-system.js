@@ -355,11 +355,9 @@ export class AnimationMixerSystem extends System {
             }
         }
 
-        // Detener animación actual si existe y es diferente (excepto si la nueva es combat_stance)
-        if (currentAction && currentState !== state && state !== ANIMATION_MIXER.defaultState) {
-            currentAction.fadeOut(ANIMATION_MIXER.defaultTransitionDuration);
-        } else if (currentAction && currentState !== state && state === ANIMATION_MIXER.defaultState) {
-            // Si se transiciona a combat_stance, hacer fadeOut suave
+        // Siempre hacer fadeOut de animación anterior si existe y está corriendo y el estado cambió
+        // (igual que playAnimationByName para transiciones más suaves)
+        if (currentAction && currentAction.isRunning() && stateChanged) {
             currentAction.fadeOut(ANIMATION_MIXER.defaultTransitionDuration);
         }
 
@@ -376,7 +374,9 @@ export class AnimationMixerSystem extends System {
 
         if (isOneShot) {
             action.setLoop(THREE.LoopOnce);
-            action.clampWhenFinished = false;
+            // Usar clampWhenFinished = true (igual que playAnimationByName)
+            // Esto mantiene la animación en el último frame, evitando saltos visuales
+            action.clampWhenFinished = true;
             
             // Verificar si es acción de combate (del nuevo sistema)
             // Todas las acciones de combate (attack, parry, dodge, etc.) ahora usan activeAction
