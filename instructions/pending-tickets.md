@@ -12,6 +12,7 @@ Lista de tickets que aún no tienen un Pull Request completado.
 - [ ] **JDG-052** - Animaciones Direccionales de Agacharse y Caminar Agachado
 - [ ] **JDG-053** - Restricción de Movimiento en el Aire al Saltar e Inercia + Animaciones Direccionales de Nadar
 - [ ] **JDG-014** - Sistema de Daño por Partes del Cuerpo (Limb Damage System) ⚠️ POSPUESTO
+- [ ] **JDG-055** - Desplazamiento No Deseado Durante Animaciones (Root Motion)
 
 ## Tickets Completados (con PR)
 
@@ -60,9 +61,10 @@ Lista de tickets que aún no tienen un Pull Request completado.
 - [x] **JDG-024** - Sistema de Ambiente y Natación
 - [x] **JDG-008-2** - Mejoras de Buenas Prácticas en Optimizaciones de Partículas
 - [x] **JDG-034** - Bloquear Movimiento WASD Durante Animaciones de Habilidades
+- [x] **JDG-054** - Unificar Transiciones de Animación entre Gameplay Normal y F6
 
 ## Notas
 
 - Esta lista se actualiza automáticamente cuando se crea un nuevo ticket o se completa un PR
 - Los tickets se marcan como completados cuando se genera el PR description correspondiente
-- Total: 8 tickets pendientes, 45 tickets completados
+- Total: 9 tickets pendientes, 46 tickets completados
