@@ -257,6 +257,11 @@ export const ANIMATION_FILES = {
     // Movimiento - movement/
     'walk': 'biped/male/animations/movement/Walking_withSkin.glb',
     'walking': 'biped/male/animations/movement/Walking_withSkin.glb', // Alias para compatibilidad
+    // Animaciones direccionales de caminar (obtenidas desde Meshy)
+    'walk_forward': 'biped/male/animations/movement/Walking_withSkin.glb', // Adelante (default)
+    'walk_backward': 'biped/male/animations/movement/Walk_Backward_inplace_withSkin.glb',
+    'walk_left': 'biped/male/animations/movement/BackLeft_run_withSkin.glb', // Usando BackLeft_run
+    'walk_right': 'biped/male/animations/movement/BackRight_Run_withSkin.glb', // Usando BackRight_Run
     'run': 'biped/male/animations/movement/Running_withSkin.glb',
     'running': 'biped/male/animations/movement/Running_withSkin.glb', // Alias para compatibilidad
     // 'run_fast': '...', // Animation_RunFast_withSkin.glb no existe, usar 'run' como fallback
