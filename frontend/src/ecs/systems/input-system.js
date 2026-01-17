@@ -135,20 +135,21 @@ export class InputSystem extends System {
             if (!shouldBlockMovement) {
                 // Calcular dirección de movimiento en espacio local (relativo a la cámara)
                 // En espacio local: X = izquierda/derecha, Y = adelante/atrás
+                // IMPORTANTE: Solo una dirección a la vez - no combinar para movimiento diagonal
+                // El movimiento diagonal se maneja con la rotación de la cámara, no combinando teclas
                 let localX = 0;
                 let localY = 0;
 
+                // Prioridad: W (adelante) > S (atrás) > A (izquierda) > D (derecha)
+                // Solo usar la primera tecla presionada, no combinar
                 if (this.checkAction('moveForward')) {
-                    localY += ANIMATION_CONSTANTS.INPUT.DIRECTION.FORWARD; // Adelante (negativo Y en espacio local)
-                }
-                if (this.checkAction('moveBackward')) {
-                    localY += ANIMATION_CONSTANTS.INPUT.DIRECTION.BACKWARD; // Atrás (positivo Y en espacio local)
-                }
-                if (this.checkAction('moveLeft')) {
-                    localX += ANIMATION_CONSTANTS.INPUT.DIRECTION.LEFT; // Izquierda (negativo X en espacio local)
-                }
-                if (this.checkAction('moveRight')) {
-                    localX += ANIMATION_CONSTANTS.INPUT.DIRECTION.RIGHT; // Derecha (positivo X en espacio local)
+                    localY = ANIMATION_CONSTANTS.INPUT.DIRECTION.FORWARD; // Adelante (negativo Y en espacio local)
+                } else if (this.checkAction('moveBackward')) {
+                    localY = ANIMATION_CONSTANTS.INPUT.DIRECTION.BACKWARD; // Atrás (positivo Y en espacio local)
+                } else if (this.checkAction('moveLeft')) {
+                    localX = ANIMATION_CONSTANTS.INPUT.DIRECTION.LEFT; // Izquierda (negativo X en espacio local)
+                } else if (this.checkAction('moveRight')) {
+                    localX = ANIMATION_CONSTANTS.INPUT.DIRECTION.RIGHT; // Derecha (positivo X en espacio local)
                 }
 
                 // Si está volando, calcular movimiento en 3D basado en la dirección de la cámara
@@ -244,8 +245,11 @@ export class InputSystem extends System {
                 }
             }
 
-            // Correr
-            input.isRunning = this.checkAction('run');
+            // Correr: solo funciona hacia adelante (W)
+            // Si se presiona Shift + S/A/D, caminar normalmente, no correr
+            const wantsToRun = this.checkAction('run');
+            const isMovingForward = this.checkAction('moveForward');
+            input.isRunning = wantsToRun && isMovingForward; // Solo correr si Shift + W
 
             // Aplicar movimiento a física solo si no está bloqueado
             if (!shouldBlockMovement) {
