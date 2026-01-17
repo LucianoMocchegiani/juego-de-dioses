@@ -8,7 +8,6 @@ Lista de tickets que aún no tienen un Pull Request completado.
 - [ ] **JDG-043** - Sistema de Sombras Dinámicas
 - [ ] **JDG-044** - Implementar Movimiento en Espiral del Sol y Luna (Modelo de Gleason)
 - [ ] **JDG-050** - Refactorizar renderParticles() en Métodos Más Pequeños
-- [ ] **JDG-051** - Animaciones Direccionales de Caminar (Adelante, Atrás, Izquierda, Derecha)
 - [ ] **JDG-052** - Animaciones Direccionales de Agacharse y Caminar Agachado
 - [ ] **JDG-053** - Restricción de Movimiento en el Aire al Saltar e Inercia + Animaciones Direccionales de Nadar
 - [ ] **JDG-014** - Sistema de Daño por Partes del Cuerpo (Limb Damage System) ⚠️ POSPUESTO
@@ -62,9 +61,10 @@ Lista de tickets que aún no tienen un Pull Request completado.
 - [x] **JDG-008-2** - Mejoras de Buenas Prácticas en Optimizaciones de Partículas
 - [x] **JDG-034** - Bloquear Movimiento WASD Durante Animaciones de Habilidades
 - [x] **JDG-054** - Unificar Transiciones de Animación entre Gameplay Normal y F6
+- [x] **JDG-051** - Animaciones Direccionales de Caminar (Adelante, Atrás, Izquierda, Derecha)
 
 ## Notas
 
 - Esta lista se actualiza automáticamente cuando se crea un nuevo ticket o se completa un PR
 - Los tickets se marcan como completados cuando se genera el PR description correspondiente
-- Total: 9 tickets pendientes, 46 tickets completados
+- Total: 8 tickets pendientes, 47 tickets completados

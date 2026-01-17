@@ -50,9 +50,33 @@ export class AnimationMixerSystem extends System {
     /**
      * Obtener nombre de animación para un estado
      * @param {string} stateId - ID del estado
+     * @param {Object} input - InputComponent opcional para determinar dirección de caminar
      * @returns {string|null} Nombre de la animación o null si no hay
      */
-    getAnimationNameForState(stateId) {
+    getAnimationNameForState(stateId, input = null) {
+        // Si es estado 'walk' y tenemos input, determinar dirección directamente desde teclas
+        if (stateId === 'walk' && input) {
+            // Verificar teclas directamente (más simple y confiable)
+            // IMPORTANTE: Solo una dirección a la vez - verificar en orden de prioridad
+            const isW = input.isKeyPressed('KeyW');
+            const isS = input.isKeyPressed('KeyS');
+            const isA = input.isKeyPressed('KeyA');
+            const isD = input.isKeyPressed('KeyD');
+
+            // Prioridad: W (adelante) > S (atrás) > A (izquierda) > D (derecha)
+            // Solo usar la primera tecla que encuentre presionada (una a la vez)
+            if (isW) {
+                return 'walk_forward';
+            } else if (isS) {
+                return 'walk_backward';
+            } else if (isA) {
+                return 'walk_left';
+            } else if (isD) {
+                return 'walk_right';
+            }
+            // Si no hay ninguna tecla presionada, usar fallback
+        }
+
         // Buscar en el mapa de configuración
         const stateConfig = this.stateConfigMap.get(stateId);
         if (stateConfig && stateConfig.animation) {
@@ -115,11 +139,17 @@ export class AnimationMixerSystem extends System {
         }
 
         // Prioridad 3: Resolver desde configuración (estado normal)
-        const animationName = this.getAnimationNameForState(stateId);
+        // Si es estado 'walk', pasar input para determinar dirección
+        let input = null;
+        if (stateId === 'walk') {
+            input = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.INPUT);
+        }
+        const animationName = this.getAnimationNameForState(stateId, input);
         debugLogger.debug('AnimationMixer', 'Resolved animation from state', {
             entityId,
             stateId,
-            animationName
+            animationName,
+            hasInput: input !== null
         });
         return animationName;
     }
@@ -274,6 +304,7 @@ export class AnimationMixerSystem extends System {
             animatedModel.userData.animationMixer = mixer;
             animatedModel.userData.animationClips = animations;
             animatedModel.userData.currentAction = null;
+            animatedModel.userData.currentAnimationName = null; // Inicializar para tracking de animaciones direccionales
 
             this.initializingMixers.delete(entityId);
             return mixer;
@@ -301,7 +332,15 @@ export class AnimationMixerSystem extends System {
             animationName = state;
         } else {
             // Si no existe, 'state' podría ser un ID de estado, obtener nombre de animación
-            animationName = this.getAnimationNameForState(state);
+            // Si es estado 'walk', pasar input para determinar dirección
+            let input = null;
+            if (state === 'walk') {
+                const entityId = mesh.userData.entityId;
+                if (entityId) {
+                    input = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.INPUT);
+                }
+            }
+            animationName = this.getAnimationNameForState(state, input);
 
             // Si todavía no existe, intentar usar 'state' como nombre de animación directamente
             if (!animationName || !clips[animationName]) {
@@ -317,13 +356,19 @@ export class AnimationMixerSystem extends System {
         const clip = clips[animationName];
         const currentAction = mesh.userData.currentAction;
         const currentState = mesh.userData.currentAnimationState;
+        const currentAnimationName = mesh.userData.currentAnimationName;
 
         // Verificar si el estado cambió
         // Usar 'state' (ID del estado) para comparar con currentState
         const stateChanged = currentState !== state;
+        
+        // Para estado 'walk', también verificar si la animación direccional cambió
+        // (porque el estado puede ser 'walk' pero la animación puede ser walk_forward, walk_left, etc.)
+        const animationChanged = (state === 'walk' && currentState === 'walk') ? 
+            (currentAnimationName !== animationName) : false;
 
-        // Si ya está reproduciendo esta misma animación Y el estado no cambió, no hacer nada
-        if (currentAction && !stateChanged && currentAction.isRunning()) {
+        // Si ya está reproduciendo esta misma animación Y el estado no cambió Y la animación direccional no cambió, no hacer nada
+        if (currentAction && !stateChanged && !animationChanged && currentAction.isRunning()) {
             return;
         }
 
@@ -402,6 +447,7 @@ export class AnimationMixerSystem extends System {
         // Guardar referencia a la acción y estado actual
         mesh.userData.currentAction = action;
         mesh.userData.currentAnimationState = state;
+        mesh.userData.currentAnimationName = animationName; // Guardar nombre de animación para detectar cambios direccionales
     }
 
     /**
@@ -489,6 +535,7 @@ export class AnimationMixerSystem extends System {
         // Guardar referencias
         mesh.userData.currentAction = action;
         mesh.userData.currentAnimationState = animationName;
+        mesh.userData.currentAnimationName = animationName; // Guardar nombre de animación para detectar cambios direccionales
 
         debugLogger.debug('AnimationMixer', 'playAnimationByName: Animación reproducida', {
             entityId,
@@ -689,8 +736,9 @@ export class AnimationMixerSystem extends System {
                 const stateToUse = animation.currentState;
 
                 // Si la animación existe en los clips cargados, reproducirla
+                // IMPORTANTE: Usar animationName (resuelto) para que funcione con animaciones direccionales
                 if (animationName && clips[animationName]) {
-                    this.playAnimation(mixer, clips, stateToUse, mesh);
+                    this.playAnimation(mixer, clips, animationName, mesh);
                 } else if (clips[ANIMATION_MIXER.defaultState]) {
                     // Fallback: usar combat_stance si no hay animación específica
                     this.playAnimation(mixer, clips, ANIMATION_MIXER.defaultState, mesh);
