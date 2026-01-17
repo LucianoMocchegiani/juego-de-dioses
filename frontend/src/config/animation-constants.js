@@ -98,6 +98,9 @@ export const ANIMATION_CONSTANTS = {
         WALK_SPEED: 200,  // Aumentado de 15 a 30
         RUN_SPEED: 800,   // Aumentado de 30 a 60
         
+        // Multiplicadores de velocidad
+        CROUCH_SPEED_MULTIPLIER: 0.5, // 50% de velocidad cuando está agachado
+        
         // Thresholds
         DIRECTION_NORMALIZE_THRESHOLD: 0.01,
         

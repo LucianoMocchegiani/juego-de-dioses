@@ -76,6 +76,29 @@ export class AnimationMixerSystem extends System {
             }
             // Si no hay ninguna tecla presionada, usar fallback
         }
+        
+        // Si es estado 'crouch_walk' y tenemos input, determinar dirección directamente desde teclas
+        if (stateId === 'crouch_walk' && input) {
+            // Verificar teclas directamente (más simple y confiable)
+            // IMPORTANTE: Solo una dirección a la vez - verificar en orden de prioridad
+            const isW = input.isKeyPressed('KeyW');
+            const isS = input.isKeyPressed('KeyS');
+            const isA = input.isKeyPressed('KeyA');
+            const isD = input.isKeyPressed('KeyD');
+
+            // Prioridad: W (adelante) > S (atrás) > A (izquierda) > D (derecha)
+            // Solo usar la primera tecla que encuentre presionada (una a la vez)
+            if (isW) {
+                return 'crouch_walk_forward';
+            } else if (isS) {
+                return 'crouch_walk_backward';
+            } else if (isA) {
+                return 'crouch_walk_left';
+            } else if (isD) {
+                return 'crouch_walk_right';
+            }
+            // Si no hay ninguna tecla presionada, usar fallback
+        }
 
         // Buscar en el mapa de configuración
         const stateConfig = this.stateConfigMap.get(stateId);
@@ -139,9 +162,9 @@ export class AnimationMixerSystem extends System {
         }
 
         // Prioridad 3: Resolver desde configuración (estado normal)
-        // Si es estado 'walk', pasar input para determinar dirección
+        // Si es estado 'walk' o 'crouch_walk', pasar input para determinar dirección
         let input = null;
-        if (stateId === 'walk') {
+        if (stateId === 'walk' || stateId === 'crouch_walk') {
             input = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.INPUT);
         }
         const animationName = this.getAnimationNameForState(stateId, input);
@@ -362,9 +385,10 @@ export class AnimationMixerSystem extends System {
         // Usar 'state' (ID del estado) para comparar con currentState
         const stateChanged = currentState !== state;
         
-        // Para estado 'walk', también verificar si la animación direccional cambió
-        // (porque el estado puede ser 'walk' pero la animación puede ser walk_forward, walk_left, etc.)
-        const animationChanged = (state === 'walk' && currentState === 'walk') ? 
+        // Para estado 'walk' o 'crouch_walk', también verificar si la animación direccional cambió
+        // (porque el estado puede ser 'walk' o 'crouch_walk' pero la animación puede ser walk_forward, walk_left, crouch_walk_backward, etc.)
+        const animationChanged = ((state === 'walk' && currentState === 'walk') || 
+                                 (state === 'crouch_walk' && currentState === 'crouch_walk')) ? 
             (currentAnimationName !== animationName) : false;
 
         // Si ya está reproduciendo esta misma animación Y el estado no cambió Y la animación direccional no cambió, no hacer nada

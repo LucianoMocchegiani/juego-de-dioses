@@ -197,7 +197,12 @@ export class TestInterface extends BaseInterface {
      * Renderizar lista de animaciones
      */
     renderAnimationList() {
-        if (!this.animationListContainer || !this.animations || typeof this.animations !== 'object') return;
+        if (!this.animationListContainer) return;
+        
+        // Recargar animaciones desde ANIMATION_FILES para obtener las últimas actualizaciones
+        this.animations = ANIMATION_FILES || {};
+        
+        if (!this.animations || typeof this.animations !== 'object') return;
         
         this.animationListContainer.innerHTML = '';
         
