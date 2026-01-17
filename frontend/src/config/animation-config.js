@@ -176,7 +176,7 @@ export const ANIMATION_STATES = [
             { type: 'input', property: 'wantsToCrouch', operator: 'equals', value: true },
             { type: 'movement', operator: 'noMovement' }
         ],
-        animation: 'crouch_walk_forward', // Temporal: usar misma animación con velocidad 0
+        animation: 'crouch_idle', // Animación de idle agachado
         transitions: ['crouch_walk', 'idle', 'swim', 'swim_idle']
     },
     {
@@ -279,6 +279,10 @@ export const ANIMATION_FILES = {
     // Movimiento - movement/ (migrado desde secondary-interactions/)
     'crouch_walk_forward': 'biped/male/animations/movement/Cautious_Crouch_Walk_Forward_inplace_withSkin.glb',
     'crouch_walk_right': 'biped/male/animations/movement/Cautious_Crouch_Walk_Right_inplace_withSkin.glb',
+    // Animaciones direccionales de agacharse (obtenidas desde Meshy)
+    'crouch_walk_backward': 'biped/male/animations/movement/Cautious_Crouch_Walk_Backward_inplace_withSkin.glb',
+    'crouch_walk_left': 'biped/male/animations/movement/Cautious_Crouch_Walk_Left_inplace_withSkin.glb',
+    'crouch_idle': 'biped/male/animations/movement/CrouchLookAroundBow_withSkin.glb', // Animación de idle agachado
     // 'limping_walk': '...', // Animation_Limping_Walk_inplace_withSkin.glb no existe
     
     // Transiciones - transitions/ (migrado desde interactions/)

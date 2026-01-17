@@ -245,11 +245,15 @@ export class InputSystem extends System {
                 }
             }
 
-            // Correr: solo funciona hacia adelante (W)
+            // Agacharse (verificar antes de correr para que no pueda correr agachado)
+            input.wantsToCrouch = this.checkAction('crouch');
+            
+            // Correr: solo funciona hacia adelante (W) y NO cuando está agachado
             // Si se presiona Shift + S/A/D, caminar normalmente, no correr
+            // Si está agachado, no puede correr
             const wantsToRun = this.checkAction('run');
             const isMovingForward = this.checkAction('moveForward');
-            input.isRunning = wantsToRun && isMovingForward; // Solo correr si Shift + W
+            input.isRunning = wantsToRun && isMovingForward && !input.wantsToCrouch; // Solo correr si Shift + W y NO está agachado
 
             // Aplicar movimiento a física solo si no está bloqueado
             if (!shouldBlockMovement) {
@@ -273,7 +277,13 @@ export class InputSystem extends System {
                     // Si no hay input, la aceleración ya está en 0 (reseteada arriba) y la fricción frenará la velocidad
                 } else if (input.moveDirection.x !== 0 || input.moveDirection.y !== 0) {
                     // Movimiento normal (no volando): solo horizontal
-                    const speed = input.isRunning ? ANIMATION_CONSTANTS.INPUT.RUN_SPEED : ANIMATION_CONSTANTS.INPUT.WALK_SPEED;
+                    let speed = input.isRunning ? ANIMATION_CONSTANTS.INPUT.RUN_SPEED : ANIMATION_CONSTANTS.INPUT.WALK_SPEED;
+                    
+                    // Reducir velocidad si está agachado (aplicar multiplicador)
+                    if (input.wantsToCrouch) {
+                        speed *= ANIMATION_CONSTANTS.INPUT.CROUCH_SPEED_MULTIPLIER;
+                    }
+                    
                     physics.acceleration.x = input.moveDirection.x * speed;
                     physics.acceleration.y = input.moveDirection.y * speed;
                 }
@@ -326,8 +336,7 @@ export class InputSystem extends System {
 
             // Controles de vuelo - Ya no necesarios, el movimiento se controla con W/S y la cámara
 
-            // Agacharse
-            input.wantsToCrouch = this.checkAction('crouch');
+            // Agacharse (ya se estableció arriba antes de verificar correr)
 
             // Combate y Acciones
             // Importante: Orden de prioridad para evitar solapamiento de teclas
