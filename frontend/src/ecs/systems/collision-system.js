@@ -7,6 +7,10 @@
 import { System } from '../system.js';
 import { ECS_CONSTANTS } from '../../config/ecs-constants.js';
 import { ANIMATION_CONSTANTS } from '../../config/animation-constants.js';
+import { CollisionCacheManager } from '../helpers/collision/collision-cache-manager.js';
+import { CollisionDetectorHelper } from '../helpers/collision/collision-detector-helper.js';
+import { LiquidDetector } from '../helpers/collision/liquid-detector.js';
+import { TerrainBoundsChecker } from '../helpers/collision/terrain-bounds-checker.js';
 
 export class CollisionSystem extends System {
     /**
@@ -29,33 +33,15 @@ export class CollisionSystem extends System {
         this.spatialGrid = spatialGrid;
         this.priority = 2; // Ejecutar después de PhysicsSystem (priority 1)
         
-        /**
-         * Cache de partículas ocupadas por entidad (para evitar consultas repetidas)
-         * @type {Map<number, Set<string>>}
-         */
-        this.entityCollisionCache = new Map();
-        
-        /**
-         * Últimas posiciones conocidas de las entidades (para invalidar cache solo cuando se mueven)
-         * @type {Map<number, {x: number, y: number, z: number}>}
-         */
-        this.lastEntityPositions = new Map();
-        
-        /**
-         * Umbral de movimiento para invalidar cache (en celdas)
-         * @type {number}
-         */
-        this.cacheInvalidationThreshold = ANIMATION_CONSTANTS.COLLISION.CACHE_INVALIDATION_THRESHOLD;
-        
-        /**
-         * Mapa de celdas ocupadas basado en partículas cargadas
-         * @type {Set<string>}
-         */
-        this.loadedOccupiedCells = null;
+        // Instanciar helpers
+        this.collisionCacheManager = new CollisionCacheManager(ANIMATION_CONSTANTS);
+        this.collisionDetectorHelper = new CollisionDetectorHelper(collisionDetector, ANIMATION_CONSTANTS);
+        this.liquidDetector = new LiquidDetector(ANIMATION_CONSTANTS);
+        this.terrainBoundsChecker = new TerrainBoundsChecker(ANIMATION_CONSTANTS);
         
         // Pre-calcular celdas ocupadas si hay partículas cargadas
         if (this.particles && this.particles.length > 0) {
-            this.updateLoadedCells();
+            this.collisionCacheManager.updateLoadedCells(this.particles);
         }
     }
     
@@ -63,15 +49,7 @@ export class CollisionSystem extends System {
      * Actualizar mapa de celdas ocupadas desde partículas cargadas
      */
     updateLoadedCells() {
-        if (!this.particles) return;
-        
-        this.loadedOccupiedCells = new Set();
-        for (const particle of this.particles) {
-            if (particle.estado_nombre === ANIMATION_CONSTANTS.COLLISION.PARTICLE_STATE_SOLID) {
-                const key = `${particle.celda_x},${particle.celda_y},${particle.celda_z}`;
-                this.loadedOccupiedCells.add(key);
-            }
-        }
+        this.collisionCacheManager.updateLoadedCells(this.particles);
     }
     
     /**
@@ -80,31 +58,7 @@ export class CollisionSystem extends System {
      * @returns {boolean} True si hay líquidos en la posición
      */
     detectLiquidAtPosition(position) {
-        // Opción 1: Usar partículas ya cargadas (si están disponibles)
-        if (this.particles && this.particles.length > 0) {
-            const cellX = Math.floor(position.x);
-            const cellY = Math.floor(position.y);
-            const cellZ = Math.floor(position.z);
-            
-            const particlesAtPosition = this.particles.filter(p => 
-                p.celda_x === cellX &&
-                p.celda_y === cellY &&
-                p.celda_z === cellZ &&
-                !p.extraida
-            );
-            
-            // Verificar si hay líquidos
-            const hasLiquid = particlesAtPosition.some(p => 
-                p.estado_nombre === ANIMATION_CONSTANTS.COLLISION.PARTICLE_STATE_LIQUID ||
-                ANIMATION_CONSTANTS.COLLISION.LIQUID_TYPES.includes(p.tipo_nombre)
-            );
-            
-            return hasLiquid;
-        }
-        
-        // Opción 2: Si no hay partículas cargadas, retornar false
-        // (puede extenderse en el futuro para consultar API)
-        return false;
+        return this.liquidDetector.detectLiquidAtPosition(position, this.particles);
     }
     
     /**
@@ -113,9 +67,9 @@ export class CollisionSystem extends System {
      */
     setParticles(particles) {
         this.particles = particles;
-        this.updateLoadedCells();
+        this.collisionCacheManager.updateLoadedCells(this.particles);
         // Invalidar cache de entidades
-        this.entityCollisionCache.clear();
+        this.collisionCacheManager.clearCache();
     }
     
     /**
@@ -136,133 +90,45 @@ export class CollisionSystem extends System {
                 this.spatialGrid.update(entityId, position.x, position.y, position.z);
             }
             
-            // Usar partículas cargadas si están disponibles, sino usar cache o consultar
-            let occupiedCells = this.loadedOccupiedCells;
+            // Obtener celdas ocupadas usando cache manager
+            const occupiedCells = this.collisionCacheManager.getOccupiedCells(
+                entityId,
+                position,
+                this.collisionDetector,
+                this.bloqueId
+            );
             
-            // Si no hay partículas cargadas, usar cache o consultar
-            if (!occupiedCells) {
-                occupiedCells = this.entityCollisionCache.get(entityId);
-                
-                // Si no hay cache, iniciar consulta async (no bloquea)
-                if (!occupiedCells) {
-                    // Iniciar consulta async
-                    this.collisionDetector.checkCollision(
-                        position, 2, this.bloqueId
-                    ).then(cells => {
-                        this.entityCollisionCache.set(entityId, cells);
-                    }).catch(error => {
-                        // console.error('Error en detección de colisiones:', error);
-                    });
-                    // Por ahora, usar set vacío hasta que llegue la respuesta
-                    occupiedCells = new Set();
-                }
-            }
+            // Verificar colisiones laterales (X/Y)
+            this.collisionDetectorHelper.checkLateralCollisions(
+                position,
+                physics,
+                deltaTime,
+                occupiedCells
+            );
             
-            // Verificar colisión en dirección de movimiento
-            // X = izquierda/derecha, Y = adelante/atrás, Z = arriba/abajo
-            const nextX = position.x + physics.velocity.x * deltaTime;
-            const nextY = position.y + physics.velocity.y * deltaTime;
-            const nextZ = position.z + physics.velocity.z * deltaTime;
+            // Verificar colisión con suelo (Z)
+            this.collisionDetectorHelper.checkGroundCollision(
+                position,
+                physics,
+                occupiedCells,
+                this.dimension
+            );
             
-            // Verificar colisión lateral X (izquierda/derecha)
-            if (occupiedCells && this.collisionDetector.isCellOccupied(occupiedCells, nextX, position.y, position.z)) {
-                physics.velocity.x = ANIMATION_CONSTANTS.COLLISION.POSITION_CORRECTION.VELOCITY_RESET;
-            }
-            
-            // Verificar colisión lateral Y (adelante/atrás)
-            if (occupiedCells && this.collisionDetector.isCellOccupied(occupiedCells, position.x, nextY, position.z)) {
-                physics.velocity.y = ANIMATION_CONSTANTS.COLLISION.POSITION_CORRECTION.VELOCITY_RESET;
-            }
-            
-            // Verificar suelo (debajo en Z)
-            // X = izquierda/derecha, Y = adelante/atrás, Z = arriba/abajo
-            const currentX = Math.floor(position.x);
-            const currentY = Math.floor(position.y);
-            const currentZ = Math.floor(position.z);
-            const groundZ = currentZ - 1; // Z es altura, suelo está abajo
-            
-            // Verificar si hay suelo debajo
-            let hasGround = false;
-            if (occupiedCells && occupiedCells.size > 0) {
-                // Verificar suelo directamente debajo
-                hasGround = this.collisionDetector.isCellOccupied(occupiedCells, currentX, currentY, groundZ);
-                
-                // Si no hay suelo debajo, verificar si estamos dentro de una partícula sólida (ajustar hacia arriba)
-                if (!hasGround && this.collisionDetector.isCellOccupied(occupiedCells, currentX, currentY, currentZ)) {
-                    // Estamos dentro de una partícula sólida, mover hacia arriba
-                    position.z = currentZ + ANIMATION_CONSTANTS.COLLISION.POSITION_CORRECTION.MIN_Z;
-                    hasGround = false; // Aún no estamos en el suelo
-                }
-            } else {
-                // Si no hay partículas cargadas, verificar límites del terreno
-                // Si estamos muy abajo (z <= 1), asumir que hay suelo para prevenir caída infinita
-                if (this.dimension && position.z <= ANIMATION_CONSTANTS.COLLISION.POSITION_CORRECTION.MIN_Z) {
-                    hasGround = true;
-                    position.z = ANIMATION_CONSTANTS.COLLISION.POSITION_CORRECTION.MIN_Z;
-                    physics.velocity.z = ANIMATION_CONSTANTS.COLLISION.POSITION_CORRECTION.VELOCITY_RESET;
-                }
-            }
-            
-            if (hasGround) {
-                physics.isGrounded = true;
-                if (physics.velocity.z < ANIMATION_CONSTANTS.COLLISION.POSITION_CORRECTION.VELOCITY_RESET) { // Z es altura, negativo es hacia abajo
-                    physics.velocity.z = ANIMATION_CONSTANTS.COLLISION.POSITION_CORRECTION.VELOCITY_RESET;
-                    // Ajustar posición a superficie (arriba del suelo)
-                    // Asegurar que esté exactamente arriba del suelo
-                    position.z = groundZ + ANIMATION_CONSTANTS.COLLISION.POSITION_CORRECTION.MIN_Z;
-                }
-            } else {
-                physics.isGrounded = false;
-            }
-            
-            // Límites del terreno (prevenir caída infinita hacia abajo, pero permitir vuelo ilimitado hacia arriba)
-            if (this.dimension) {
-                const maxX = this.dimension.ancho_metros / this.dimension.tamano_celda;
-                const maxY = this.dimension.alto_metros / this.dimension.tamano_celda;
-                const minZ = this.dimension.profundidad_maxima || ANIMATION_CONSTANTS.COLLISION.DEFAULT_DIMENSION.MIN_Z;
-                // No limitar altura máxima - permitir vuelo ilimitado hacia arriba para ver sol/luna
-                // const maxZ = this.dimension.altura_maxima || ANIMATION_CONSTANTS.COLLISION.DEFAULT_DIMENSION.MAX_Z;
-                
-                // Limitar posición horizontal y profundidad mínima
-                position.x = Math.max(0, Math.min(maxX - 1, position.x));
-                position.y = Math.max(0, Math.min(maxY - 1, position.y));
-                position.z = Math.max(minZ, position.z); // Solo limitar hacia abajo, no hacia arriba
-                
-                // Si cae fuera del terreno (hacia abajo), teleportar a superficie
-                if (position.z < minZ) {
-                    position.z = ANIMATION_CONSTANTS.COLLISION.DEFAULT_RESPAWN.Z;
-                    position.x = ANIMATION_CONSTANTS.COLLISION.DEFAULT_RESPAWN.X;
-                    position.y = ANIMATION_CONSTANTS.COLLISION.DEFAULT_RESPAWN.Y;
-                    physics.velocity = {
-                        x: ANIMATION_CONSTANTS.COLLISION.POSITION_CORRECTION.VELOCITY_RESET,
-                        y: ANIMATION_CONSTANTS.COLLISION.POSITION_CORRECTION.VELOCITY_RESET,
-                        z: ANIMATION_CONSTANTS.COLLISION.POSITION_CORRECTION.VELOCITY_RESET
-                    };
-                }
-            }
+            // Verificar límites del terreno y respawn si es necesario
+            this.terrainBoundsChecker.checkAndApplyBounds(
+                position,
+                physics,
+                this.dimension
+            );
             
             // Invalidar cache solo si la entidad se movió significativamente
-            const lastPos = this.lastEntityPositions.get(entityId);
-            if (lastPos) {
-                const dx = Math.abs(position.x - lastPos.x);
-                const dy = Math.abs(position.y - lastPos.y);
-                const dz = Math.abs(position.z - lastPos.z);
-                const distance = Math.sqrt(dx * dx + dy * dy + dz * dz);
-                
-                if (distance > this.cacheInvalidationThreshold) {
-                    this.entityCollisionCache.delete(entityId);
-                }
-            }
+            this.collisionCacheManager.invalidateCacheIfNeeded(entityId, position);
             
             // Detectar agua/líquidos
-            physics.isInWater = this.detectLiquidAtPosition(position);
+            physics.isInWater = this.liquidDetector.detectLiquidAtPosition(position, this.particles);
             
             // Actualizar última posición conocida
-            this.lastEntityPositions.set(entityId, {
-                x: position.x,
-                y: position.y,
-                z: position.z
-            });
+            this.collisionCacheManager.updateLastPosition(entityId, position);
         }
     }
 }
