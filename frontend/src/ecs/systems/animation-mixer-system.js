@@ -99,6 +99,29 @@ export class AnimationMixerSystem extends System {
             }
             // Si no hay ninguna tecla presionada, usar fallback
         }
+        
+        // Si es estado 'swim' y tenemos input, determinar dirección directamente desde teclas
+        if (stateId === 'swim' && input) {
+            // Verificar teclas directamente (más simple y confiable)
+            // IMPORTANTE: Solo una dirección a la vez - verificar en orden de prioridad
+            const isW = input.isKeyPressed('KeyW');
+            const isS = input.isKeyPressed('KeyS');
+            const isA = input.isKeyPressed('KeyA');
+            const isD = input.isKeyPressed('KeyD');
+
+            // Prioridad: W (adelante) > S (atrás) > A (izquierda) > D (derecha)
+            // Solo usar la primera tecla que encuentre presionada (una a la vez)
+            if (isW) {
+                return 'swim_forward';
+            } else if (isS) {
+                return 'swim_idle'; // Fallback: no existe swim_backward
+            } else if (isA) {
+                return 'swim_idle'; // Fallback: no existe swim_left
+            } else if (isD) {
+                return 'swim_idle'; // Fallback: no existe swim_right
+            }
+            // Si no hay ninguna tecla presionada, usar fallback
+        }
 
         // Buscar en el mapa de configuración
         const stateConfig = this.stateConfigMap.get(stateId);
@@ -162,9 +185,9 @@ export class AnimationMixerSystem extends System {
         }
 
         // Prioridad 3: Resolver desde configuración (estado normal)
-        // Si es estado 'walk' o 'crouch_walk', pasar input para determinar dirección
+        // Si es estado 'walk', 'crouch_walk' o 'swim', pasar input para determinar dirección
         let input = null;
-        if (stateId === 'walk' || stateId === 'crouch_walk') {
+        if (stateId === 'walk' || stateId === 'crouch_walk' || stateId === 'swim') {
             input = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.INPUT);
         }
         const animationName = this.getAnimationNameForState(stateId, input);
@@ -355,9 +378,9 @@ export class AnimationMixerSystem extends System {
             animationName = state;
         } else {
             // Si no existe, 'state' podría ser un ID de estado, obtener nombre de animación
-            // Si es estado 'walk', pasar input para determinar dirección
+            // Si es estado 'walk' o 'swim', pasar input para determinar dirección
             let input = null;
-            if (state === 'walk') {
+            if (state === 'walk' || state === 'swim') {
                 const entityId = mesh.userData.entityId;
                 if (entityId) {
                     input = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.INPUT);
@@ -385,10 +408,11 @@ export class AnimationMixerSystem extends System {
         // Usar 'state' (ID del estado) para comparar con currentState
         const stateChanged = currentState !== state;
         
-        // Para estado 'walk' o 'crouch_walk', también verificar si la animación direccional cambió
-        // (porque el estado puede ser 'walk' o 'crouch_walk' pero la animación puede ser walk_forward, walk_left, crouch_walk_backward, etc.)
+        // Para estado 'walk', 'crouch_walk' o 'swim', también verificar si la animación direccional cambió
+        // (porque el estado puede ser 'walk', 'crouch_walk' o 'swim' pero la animación puede ser walk_forward, walk_left, crouch_walk_backward, swim_forward, swim_idle, etc.)
         const animationChanged = ((state === 'walk' && currentState === 'walk') || 
-                                 (state === 'crouch_walk' && currentState === 'crouch_walk')) ? 
+                                 (state === 'crouch_walk' && currentState === 'crouch_walk') ||
+                                 (state === 'swim' && currentState === 'swim')) ? 
             (currentAnimationName !== animationName) : false;
 
         // Si ya está reproduciendo esta misma animación Y el estado no cambió Y la animación direccional no cambió, no hacer nada
