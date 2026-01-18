@@ -10,8 +10,11 @@ import { ANIMATION_STATES } from '../../config/animation-config.js';
 import { COMBAT_CONSTANTS } from '../../config/combat-constants.js';
 import { ECS_CONSTANTS } from '../../config/ecs-constants.js';
 import { debugLogger } from '../../debug/logger.js';
-import { stateValidator } from '../../debug/validator.js';
 import { debugEvents } from '../../debug/events.js';
+import { CombatAnimationStateCache } from '../helpers/combat/combat-animation-state-cache.js';
+import { CombatActionInputChecker } from '../helpers/combat/combat-action-input-checker.js';
+import { CombatActionValidator } from '../helpers/combat/combat-action-validator.js';
+import { CombatActionConfigApplier } from '../helpers/combat/combat-action-config-applier.js';
 
 export class CombatSystem extends System {
     constructor(inputManager) {
@@ -23,11 +26,11 @@ export class CombatSystem extends System {
         ];
         this.priority = 1.4; // Después de InputSystem (0) y PhysicsSystem (1), antes de ComboSystem (1.5)
         
-        // Cachear mapeo de animationStateId → AnimationState (O(1) lookup)
-        this.animationStateCache = new Map();
-        for (const state of ANIMATION_STATES) {
-            this.animationStateCache.set(state.id, state);
-        }
+        // Instanciar helpers
+        this.animationStateCache = new CombatAnimationStateCache(ANIMATION_STATES);
+        this.actionInputChecker = new CombatActionInputChecker(COMBAT_CONSTANTS);
+        this.actionValidator = new CombatActionValidator(COMBAT_CONSTANTS);
+        this.actionConfigApplier = new CombatActionConfigApplier(this.animationStateCache, COMBAT_ACTIONS);
     }
 
     /**
@@ -73,16 +76,16 @@ export class CombatSystem extends System {
 
             // Procesar acciones según configuración (en orden de prioridad)
             for (const [actionId, actionConfig] of Object.entries(COMBAT_ACTIONS)) {
-                // Verificar input usando checkActionInput con el inputAction configurado
-                const wantsAction = this.checkActionInput(input, actionConfig.inputAction);
+                // Verificar input usando helper
+                const wantsAction = this.actionInputChecker.checkActionInput(input, actionConfig.inputAction);
                 
-                // Verificar condiciones adicionales (arma, etc.)
-                const canExecute = this.canExecuteAction(entityId, actionConfig, weapon, weaponType);
+                // Verificar condiciones adicionales (arma, etc.) usando helper
+                const canExecute = this.actionValidator.canExecuteAction(actionConfig, weapon, weaponType);
                 
                 if (wantsAction && canExecute && !combat.isOnCooldown(actionId)) {
                     // Iniciar acción
                     combat.startAction(actionId);
-                    this.applyActionConfig(combat, actionConfig);
+                    this.actionConfigApplier.applyActionConfig(combat, actionConfig);
                     
                     // Aplicar cooldown
                     combat.actionCooldowns.set(actionId, actionConfig.cooldown);
@@ -114,104 +117,6 @@ export class CombatSystem extends System {
             }
             // Nota: Attack ahora está procesado dentro del loop de COMBAT_ACTIONS arriba
         }
-    }
-    
-    /**
-     * Verificar si el input corresponde a la acción
-     * @param {Object} input - InputComponent
-     * @param {string} inputAction - Nombre de la acción de input (de INPUT_MAP, ej: 'attack', 'dodge', 'parry')
-     * @returns {boolean}
-     */
-    checkActionInput(input, inputAction) {
-        switch (inputAction) {
-            case COMBAT_CONSTANTS.ACTION_IDS.DODGE:
-                return input.wantsToDodge;
-            case COMBAT_CONSTANTS.ACTION_IDS.SPECIAL_ATTACK:
-                return input.wantsToSpecialAttack;
-            case COMBAT_CONSTANTS.ACTION_IDS.PARRY:
-                return input.wantsToParry;
-            case COMBAT_CONSTANTS.ACTION_IDS.HEAVY_ATTACK:
-                return input.wantsToHeavyAttack;
-            case COMBAT_CONSTANTS.ACTION_IDS.CHARGED_ATTACK:
-                return input.wantsToChargedAttack;
-            case COMBAT_CONSTANTS.ACTION_IDS.ATTACK:
-                return input.wantsToAttack;
-            default:
-                return false;
-        }
-    }
-    
-    /**
-     * Verificar si se puede ejecutar una acción (condiciones como tipo de arma requerida)
-     * @param {string} entityId - ID de la entidad
-     * @param {Object} actionConfig - Configuración de la acción
-     * @param {Object|null} weapon - WeaponComponent o null
-     * @param {string} weaponType - Tipo de arma ('sword', 'axe', 'generic', etc.)
-     * @returns {boolean}
-     */
-    canExecuteAction(entityId, actionConfig, weapon, weaponType) {
-        // Por ahora, solo verificamos parry que requiere arma
-        if (actionConfig.id === COMBAT_CONSTANTS.ACTION_IDS.PARRY && !weapon) {
-            return false;
-        }
-        
-        // Verificaciones específicas por acción (pueden extenderse en el futuro)
-        if (actionConfig.id === COMBAT_CONSTANTS.ACTION_IDS.SPECIAL_ATTACK && 
-            weaponType !== COMBAT_CONSTANTS.WEAPON_TYPES.SWORD) {
-            // Special attack solo funciona con espada
-            return false;
-        }
-        
-        return true;
-    }
-    
-    /**
-     * Aplicar configuración de acción al componente de combate
-     * @param {Object} combat - CombatComponent
-     * @param {Object} actionConfig - Configuración de la acción desde COMBAT_ACTIONS
-     */
-    applyActionConfig(combat, actionConfig) {
-        // Validar que la acción existe
-        if (!stateValidator.validateCombatAction(
-            actionConfig.id,
-            COMBAT_ACTIONS,
-            `CombatSystem.applyActionConfig(${actionConfig.id})`
-        )) {
-            return;
-        }
-        
-        // Buscar estado de animación correspondiente (O(1) lookup usando cache)
-        const animationState = this.animationStateCache.get(actionConfig.animationStateId);
-        if (!animationState) {
-            debugLogger.warn('CombatSystem', 'Animation state not found for action', {
-                actionId: actionConfig.id,
-                animationStateId: actionConfig.animationStateId,
-                availableStates: Array.from(this.animationStateCache.keys())
-            });
-            return;
-        }
-        
-        // Setear tipo de ataque/defensa (solo de combat config, no de animation)
-        if (actionConfig.defenseType) {
-            combat.defenseType = actionConfig.defenseType;
-        }
-        if (actionConfig.attackType) {
-            combat.attackType = actionConfig.attackType;
-        }
-        
-        // Setear animación desde animation state
-        combat.combatAnimation = animationState.animation;
-        
-        // Setear flags de protección desde animation state
-        // (preventInterruption ya está en animation state, se maneja automáticamente)
-        combat.isAttacking = actionConfig.attackType !== null;
-        
-        debugLogger.info('CombatSystem', 'Action config applied', {
-            actionId: actionConfig.id,
-            animationStateId: actionConfig.animationStateId,
-            attackType: actionConfig.attackType,
-            defenseType: actionConfig.defenseType
-        });
     }
 }
 
