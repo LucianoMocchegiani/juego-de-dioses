@@ -9,9 +9,6 @@ Lista de tickets que aún no tienen un Pull Request completado.
 - [ ] **JDG-044** - Implementar Movimiento en Espiral del Sol y Luna (Modelo de Gleason)
 - [ ] **JDG-050** - Refactorizar renderParticles() en Métodos Más Pequeños
 - [ ] **JDG-053** - Restricción de Movimiento en el Aire al Saltar e Inercia
-- [ ] **JDG-056** - Animaciones Direccionales de Nadar
-- [ ] **JDG-058** - Refactorizar WeaponEquipSystem con Helpers Externos
-- [ ] **JDG-059** - Refactorizar InputSystem con Helpers Externos
 - [ ] **JDG-014** - Sistema de Daño por Partes del Cuerpo (Limb Damage System) ⚠️ POSPUESTO
 - [ ] **JDG-055** - Desplazamiento No Deseado Durante Animaciones (Root Motion)
 
@@ -65,12 +62,16 @@ Lista de tickets que aún no tienen un Pull Request completado.
 - [x] **JDG-054** - Unificar Transiciones de Animación entre Gameplay Normal y F6
 - [x] **JDG-051** - Animaciones Direccionales de Caminar (Adelante, Atrás, Izquierda, Derecha)
 - [x] **JDG-052** - Animaciones Direccionales de Agacharse y Caminar Agachado
+- [x] **JDG-056** - Animaciones Direccionales de Nadar
+- [x] **JDG-058** - Refactorizar WeaponEquipSystem con Helpers Externos
+- [x] **JDG-059** - Refactorizar InputSystem con Helpers Externos
 - [x] **JDG-060** - Refactorizar CollisionSystem con Helpers Externos
 - [x] **JDG-061** - Refactorizar CombatSystem con Helpers Externos
 - [x] **JDG-062** - Refactorizar PhysicsSystem con Helpers Externos
+- [x] **JDG-063** - Reorganización y Consolidación de Documentación del Proyecto
 
 ## Notas
 
 - Esta lista se actualiza automáticamente cuando se crea un nuevo ticket o se completa un PR
 - Los tickets se marcan como completados cuando se genera el PR description correspondiente
-- Total: 6 tickets pendientes, 51 tickets completados
+- Total: 3 tickets pendientes, 55 tickets completados
