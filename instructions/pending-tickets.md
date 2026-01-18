@@ -10,6 +10,8 @@ Lista de tickets que aún no tienen un Pull Request completado.
 - [ ] **JDG-050** - Refactorizar renderParticles() en Métodos Más Pequeños
 - [ ] **JDG-053** - Restricción de Movimiento en el Aire al Saltar e Inercia
 - [ ] **JDG-056** - Animaciones Direccionales de Nadar
+- [ ] **JDG-058** - Refactorizar WeaponEquipSystem con Helpers Externos
+- [ ] **JDG-059** - Refactorizar InputSystem con Helpers Externos
 - [ ] **JDG-014** - Sistema de Daño por Partes del Cuerpo (Limb Damage System) ⚠️ POSPUESTO
 - [ ] **JDG-055** - Desplazamiento No Deseado Durante Animaciones (Root Motion)
 
