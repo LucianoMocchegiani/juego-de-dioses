@@ -8,7 +8,8 @@ Lista de tickets que aún no tienen un Pull Request completado.
 - [ ] **JDG-043** - Sistema de Sombras Dinámicas
 - [ ] **JDG-044** - Implementar Movimiento en Espiral del Sol y Luna (Modelo de Gleason)
 - [ ] **JDG-050** - Refactorizar renderParticles() en Métodos Más Pequeños
-- [ ] **JDG-053** - Restricción de Movimiento en el Aire al Saltar e Inercia + Animaciones Direccionales de Nadar
+- [ ] **JDG-053** - Restricción de Movimiento en el Aire al Saltar e Inercia
+- [ ] **JDG-056** - Animaciones Direccionales de Nadar
 - [ ] **JDG-014** - Sistema de Daño por Partes del Cuerpo (Limb Damage System) ⚠️ POSPUESTO
 - [ ] **JDG-055** - Desplazamiento No Deseado Durante Animaciones (Root Motion)
 
