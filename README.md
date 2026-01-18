@@ -1,6 +1,6 @@
 # Juego de Dioses
 
-Sistema de juego basado en partículas (voxels) donde los jugadores interactúan con un mundo persistente creado y modificado por AIs (Dioses).
+Sistema de juego basado en partículas (voxels) donde los jugadores interactúan con un mundo persistente creado y modificado por AIs.
 
 **Proyecto**: `juego_de_dioses`
 
@@ -13,16 +13,9 @@ Sistema de juego basado en partículas (voxels) donde los jugadores interactúan
 - **Cálculos**: NumPy + SciPy (para física de partículas)
 - **Grafos**: NetworkX (para algoritmos de conectividad BFS/DFS)
 - **Containerización**: Docker + Docker Compose
+- **Frontend**: Three.js + ECS Pattern (Entity Component System)
 
-### ¿Por qué Python/FastAPI?
-
-**Mejor para este proyecto:**
-- Cálculos matemáticos y físicos (NumPy, SciPy)
-- Algoritmos complejos (BFS/DFS para conectividad de núcleos)
-- Procesamiento de datos científicos
-- FastAPI es muy rápido (comparable a Node.js)
-- Async/await nativo
-- Librerías maduras para simulaciones físicas
+Para detalles sobre las decisiones técnicas y por qué se eligieron estas tecnologías, consulta [docs/ARQUITECTURA-TECNOLOGIAS.md](docs/ARQUITECTURA-TECNOLOGIAS.md).
 
 ## Requisitos Previos
 
@@ -38,8 +31,6 @@ Sistema de juego basado en partículas (voxels) donde los jugadores interactúan
 # Desde la raíz del proyecto (juego-de-dioses/)
 docker-compose up -d
 
-# Ver logs del backend
-docker-compose logs -f backend
 ```
 
 **Esto levanta automáticamente:**
@@ -248,7 +239,61 @@ sudo chown -R $USER:$USER .
 
 ## Roadmap
 
-Para ver los próximos pasos y funcionalidades planificadas, consulta [roadmap.md](roadmap.md).
+Próximas funcionalidades planificadas: API REST completa, autenticación JWT, WebSockets funcionales, sistema de inventario, construcción del mundo, NPCs/AI, y optimizaciones adicionales.
+
+Para ver el roadmap completo y detallado, consulta [docs/roadmap.md](docs/roadmap.md).
+
+## Documentación
+
+### Documentación Principal
+- [Roadmap](docs/roadmap.md) - Estado del proyecto y funcionalidades planificadas
+- [Arquitectura y Tecnologías](docs/ARQUITECTURA-TECNOLOGIAS.md) - Decisiones técnicas y stack tecnológico
+
+### Documentación por Módulo
+
+#### Frontend
+- [Frontend General](frontend/README.md) - Información general del frontend
+- [Frontend Source](frontend/src/README.md) - Arquitectura y estructura del frontend
+- [Sistema ECS](frontend/src/ecs/README.md) - Entity Component System
+- [Configuración](frontend/src/config/README.md) - Archivos de configuración
+- [Core](frontend/src/core/README.md) - Componentes core del frontend
+- [Optimizaciones](frontend/src/core/optimizations/README.md) - Optimizaciones de rendimiento
+- [Terreno](frontend/src/terrain/README.md) - Sistema de terreno y partículas
+- [API Client](frontend/src/api/README.md) - Cliente API
+- [Debug](frontend/src/debug/README.md) - Herramientas de debugging
+- [Utils](frontend/src/utils/README.md) - Utilidades
+- [World](frontend/src/world/README.md) - Sistema de mundo
+- [State](frontend/src/state/README.md) - Gestión de estado
+
+#### ECS Helpers
+- [Animation Helpers](frontend/src/ecs/helpers/animation/README.md) - Helpers de animación
+- [Combat Helpers](frontend/src/ecs/helpers/combat/README.md) - Helpers de combate
+- [Collision Helpers](frontend/src/ecs/helpers/collision/README.md) - Helpers de colisiones
+- [Input Helpers](frontend/src/ecs/helpers/input/README.md) - Helpers de input
+- [Physics Helpers](frontend/src/ecs/helpers/physics/README.md) - Helpers de física
+- [Weapon Helpers](frontend/src/ecs/helpers/weapon/README.md) - Helpers de armas
+
+#### ECS Otros
+- [Combos](frontend/src/ecs/combos/README.md) - Sistema de combos
+- [Models](frontend/src/ecs/models/README.md) - Modelos ECS
+
+#### Backend
+- [API Routes](backend/src/api/routes/README.md) - Endpoints de la API
+- [Database](backend/src/database/README.md) - Sistema de base de datos
+- [Models](backend/src/models/README.md) - Modelos de datos
+- [Services](backend/src/services/README.md) - Servicios del backend
+- [Config](backend/src/config/README.md) - Configuración del backend
+- [Storage](backend/src/storage/README.md) - Sistema de almacenamiento
+- [Database Builders](backend/src/database/builders/README.md) - Builders de entidades
+- [Database Creators](backend/src/database/creators/README.md) - Creators de entidades
+- [Database Templates](backend/src/database/templates/README.md) - Templates de entidades
+
+#### Database
+- [Database General](database/README.md) - Esquema y estructura de base de datos
+- [Migrations](database/migrations/README.md) - Migraciones de base de datos
+
+#### Instructions
+- [Instructions](instructions/README.md) - Guías y reglas de desarrollo
 
 ## Notas
 

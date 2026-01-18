@@ -1,0 +1,203 @@
+---
+description: Actualiza el README raíz y el roadmap con referencias a todos los READMEs del proyecto y mantiene sincronizado el estado del proyecto
+globs:
+alwaysApply: false
+---
+
+## Rol
+
+Actúa como un **Documentation Maintainer** responsable de mantener actualizados el README raíz y el roadmap del proyecto, asegurando que todas las referencias a documentación sean accesibles y el estado del proyecto esté sincronizado.
+
+## Tarea
+
+1. Esta regla debe ejecutarse periódicamente o cuando se solicite explícitamente para mantener la documentación actualizada.
+2. Debe:
+   - Buscar todos los archivos README.md en el árbol del proyecto
+   - Verificar que el README raíz tenga referencias a todos los READMEs importantes
+   - Verificar que el roadmap esté actualizado con el estado real del proyecto
+   - Actualizar referencias si es necesario
+   - Mantener la estructura de documentación accesible
+
+## Proceso de Actualización
+
+### Paso 1: Buscar READMEs (Check sin modificar)
+
+**IMPORTANTE:** Para evitar gastar tokens innecesariamente, primero haz un **check** de los archivos sin leerlos completamente:
+
+1. Usa `glob_file_search` para encontrar todos los `README.md` en el proyecto
+2. Identifica los READMEs importantes (excluyendo los de `node_modules`, `.git`, etc.)
+3. Categoriza los READMEs por ubicación:
+   - README raíz
+   - READMEs de módulos principales (frontend, backend, database)
+   - READMEs de sub-módulos (ecs, helpers, systems, etc.)
+
+### Paso 2: Verificar README Raíz
+
+**Check del README raíz:**
+- Verifica si existe una sección de "Documentación" o "Referencias"
+- Verifica si todos los READMEs importantes están referenciados
+- Identifica READMEs que deberían estar referenciados pero no lo están
+
+**Solo si es necesario actualizar:**
+- Agrega o actualiza la sección de documentación con referencias organizadas
+- Mantén la estructura clara y navegable
+
+### Paso 3: Verificar Roadmap
+
+**Check del roadmap:**
+- Lee `docs/roadmap.md` para verificar el estado actual
+- Compara con `instructions/pending-tickets.md` para verificar consistencia
+- Verifica que los tickets completados estén marcados correctamente en el roadmap
+- Identifica discrepancias entre el estado real y el documentado
+
+**Solo si es necesario actualizar:**
+- Actualiza la sección "✅ Implementado" si hay nuevos tickets completados
+- Actualiza la sección "🔄 Funcionalidades Planificadas" si hay cambios
+- Mantén las estadísticas actualizadas
+
+### Paso 4: Actualizar Referencias
+
+**Solo si es necesario:**
+- Actualiza referencias cruzadas entre documentos
+- Asegura que los enlaces sean correctos
+- Mantén la consistencia en los nombres de archivos (mayúsculas/minúsculas)
+
+## Estructura de Documentación en README Raíz
+
+El README raíz debe incluir una sección de documentación con referencias organizadas:
+
+```markdown
+## Documentación
+
+### Documentación Principal
+- [Roadmap](docs/roadmap.md) - Estado del proyecto y funcionalidades planificadas
+- [Arquitectura y Tecnologías](docs/ARQUITECTURA-TECNOLOGIAS.md) - Decisiones técnicas y stack tecnológico
+
+### Documentación por Módulo
+
+#### Frontend
+- [Frontend General](frontend/src/README.md) - Arquitectura y estructura del frontend
+- [Sistema ECS](frontend/src/ecs/README.md) - Entity Component System
+- [Configuración](frontend/src/config/README.md) - Archivos de configuración
+- [Core](frontend/src/core/README.md) - Componentes core del frontend
+- [Terreno](frontend/src/terrain/README.md) - Sistema de terreno y partículas
+- [API Client](frontend/src/api/README.md) - Cliente API
+- [Debug](frontend/src/debug/README.md) - Herramientas de debugging
+- [Utils](frontend/src/utils/README.md) - Utilidades
+- [World](frontend/src/world/README.md) - Sistema de mundo
+
+#### ECS Helpers
+- [Animation Helpers](frontend/src/ecs/helpers/animation/README.md) - Helpers de animación
+- [Combat Helpers](frontend/src/ecs/helpers/combat/README.md) - Helpers de combate
+- [Collision Helpers](frontend/src/ecs/helpers/collision/README.md) - Helpers de colisiones
+- [Input Helpers](frontend/src/ecs/helpers/input/README.md) - Helpers de input
+- [Physics Helpers](frontend/src/ecs/helpers/physics/README.md) - Helpers de física
+- [Weapon Helpers](frontend/src/ecs/helpers/weapon/README.md) - Helpers de armas
+
+#### Backend
+- [Backend General](backend/src/README.md) - Arquitectura del backend
+- [API Routes](backend/src/api/routes/README.md) - Endpoints de la API
+- [Database](backend/src/database/README.md) - Sistema de base de datos
+- [Models](backend/src/models/README.md) - Modelos de datos
+- [Services](backend/src/services/README.md) - Servicios del backend
+- [Config](backend/src/config/README.md) - Configuración del backend
+- [Storage](backend/src/storage/README.md) - Sistema de almacenamiento
+
+#### Database
+- [Database General](database/README.md) - Esquema y estructura de base de datos
+- [Migrations](database/migrations/README.md) - Migraciones de base de datos
+
+#### Instructions
+- [Instructions](instructions/README.md) - Guías y reglas de desarrollo
+```
+
+## Verificaciones de Consistencia
+
+### Checklist de Verificación
+
+Antes de hacer cambios, verifica:
+
+1. **README Raíz:**
+   - [ ] Tiene sección de documentación
+   - [ ] Referencia a roadmap.md
+   - [ ] Referencia a ARQUITECTURA-TECNOLOGIAS.md
+   - [ ] Referencia a READMEs principales (frontend, backend, database)
+   - [ ] Enlaces funcionan correctamente
+
+2. **Roadmap:**
+   - [ ] Sección "✅ Implementado" está actualizada
+   - [ ] Sección "🔄 Funcionalidades Planificadas" refleja el estado real
+   - [ ] Estadísticas son correctas (tickets completados, sistemas, etc.)
+   - [ ] Referencias a otros documentos son correctas
+
+3. **Consistencia:**
+   - [ ] Nombres de archivos coinciden (mayúsculas/minúsculas)
+   - [ ] Rutas relativas son correctas
+   - [ ] No hay referencias rotas
+
+## Estrategia de Ahorro de Tokens
+
+**IMPORTANTE:** Para evitar gastar tokens innecesariamente:
+
+1. **Usa checks primero:**
+   - `glob_file_search` para encontrar archivos sin leerlos
+   - `grep` para buscar patrones específicos sin leer archivos completos
+   - `read_file` solo cuando sea necesario verificar contenido
+
+2. **Lee solo lo necesario:**
+   - Lee solo las secciones relevantes del README (offset/limit)
+   - Lee solo el roadmap si necesitas verificar estado
+   - No leas todos los READMEs, solo verifica que existan
+
+3. **Modifica solo si es necesario:**
+   - Compara el estado actual con el deseado
+   - Solo actualiza si hay diferencias
+   - No reescribas archivos completos si solo necesitas agregar una línea
+
+## Output
+
+Al finalizar, debes:
+
+1. **Informar al usuario:**
+   - Qué archivos fueron verificados
+   - Qué cambios se realizaron (si los hubo)
+   - Qué verificaciones pasaron sin problemas
+
+2. **Si se hicieron cambios:**
+   - Listar los archivos modificados
+   - Explicar brevemente qué se actualizó
+   - Indicar si se necesita revisión manual
+
+3. **Si no se hicieron cambios:**
+   - Confirmar que todo está actualizado
+   - Indicar cuándo fue la última verificación
+
+## Ejemplo de Ejecución
+
+```markdown
+## Verificación de Documentación
+
+### READMEs Encontrados: 35 archivos
+
+### Verificaciones Realizadas:
+- ✅ README raíz tiene sección de documentación
+- ✅ Roadmap está actualizado con 54 tickets completados
+- ✅ Referencias a documentos principales son correctas
+- ⚠️ Faltan referencias a 3 READMEs de helpers en la sección de documentación
+
+### Cambios Realizados:
+- Agregada sección "Documentación" en README raíz con referencias organizadas
+- Actualizada referencia a roadmap.md
+- Agregadas referencias a READMEs de helpers ECS
+
+### Archivos Modificados:
+- README.md (agregada sección de documentación)
+```
+
+## Notas Importantes
+
+- Esta regla debe ejecutarse periódicamente, no en cada commit
+- Los cambios deben ser mínimos y solo cuando sea necesario
+- Mantener la estructura de documentación clara y navegable
+- No duplicar información, solo referenciar
+- Asegurar que todos los enlaces funcionen correctamente
