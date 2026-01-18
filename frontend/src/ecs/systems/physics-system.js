@@ -8,6 +8,10 @@ import { System } from '../system.js';
 import { COMBAT_ACTIONS } from '../../config/combat-actions-config.js';
 import { ECS_CONSTANTS } from '../../config/ecs-constants.js';
 import { ANIMATION_CONSTANTS } from '../../config/animation-constants.js';
+import { PhysicsTimestepManager } from '../helpers/physics/physics-timestep-manager.js';
+import { CombatMovementApplier } from '../helpers/physics/combat-movement-applier.js';
+import { PhysicsFrictionApplier } from '../helpers/physics/physics-friction-applier.js';
+import { PhysicsVelocityLimiter } from '../helpers/physics/physics-velocity-limiter.js';
 
 export class PhysicsSystem extends System {
     constructor(options = {}) {
@@ -30,11 +34,11 @@ export class PhysicsSystem extends System {
          */
         this.fixedTimestep = options.fixedTimestep !== undefined ? options.fixedTimestep : ANIMATION_CONSTANTS.PHYSICS.FIXED_TIMESTEP;
         
-        /**
-         * Acumulador para timestep fijo
-         * @type {number}
-         */
-        this.accumulator = 0;
+        // Instanciar helpers
+        this.timestepManager = new PhysicsTimestepManager(this.fixedTimestep);
+        this.combatMovementApplier = new CombatMovementApplier(COMBAT_ACTIONS);
+        this.frictionApplier = new PhysicsFrictionApplier();
+        this.velocityLimiter = new PhysicsVelocityLimiter();
     }
     
     /**
@@ -42,13 +46,10 @@ export class PhysicsSystem extends System {
      * @param {number} deltaTime - Tiempo transcurrido desde el último frame (en segundos)
      */
     update(deltaTime) {
-        this.accumulator += deltaTime;
-        
-        // Ejecutar física con timestep fijo
-        while (this.accumulator >= this.fixedTimestep) {
-            this.updatePhysics(this.fixedTimestep);
-            this.accumulator -= this.fixedTimestep;
-        }
+        // Usar timestep manager para ejecutar física con timestep fijo
+        this.timestepManager.update(deltaTime, (timestep) => {
+            this.updatePhysics(timestep);
+        });
     }
     
     /**
@@ -90,51 +91,13 @@ export class PhysicsSystem extends System {
                 physics.consecutiveJumps = 0;
             }
             
-            // Aplicar movimiento de acciones de combate
+            // Aplicar movimiento de acciones de combate usando helper
             const combat = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.COMBAT);
             const render = this.ecs.getComponent(entityId, ECS_CONSTANTS.COMPONENT_NAMES.RENDER);
             
             if (input && combat && combat.activeAction) {
                 const actionConfig = COMBAT_ACTIONS[combat.activeAction];
-                
-                if (actionConfig && actionConfig.hasMovement) {
-                    const movementSpeed = actionConfig.movementSpeed;
-                    
-                    // Inicializar flag si no existe
-                    if (!render || !render.mesh || !render.mesh.userData) {
-                        // Si no hay render/mesh, no podemos aplicar movimiento
-                        // Esto no debería pasar normalmente
-                    } else {
-                        // Inicializar flag si no existe
-                        if (render.mesh.userData.movementApplied === undefined) {
-                            render.mesh.userData.movementApplied = false;
-                        }
-                        
-                        // Calcular dirección según configuración (solo una vez al inicio)
-                        if (!render.mesh.userData.movementApplied) {
-                            let dirX = 0, dirY = 0;
-                            
-                            if (actionConfig.useMovementInput && 
-                                (input.moveDirection.x !== 0 || input.moveDirection.y !== 0)) {
-                                // Usar dirección de input
-                                dirX = input.moveDirection.x;
-                                dirY = input.moveDirection.y;
-                            } else {
-                                // Usar dirección de cámara (hacia adelante)
-                                const cameraRotation = render?.rotationY || 0;
-                                const cos = Math.cos(cameraRotation);
-                                const sin = Math.sin(cameraRotation);
-                                dirX = -sin;
-                                dirY = -cos;
-                            }
-                            
-                            // Aplicar impulso solo una vez al inicio
-                            physics.velocity.x = dirX * movementSpeed;
-                            physics.velocity.y = dirY * movementSpeed;
-                            render.mesh.userData.movementApplied = true;
-                        }
-                    }
-                }
+                this.combatMovementApplier.applyCombatMovement(physics, input, combat, render, actionConfig);
             } else {
                 // Si no hay acción activa, resetear flag
                 if (render && render.mesh && render.mesh.userData) {
@@ -171,41 +134,11 @@ export class PhysicsSystem extends System {
             physics.velocity.y += physics.acceleration.y * timestep; // Adelante/atrás
             physics.velocity.z += physics.acceleration.z * timestep; // Arriba/abajo
             
-            // Aplicar fricción
-            if (physics.isFlying) {
-                // En vuelo: fricción más fuerte para frenar cuando no hay input (como un avión)
-                const flyFriction = 0.85; // Fricción más fuerte en vuelo para frenar rápidamente
-                physics.velocity.x *= flyFriction; // Izquierda/derecha
-                physics.velocity.y *= flyFriction; // Adelante/atrás
-                physics.velocity.z *= flyFriction; // Arriba/abajo
-            } else {
-                // Movimiento normal: solo fricción horizontal
-                const friction = physics.isGrounded ? physics.groundFriction : physics.airFriction;
-                
-                // Si el movimiento está bloqueado, aplicar fricción extra para transición más suave
-                if (shouldBlockNormalMovement) {
-                    // Fricción más agresiva cuando está bloqueado para reducir velocidad más rápido
-                    // Esto evita transiciones bruscas cuando la animación termina
-                    const blockFriction = 0.7; // Fricción extra (reduce velocidad más rápido)
-                    physics.velocity.x *= blockFriction;
-                    physics.velocity.y *= blockFriction;
-                } else {
-                    physics.velocity.x *= friction; // Izquierda/derecha
-                    physics.velocity.y *= friction; // Adelante/atrás
-                }
-            }
+            // Aplicar fricción usando helper
+            this.frictionApplier.applyFriction(physics, shouldBlockNormalMovement);
             
-            // Limitar velocidad máxima
-            if (Math.abs(physics.velocity.x) > physics.maxVelocity.x) {
-                physics.velocity.x = Math.sign(physics.velocity.x) * physics.maxVelocity.x;
-            }
-            if (Math.abs(physics.velocity.y) > physics.maxVelocity.y) {
-                physics.velocity.y = Math.sign(physics.velocity.y) * physics.maxVelocity.y;
-            }
-            // En vuelo, no limitar velocidad vertical para permitir alcanzar sol/luna
-            if (!physics.isFlying && Math.abs(physics.velocity.z) > physics.maxVelocity.z) {
-                physics.velocity.z = Math.sign(physics.velocity.z) * physics.maxVelocity.z;
-            }
+            // Limitar velocidad máxima usando helper
+            this.velocityLimiter.limitVelocity(physics);
             
             // Actualizar posición con velocidad
             position.x += physics.velocity.x * timestep; // Izquierda/derecha

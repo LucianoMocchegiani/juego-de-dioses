@@ -67,9 +67,10 @@ Lista de tickets que aún no tienen un Pull Request completado.
 - [x] **JDG-052** - Animaciones Direccionales de Agacharse y Caminar Agachado
 - [x] **JDG-060** - Refactorizar CollisionSystem con Helpers Externos
 - [x] **JDG-061** - Refactorizar CombatSystem con Helpers Externos
+- [x] **JDG-062** - Refactorizar PhysicsSystem con Helpers Externos
 
 ## Notas
 
 - Esta lista se actualiza automáticamente cuando se crea un nuevo ticket o se completa un PR
 - Los tickets se marcan como completados cuando se genera el PR description correspondiente
-- Total: 6 tickets pendientes, 50 tickets completados
+- Total: 6 tickets pendientes, 51 tickets completados
