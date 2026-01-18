@@ -8,10 +8,16 @@ Este directorio contiene reglas personalizadas para Cursor AI (archivos `.mdc`) 
 instructions/
 ├── README.md                      # Este archivo
 ├── project-context.mdc           # Contexto esencial del proyecto (siempre activo)
+├── project-context.mdc           # Contexto esencial del proyecto (siempre activo)
 ├── action-plan-rule.mdc          # Genera planes de acción desde tickets
 ├── pr-description.mdc            # Genera descripciones de PRs
 ├── work-ticket.mdc               # Genera tickets de trabajo
-├── code-documentation.mdc         # Agrega documentación inline
+├── code-documentation.mdc         # Agrega documentación inline (siempre activo)
+├── readme-rule.mdc               # Práctica de READMEs en módulos (siempre activo)
+├── token-saving-rule.mdc         # Optimiza uso de tokens (siempre activo)
+├── code-cleanup-rule.mdc         # Mantiene código limpio (siempre activo)
+├── readme-roadmap-update-rule.mdc # Actualiza README raíz y roadmap
+├── architecture-analysis-rule.mdc # Genera análisis de arquitectura
 ├── QUICK_REFERENCE.md            # Guía rápida de comandos
 ├── /tasks/                       # Planes de acción generados
 ├── /prs/                         # Descripciones de PRs generadas
@@ -161,6 +167,143 @@ def get_particles(dimension_id: int, viewport: dict):
     pass
 ```
 
+### 6. `readme-roadmap-update-rule.mdc`
+
+**Propósito:** Mantiene actualizados el README raíz y el roadmap con referencias a todos los READMEs del proyecto y sincroniza el estado del proyecto.
+
+**Cuándo usar:**
+- Periódicamente para mantener la documentación actualizada
+- Cuando se agregan nuevos READMEs al proyecto
+- Cuando se completan tickets y el roadmap necesita actualización
+- Para verificar que todas las referencias de documentación sean accesibles
+
+**Cómo usar:**
+1. Solicita: "Ejecuta la regla de actualización de README y roadmap" o "Actualiza la documentación"
+2. La regla verificará:
+   - Que el README raíz tenga referencias a todos los READMEs importantes
+   - Que el roadmap esté sincronizado con el estado real del proyecto
+   - Que las referencias cruzadas sean correctas
+3. La regla actualizará solo lo necesario (evita gastar tokens innecesariamente)
+
+**Qué verifica:**
+- Existencia de sección "Documentación" en README raíz
+- Referencias a todos los READMEs importantes del proyecto
+- Sincronización entre roadmap y pending-tickets.md
+- Consistencia en nombres de archivos y rutas
+- Referencias rotas o incorrectas
+
+**Estrategia de ahorro de tokens:**
+- Usa `glob_file_search` y `grep` para verificar sin leer archivos completos
+- Lee solo secciones necesarias con `offset/limit`
+- Solo modifica archivos si hay diferencias detectadas
+
+**Ejemplo:**
+```
+Usuario: "Ejecuta la regla de actualización de README y roadmap"
+Asistente: *Verifica READMEs, roadmap y referencias, actualiza solo lo necesario*
+```
+
+### 7. `readme-rule.mdc` (Always Apply)
+
+**Propósito:** Establece la práctica de mantener READMEs actualizados en cada carpeta/módulo del proyecto.
+
+**Cuándo se aplica:**
+- Automáticamente en todas las interacciones (alwaysApply: true)
+- Proporciona contexto sobre la práctica de documentación establecida
+
+**Qué establece:**
+- Cada carpeta/módulo debe tener su `README.md` que explique qué contiene y cómo usarlo
+- Contenido mínimo: título, estructura, componentes principales, ejemplos de uso, referencias
+- Estilo profesional sin emojis
+- Actualizar READMEs cuando se crean/modifican módulos
+
+**Ejemplo:**
+```
+Al crear un nuevo módulo, la IA automáticamente sabe que debe:
+- Crear un README.md en la carpeta del módulo
+- Incluir estructura, componentes y ejemplos
+- Referenciar READMEs hijos
+- Mantener estilo profesional
+```
+
+### 8. `token-saving-rule.mdc` (Always Apply)
+
+**Propósito:** Optimiza el uso de tokens evitando búsquedas extensas y generación de archivos innecesarios.
+
+**Cuándo se aplica:**
+- Automáticamente en todas las interacciones (alwaysApply: true)
+- Prioriza ahorro de tokens sobre completitud cuando no se requiere archivo
+
+**Qué hace:**
+- Respuestas concisas cuando no se requiere generar archivos
+- Evita búsquedas extensas en preguntas simples o conversacionales
+- Solo hace búsquedas profundas cuando se necesita generar información para almacenar
+- No genera archivos a menos que se solicite explícitamente
+
+**Ejemplo:**
+```
+Usuario: "¿Cómo funciona el sistema de partículas?"
+Respuesta CORRECTA (ahorra tokens): Respuesta concisa sin búsquedas extensas
+
+Usuario: "Genera un plan de acción para implementar sistema de combate"
+Respuesta CORRECTA (cuando se necesita): Activa regla correspondiente, hace búsquedas necesarias
+```
+
+### 9. `code-cleanup-rule.mdc` (Always Apply)
+
+**Propósito:** Mantiene el código limpio, sin redundancias y elimina archivos temporales obsoletos.
+
+**Cuándo se aplica:**
+- Automáticamente cuando se crea o modifica un archivo (alwaysApply: true)
+- Revisa redundancias y archivos obsoletos
+
+**Qué revisa:**
+- Funciones duplicadas que pueden consolidarse
+- Lógica repetida que puede extraerse
+- Imports no utilizados
+- Código comentado obsoleto
+- Archivos temporales que ya no se usan
+- Scripts de prueba obsoletos
+
+**Ejemplo:**
+```
+Al crear o modificar código, la IA automáticamente:
+- Verifica si hay funciones similares que puedan reutilizarse
+- Identifica imports no usados
+- Sugiere consolidar lógica duplicada
+- Propone eliminar archivos temporales obsoletos
+```
+
+### 10. `architecture-analysis-rule.mdc`
+
+**Propósito:** Genera análisis de arquitectura detallados y estructurados evaluando la situación actual y proponiendo mejoras arquitectónicas escalables.
+
+**Cuándo usar:**
+- Al evaluar o mejorar la arquitectura del proyecto
+- Cuando se necesita preparar el proyecto para escalar
+- Para identificar problemas arquitectónicos y proponer soluciones
+- Antes de grandes refactorizaciones
+
+**Cómo usar:**
+1. Solicita: "Genera un análisis de arquitectura para [descripción del problema/necesidad]"
+2. Proporciona contexto relevante y ticket ID si existe
+3. El asistente generará `/analysis/[TICKET-ID]-architecture-analysis_[FECHA-HORA].md`
+4. Usa el análisis como base para generar tickets y planes de acción
+
+**Qué incluye el análisis:**
+- Situación actual (backend, frontend, base de datos)
+- Problemas identificados y limitaciones
+- Necesidades futuras y requisitos de escalabilidad
+- Arquitectura propuesta con estructura y patrones
+- Plan de migración por fases
+- Consideraciones técnicas y ejemplos
+
+**Ejemplo:**
+```
+Usuario: "Genera un análisis de arquitectura para preparar el proyecto para agregar plantas, animales y razas"
+Asistente: *Genera JDG-005-architecture-analysis_2024-12-04_14-30-45.md con análisis completo*
+```
+
 ## Flujo de Trabajo Recomendado
 
 ### Para Features Nuevas
@@ -293,12 +436,18 @@ Si una regla no se activa automáticamente:
 ### Verificar Reglas Activas
 
 Las reglas con `alwaysApply: true` se activan automáticamente:
+- `project-context.mdc`
 - `code-documentation.mdc`
+- `readme-rule.mdc`
+- `token-saving-rule.mdc`
+- `code-cleanup-rule.mdc`
 
 Las reglas con `alwaysApply: false` deben invocarse manualmente:
 - `action-plan-rule.mdc`
 - `pr-description.mdc`
 - `work-ticket.mdc`
+- `readme-roadmap-update-rule.mdc`
+- `architecture-analysis-rule.mdc`
 
 ## Ejemplos Reales
 
