@@ -121,10 +121,11 @@ Este documento contiene el estado del proyecto: lo implementado y las funcionali
 
 ### Arquitectura y Código
 
+- [x] **Backend Hexagonal + DDD (JDG-066)** - Puertos, casos de uso, adaptadores de persistencia por dominio; routes sin `get_connection`; create_character vía ICharacterCreationPort; celestial con IParticleRepository; WorldBloque/Manager con ITemperatureCalculator opcional
 - [x] **Refactorización ECS** - Helpers especializados para sistemas grandes (JDG-057 a JDG-062)
 - [x] **Configuración data-driven** - Animation Config, Combat Config, Input Config
 - [x] **Estructura modular** - Separación clara de responsabilidades
-- [x] **Documentación** - READMEs en cada módulo importante
+- [x] **Documentación** - READMEs en cada módulo importante; docs de arquitectura backend (flujo-endpoints-hexagonal-ddd)
 
 **Estadísticas:**
 - 54 tickets completados

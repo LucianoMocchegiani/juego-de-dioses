@@ -1,30 +1,34 @@
 """
 WorldBloqueManager - Gestor de bloques espaciales en memoria (infra compartida).
-Gestor de bloques espaciales en memoria (infra compartida).
+Depende del puerto IBloqueConfigProvider; no usa get_connection() (Hexagonal).
+Opcionalmente recibe ITemperatureCalculator para inyectarlo en cada WorldBloque.
 """
-from typing import Dict, Optional, List
+from typing import Dict, Optional, List, Any
+
 from src.domains.shared.world_bloque import WorldBloque
-from src.database.connection import get_connection
+from src.domains.shared.ports import IBloqueConfigProvider
 
 
 class WorldBloqueManager:
     """Gestiona bloques espaciales del mundo en memoria con cache y lazy loading."""
 
-    def __init__(self):
+    def __init__(
+        self,
+        config_provider: IBloqueConfigProvider,
+        temperature_calculator: Optional[Any] = None,
+    ):
+        self._config_provider = config_provider
+        self._temperature_calculator = temperature_calculator
         self.bloques: Dict[str, WorldBloque] = {}
         self.bloque_configs: Dict[str, dict] = {}
 
     async def get_bloque_config(self, bloque_id: str) -> Optional[dict]:
         if bloque_id not in self.bloque_configs:
-            async with get_connection() as conn:
-                row = await conn.fetchrow(
-                    "SELECT * FROM juego_dioses.bloques WHERE id = $1",
-                    bloque_id,
-                )
-                if row:
-                    self.bloque_configs[bloque_id] = dict(row)
-                else:
-                    return None
+            config = await self._config_provider.get_config(bloque_id)
+            if config is not None:
+                self.bloque_configs[bloque_id] = config
+            else:
+                return None
         return self.bloque_configs.get(bloque_id)
 
     async def get_bloque_for_position(
@@ -44,7 +48,8 @@ class WorldBloqueManager:
         key = f"{bloque_id}-{bloque_x}-{bloque_y}-{bloque_z}"
         if key not in self.bloques:
             self.bloques[key] = WorldBloque(
-                bloque_id, bloque_x, bloque_y, bloque_z, tamano_bloque
+                bloque_id, bloque_x, bloque_y, bloque_z, tamano_bloque,
+                temperature_calculator=self._temperature_calculator,
             )
         return self.bloques[key]
 

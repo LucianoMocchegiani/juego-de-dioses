@@ -4,7 +4,9 @@ Documento que describe cada endpoint del backend: qué devuelve, qué tabla(s) u
 
 **Base URL API:** `/api/v1`
 
-**Código backend:** Las rutas y DTOs están organizados por dominio en `backend/src/domains/` (bloques, particles, characters, celestial, agrupaciones, shared). La lógica de creación del mundo está en `backend/src/world_creation_engine/`. Ver [domains/README.md](../backend/src/domains/README.md).
+**Código backend:** Las rutas y DTOs están organizados por dominio en `backend/src/domains/` (bloques, particles, characters, celestial, agrupaciones, shared) con arquitectura **Hexagonal + DDD**. La lógica de creación del mundo está en `backend/src/world_creation_engine/`. Ver [domains/README.md](../backend/src/domains/README.md).
+
+**Flujo técnico (cómo llega una petición al código):** Ver [flujo-endpoints-hexagonal-ddd.md](flujo-endpoints-hexagonal-ddd.md) para el recorrido route → caso de uso → puerto → adaptador.
 
 ---
 

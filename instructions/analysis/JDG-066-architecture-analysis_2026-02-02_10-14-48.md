@@ -9,7 +9,7 @@ Evaluar en profundidad si es **rentable** migrar el backend actual hacia una arq
 - La **relación** con una posible organización tipo **micro-frontend** en el frontend.
 - **Pros y contras** concretos para este proyecto.
 
-**Referencia previa:** `docs/comparacion-hexagonal-ddd.md`.
+**Referencia:** `docs/flujo-endpoints-hexagonal-ddd.md` para el flujo de endpoints.
 
 ---
 

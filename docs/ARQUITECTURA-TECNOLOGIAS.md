@@ -114,7 +114,19 @@ Esta separación permite optimizar cada tipo según sus necesidades específicas
 - **Balance**: Fácil ajustar valores sin recompilar
 - **Escalabilidad**: Agregar nuevas animaciones/acciones sin cambiar sistemas
 
+## Arquitectura del backend (Hexagonal + DDD)
+
+El backend está organizado por **dominios** (bloques, particles, characters, celestial, agrupaciones) siguiendo **Hexagonal + DDD**:
+
+- **Puertos** (interfaces): definen qué hace el sistema (repositorios, creación de entidades).
+- **Casos de uso** (application/): orquestan la lógica usando los puertos inyectados; no conocen SQL ni FastAPI.
+- **Adaptadores de entrada** (routes): traducen HTTP ↔ casos de uso.
+- **Adaptadores de salida** (infrastructure/): implementan los puertos con PostgreSQL; solo aquí se usa `get_connection()`.
+
+Para el flujo de endpoints y cómo llega una petición al código, ver [flujo-endpoints-hexagonal-ddd.md](flujo-endpoints-hexagonal-ddd.md).
+
 ## Referencias
 
 - [README.md](../README.md) - Información general del proyecto
 - [roadmap.md](roadmap.md) - Estado actual y funcionalidades planificadas
+- [docs/README.md](README.md) - Índice de la carpeta docs
