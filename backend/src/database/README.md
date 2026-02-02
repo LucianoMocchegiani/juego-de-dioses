@@ -1,6 +1,6 @@
 # Módulo Database
 
-Este módulo contiene toda la lógica relacionada con la base de datos: conexiones, seeds, templates, builders, creators y construcción de terrenos.
+Este módulo contiene la **infraestructura de persistencia**: conexiones a PostgreSQL y seeds. La lógica que define y crea entidades (árboles, personajes, etc.) está en **`src/world_creation_engine/`**.
 
 ## Estructura
 
@@ -11,61 +11,12 @@ database/
 ├── seed_terrain_test_1.py   # Script de seed para terreno test 1: bosque denso con acuífero
 ├── seed_terrain_test_2.py   # Script de seed para terreno test 2: lago, montaña y pocos árboles (por defecto)
 ├── seed_biped_structure.py  # Script de seed para migrar rutas de modelos 3D
-├── terrain_builder.py       # Funciones para construir terrenos y límites
-│
-├── templates/               # Sistema de templates para entidades
-│   ├── base.py              # BaseTemplate (clase abstracta)
-│   ├── trees/               # Templates de árboles
-│   └── bipedos/             # Templates de razas bípedas (personajes)
-│
-├── builders/                # Builders para convertir templates en partículas
-│   ├── base.py              # BaseBuilder (clase abstracta)
-│   ├── tree_builder.py      # TreeBuilder (crea árboles)
-│   └── biped_builder.py     # BipedBuilder (crea personajes bípedos)
-│
-├── creators/                # Creators de alto nivel para simplificar creación
-│   └── entity_creator.py    # EntityCreator (factory genérico)
-│
-└── utils/                   # Utilidades auxiliares
-    └── terrain_utils.py     # Funciones auxiliares para cálculos de terreno
+├── seed_character_with_model.py
 ```
 
 ## Componentes Principales
 
-### 1. Templates (`templates/`)
-
-**Responsabilidad:** Definir la estructura y propiedades de las entidades (árboles, plantas, animales, razas).
-
-**Arquitectura:**
-- `BaseTemplate`: Clase abstracta base para todos los templates
-- Templates específicos por categoría (trees, plants, etc.)
-- Registry pattern para descubrimiento dinámico
-
-**Ver:** `templates/README.md` para documentación completa.
-
-### 2. Builders (`builders/`)
-
-**Responsabilidad:** Convertir templates en partículas (tuplas) para insertar en la base de datos.
-
-**Arquitectura:**
-- `BaseBuilder`: Clase abstracta base para todos los builders
-- Builders específicos por categoría (TreeBuilder, PlantBuilder, etc.)
-- Reciben IDs de tipos de partículas y estados de materia
-
-**Ver:** `builders/README.md` para documentación completa.
-
-### 3. Creators (`creators/`)
-
-**Responsabilidad:** Simplificar la creación de entidades ocultando complejidad de builders y obtención de IDs.
-
-**Arquitectura:**
-- `EntityCreator`: Factory genérico que selecciona builders y obtiene IDs
-- Cache de IDs para mejor rendimiento
-- Inserción en batch de partículas
-
-**Ver:** `creators/README.md` para documentación completa.
-
-### 4. Connection (`connection.py`)
+### 1. Connection (`connection.py`)
 
 **Responsabilidad:** Gestión de conexiones a PostgreSQL usando `asyncpg`.
 
@@ -74,7 +25,9 @@ database/
 - Configuración desde variables de entorno
 - Manejo de errores de conexión
 
-### 5. Seed Terrain Test 1 (`seed_terrain_test_1.py`)
+**Motor de creación del mundo:** templates, builders y creators están en **`src/world_creation_engine/`**. Los seeds importan desde ahí (`EntityCreator`, `get_random_tree_template`, etc.).
+
+### 2. Seed Terrain Test 1 (`seed_terrain_test_1.py`)
 
 **Responsabilidad:** Crear terreno test 1: bioma bosque denso con acuífero subterráneo.
 
@@ -109,13 +62,7 @@ database/
 
 **Nota:** Este script se ejecuta automáticamente en el startup del backend (ver `main.py`).
 
-### 7. Terrain Builder (`terrain_builder.py`)
-
-**Responsabilidad:** Funciones helper para construcción de terrenos y límites de dimensiones.
-
-**Funcionalidad:**
-- Crear capa de partículas límite
-- Funciones auxiliares para construcción de terrenos
+**Construcción de terreno (capa límite):** `create_boundary_layer` está en **`src/world_creation_engine/terrain_builder.py`**. Los seeds lo importan desde ahí.
 
 ## Flujo de Creación de Entidades
 
@@ -131,8 +78,8 @@ database/
 
 **Ejemplo:**
 ```python
-from src.database.templates.trees.registry import get_tree_template
-from src.database.creators.entity_creator import EntityCreator
+from src.world_creation_engine.templates.trees.registry import get_tree_template
+from src.world_creation_engine.creators.entity_creator import EntityCreator
 
 # Obtener template
 template = get_tree_template('roble')

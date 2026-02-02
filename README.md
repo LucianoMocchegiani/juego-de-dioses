@@ -83,12 +83,17 @@ docker-compose exec postgres psql -U juegodioses -d juego_dioses -c "SELECT COUN
 juego_de_dioses/
 ├── backend/              # Código del backend (Python/FastAPI)
 │   ├── src/
-│   │   └── main.py      # Punto de entrada
+│   │   ├── main.py       # Punto de entrada
+│   │   ├── domains/      # API por dominio (bloques, particles, characters, celestial, agrupaciones, shared)
+│   │   ├── world_creation_engine/  # Motor de creación (templates, builders, creators, terreno)
+│   │   ├── database/     # Conexión PostgreSQL y seeds
+│   │   ├── config/       # Configuración (celestial, performance)
+│   │   └── storage/      # Almacenamiento de archivos (modelos 3D)
 │   ├── Dockerfile
 │   ├── requirements.txt
 │   └── .env.example
-├── database/
-│   └── init/            # Scripts SQL de inicialización
+├── database/             # Scripts SQL (init, migrations)
+│   └── init/
 │       ├── 01-init-schema.sql
 │       ├── 02-seed-data.sql
 │       └── 03-functions.sql
@@ -278,15 +283,14 @@ Para ver el roadmap completo y detallado, consulta [docs/roadmap.md](docs/roadma
 - [Models](frontend/src/ecs/models/README.md) - Modelos ECS
 
 #### Backend
-- [API Routes](backend/src/api/routes/README.md) - Endpoints de la API
-- [Database](backend/src/database/README.md) - Sistema de base de datos
-- [Models](backend/src/models/README.md) - Modelos de datos
-- [Services](backend/src/services/README.md) - Servicios del backend
+- [API por dominio](backend/src/domains/README.md) - Estructura de la API (bloques, particles, characters, celestial, agrupaciones, shared)
+- [Motor de creación del mundo](backend/src/world_creation_engine/README.md) - Templates, builders, creators y construcción de terreno
+- [Database](backend/src/database/README.md) - Conexión PostgreSQL y seeds
 - [Config](backend/src/config/README.md) - Configuración del backend
 - [Storage](backend/src/storage/README.md) - Sistema de almacenamiento
-- [Database Builders](backend/src/database/builders/README.md) - Builders de entidades
-- [Database Creators](backend/src/database/creators/README.md) - Creators de entidades
-- [Database Templates](backend/src/database/templates/README.md) - Templates de entidades
+- [World Creation Engine - Builders](backend/src/world_creation_engine/builders/README.md) - Builders de entidades
+- [World Creation Engine - Creators](backend/src/world_creation_engine/creators/README.md) - Creators de entidades
+- [World Creation Engine - Templates](backend/src/world_creation_engine/templates/README.md) - Templates de entidades
 
 #### Database
 - [Database General](database/README.md) - Esquema y estructura de base de datos

@@ -54,7 +54,7 @@ sol_velocidad_angular = CELESTIAL_CONFIG['SOL_VELOCIDAD_ANGULAR']
 **Ejemplo de uso:**
 ```python
 from src.config import CELESTIAL_CONFIG
-from src.services import CelestialTimeService
+from src.domains.celestial.service import CelestialTimeService
 
 # Crear servicio con valores de configuración
 celestial_service = CelestialTimeService(
