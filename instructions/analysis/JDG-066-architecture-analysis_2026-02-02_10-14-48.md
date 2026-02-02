@@ -190,6 +190,394 @@ routes (HTTP) → application/use cases → domain (opcional)
 
 ---
 
+## Arquitectura objetivo completa (visión "todo de una")
+
+Esta sección describe cómo se vería **todo el backend** si se aplicara Hexagonal + DDD de una vez en todos los dominios. Sirve como referencia de destino; la migración real se haría por fases (ver más arriba).
+
+### 1. Árbol de directorios completo
+
+```
+backend/src/
+├── main.py                          # Registra routers + inyección de dependencias (Depends)
+├── config/
+├── database/
+│   ├── connection.py                 # Solo usado por infrastructure/* de cada dominio
+│   └── seed_*.py                     # Seeds usan repositorios o connection según conveniencia
+│
+├── domains/
+│   ├── shared/                       # Sin persistencia propia; schemas y helpers
+│   │   ├── schemas.py                # GeometriaVisual, EstilosParticula, parse_jsonb_field, etc.
+│   │   ├── performance_monitor.py
+│   │   ├── world_bloque.py
+│   │   └── world_bloque_manager.py   # Opcional: usar IBloqueRepository si se inyecta
+│   │
+│   ├── bloques/
+│   │   ├── domain/
+│   │   │   └── __init__.py           # (opcional) Entidades si hay lógica de bloque
+│   │   ├── application/
+│   │   │   ├── ports/
+│   │   │   │   └── bloque_repository.py   # IBloqueRepository (abstracto)
+│   │   │   ├── get_bloques.py             # Caso de uso: listar bloques
+│   │   │   ├── get_bloque_by_id.py        # Caso de uso: obtener uno
+│   │   │   └── get_world_size.py          # Caso de uso: tamaño del mundo
+│   │   ├── infrastructure/
+│   │   │   └── postgres_bloque_repository.py
+│   │   ├── schemas.py                # DTOs: DimensionResponse, WorldSizeResponse
+│   │   └── routes.py                 # HTTP → casos de uso; Depends(repository, use_case)
+│   │
+│   ├── particles/
+│   │   ├── domain/
+│   │   │   ├── __init__.py
+│   │   │   ├── entities.py          # (opcional) Particula, TipoParticula con comportamiento
+│   │   │   └── value_objects.py      # (opcional) Viewport, Celda
+│   │   ├── application/
+│   │   │   ├── ports/
+│   │   │   │   └── particle_repository.py   # IParticleRepository
+│   │   │   ├── get_particle_types_in_viewport.py
+│   │   │   ├── get_particles_by_viewport.py
+│   │   │   ├── get_particle_by_id.py
+│   │   │   └── validate_particle_position.py # Lógica que hoy está en routes
+│   │   ├── infrastructure/
+│   │   │   └── postgres_particle_repository.py
+│   │   ├── schemas.py                # ParticleResponse, ParticleTypeResponse, etc.
+│   │   └── routes.py
+│   │
+│   ├── characters/
+│   │   ├── domain/
+│   │   │   └── __init__.py
+│   │   ├── application/
+│   │   │   ├── ports/
+│   │   │   │   ├── character_repository.py
+│   │   │   │   └── storage_port.py           # Reutiliza BaseStorage o interfaz propia
+│   │   │   ├── list_characters.py
+│   │   │   ├── get_character.py
+│   │   │   ├── create_character.py
+│   │   │   └── get_character_model.py
+│   │   ├── infrastructure/
+│   │   │   ├── postgres_character_repository.py
+│   │   │   └── local_storage_adapter.py      # Adaptador que usa BaseStorage
+│   │   ├── schemas.py
+│   │   └── routes.py
+│   │
+│   ├── celestial/
+│   │   ├── domain/
+│   │   │   └── __init__.py
+│   │   ├── application/
+│   │   │   ├── ports/
+│   │   │   │   ├── celestial_state_port.py   # Lectura de estado (¿repo o servicio?)
+│   │   │   │   └── particle_repository.py   # Dependencia: leer partículas para temperatura
+│   │   │   ├── get_celestial_state.py
+│   │   │   └── apply_temperature_to_cells.py
+│   │   ├── infrastructure/
+│   │   │   └── celestial_service_impl.py    # Implementa lógica + usa IParticleRepository
+│   │   ├── schemas.py
+│   │   └── routes.py
+│   │
+│   └── agrupaciones/
+│       ├── domain/
+│       │   └── __init__.py
+│       ├── application/
+│       │   ├── ports/
+│       │   │   └── agrupacion_repository.py  # IAgrupacionRepository (partículas por agrupación)
+│       │   ├── get_agrupaciones.py
+│       │   └── get_agrupacion_with_particles.py
+│       ├── infrastructure/
+│       │   └── postgres_agrupacion_repository.py
+│       ├── schemas.py
+│       └── routes.py
+│
+├── storage/                           # Puerto ya existente
+│   ├── storage_interface.py           # BaseStorage (port)
+│   └── local_file_storage.py         # Adapter
+│
+└── world_creation_engine/
+    ├── templates/                     # Sin cambios (sin BD directa)
+    ├── builders/                     # Reciben repositorios por inyección
+    │   ├── base.py                   # BaseBuilder(particle_repo, bloque_repo, ...)
+    │   ├── tree_builder.py
+    │   └── biped_builder.py
+    ├── creators/
+    │   └── entity_creator.py          # Usa builders; repos inyectados desde main o dominio
+    └── terrain_builder.py            # Usa IBloqueRepository / IParticleRepository inyectados
+```
+
+Regla global: **ningún archivo en `domain/` ni `application/`** importa `asyncpg`, `get_connection`, `FastAPI` o `APIRouter`. Solo `infrastructure/` y `routes.py` conocen infra; `routes.py` solo traduce HTTP ↔ casos de uso.
+
+---
+
+### 2. Flujo de dependencias (todo de una)
+
+```
+                    ┌─────────────────────────────────────────────────────────┐
+                    │                      main.py                            │
+                    │  - include_router(bloques_router)                       │
+                    │  - include_router(particles_router)                     │
+                    │  - Depends: PostgresXxxRepository(get_connection)      │
+                    │  - Depends: use_case(repository)                        │
+                    └──────────────────────────┬────────────────────────────┘
+                                               │
+     ┌─────────────────────────────────────────┼─────────────────────────────────────────┐
+     │                                         ▼                                         │
+     │  domains/bloques/routes.py  ──►  application/get_bloques.py  ──►  ports/IBloqueRepository
+     │         │                                    │                            ▲
+     │         │                                    └────────────────────────────┼──┐
+     │         │                                                                 │  │
+     │         └── Depends(GetBloquesUseCase), Depends(PostgresBloqueRepository)  │  │
+     │                                                                           │  │
+     │  infrastructure/postgres_bloque_repository.py  ─────────────────────────┘  │
+     │         │                                                                   │
+     │         └── get_connection()  ◄── database/connection.py                  │
+     │                                                                             │
+     │  (Mismo patrón para particles, characters, celestial, agrupaciones)          │
+     └─────────────────────────────────────────────────────────────────────────────┘
+```
+
+---
+
+### 3. Dominio particles: ejemplo completo (código)
+
+**Puerto de salida (application/ports/particle_repository.py):**
+
+```python
+from abc import ABC, abstractmethod
+from uuid import UUID
+from typing import List, Optional
+# DTOs del dominio (schemas) para inputs/outputs del repo
+from src.domains.particles.schemas import (
+    ParticleViewportQuery,
+    ParticleResponse,
+    ParticleTypeResponse,
+)
+
+class IParticleRepository(ABC):
+    @abstractmethod
+    async def get_types_in_viewport(
+        self, bloque_id: UUID, tipo_ids: List[UUID]
+    ) -> List[ParticleTypeResponse]:
+        pass
+
+    @abstractmethod
+    async def get_by_viewport(
+        self, bloque_id: UUID, viewport: ParticleViewportQuery
+    ) -> List[ParticleResponse]:
+        pass
+
+    @abstractmethod
+    async def count_by_viewport(
+        self, bloque_id: UUID, viewport: ParticleViewportQuery
+    ) -> int:
+        pass
+
+    @abstractmethod
+    async def get_by_id(self, bloque_id: UUID, particle_id: UUID) -> Optional[ParticleResponse]:
+        pass
+
+    @abstractmethod
+    async def bloque_exists(self, bloque_id: UUID) -> bool:
+        pass
+```
+
+**Adaptador de salida (infrastructure/postgres_particle_repository.py):**
+
+```python
+from uuid import UUID
+from src.database.connection import get_connection
+from src.domains.particles.application.ports.particle_repository import IParticleRepository
+from src.domains.particles.schemas import (
+    ParticleViewportQuery,
+    ParticleResponse,
+    ParticleTypeResponse,
+)
+from src.domains.shared.schemas import parse_jsonb_field
+
+class PostgresParticleRepository(IParticleRepository):
+    async def get_types_in_viewport(self, bloque_id: UUID, tipo_ids: List[UUID]):
+        async with get_connection() as conn:
+            rows = await conn.fetch("""
+                SELECT id, nombre, color, geometria, opacidad
+                FROM juego_dioses.tipos_particulas WHERE id = ANY($1::uuid[])
+            """, tipo_ids)
+            return [
+                ParticleTypeResponse(
+                    id=str(r["id"]),
+                    nombre=r["nombre"],
+                    color=r["color"],
+                    geometria=parse_jsonb_field(r["geometria"]),
+                    opacidad=float(r["opacidad"]) if r["opacidad"] else None,
+                )
+                for r in rows
+            ]
+
+    async def get_by_viewport(self, bloque_id: UUID, viewport: ParticleViewportQuery):
+        async with get_connection() as conn:
+            rows = await conn.fetch("""
+                SELECT p.id, p.bloque_id, ... (query actual)
+                WHERE p.bloque_id = $1 AND ...
+            """, bloque_id, viewport.x_min, viewport.x_max, ...)
+            return [ParticleResponse.from_row(r) for r in rows]
+
+    async def count_by_viewport(self, bloque_id: UUID, viewport: ParticleViewportQuery) -> int:
+        async with get_connection() as conn:
+            return await conn.fetchval("""SELECT COUNT(*) FROM ...""", ...)
+
+    async def get_by_id(self, bloque_id: UUID, particle_id: UUID):
+        # Implementación con query actual
+        ...
+
+    async def bloque_exists(self, bloque_id: UUID) -> bool:
+        async with get_connection() as conn:
+            return await conn.fetchval(
+                "SELECT EXISTS(SELECT 1 FROM juego_dioses.bloques WHERE id = $1)",
+                bloque_id
+            )
+```
+
+**Caso de uso (application/get_particles_by_viewport.py):**
+
+```python
+from uuid import UUID
+from src.domains.particles.application.ports.particle_repository import IParticleRepository
+from src.domains.particles.schemas import (
+    ParticleViewportQuery,
+    ParticlesResponse,
+)
+
+async def get_particles_by_viewport(
+    repository: IParticleRepository,
+    bloque_id: UUID,
+    viewport: ParticleViewportQuery,
+) -> ParticlesResponse:
+    viewport.validate_ranges()
+    exists = await repository.bloque_exists(bloque_id)
+    if not exists:
+        raise ValueError("Bloque no encontrado")  # Routes traducirá a HTTP 404
+    particles = await repository.get_by_viewport(bloque_id, viewport)
+    total = await repository.count_by_viewport(bloque_id, viewport)
+    return ParticlesResponse(
+        bloque_id=bloque_id,
+        particles=particles,
+        total=total,
+        viewport=viewport,
+    )
+```
+
+**Adaptador de entrada (routes.py):**
+
+```python
+from fastapi import APIRouter, Depends, HTTPException, Query
+from uuid import UUID
+
+from src.domains.particles.schemas import (
+    ParticleViewportQuery,
+    ParticlesResponse,
+)
+from src.domains.particles.application.get_particles_by_viewport import get_particles_by_viewport
+from src.domains.particles.infrastructure.postgres_particle_repository import PostgresParticleRepository
+from src.database.connection import get_connection
+
+router = APIRouter(prefix="/bloques", tags=["particles"])
+
+def get_particle_repository():
+    return PostgresParticleRepository()  # En producción: podría leer config/connection
+
+@router.get("/{bloque_id}/particles", response_model=ParticlesResponse)
+async def get_particles_by_viewport_route(
+    bloque_id: UUID,
+    x_min: int = Query(..., ge=0),
+    x_max: int = Query(..., ge=0),
+    y_min: int = Query(..., ge=0),
+    y_max: int = Query(..., ge=0),
+    z_min: int = Query(-10),
+    z_max: int = Query(10),
+    repository: PostgresParticleRepository = Depends(get_particle_repository),
+):
+    viewport = ParticleViewportQuery(x_min=x_min, x_max=x_max, y_min=y_min, y_max=y_max, z_min=z_min, z_max=z_max)
+    try:
+        return await get_particles_by_viewport(repository, bloque_id, viewport)
+    except ValueError as e:
+        if "no encontrado" in str(e).lower():
+            raise HTTPException(status_code=404, detail=str(e))
+        raise HTTPException(status_code=400, detail=str(e))
+```
+
+Con esto, **toda** la lectura/escritura de partículas pasa por `IParticleRepository`; el caso de uso no ve SQL ni HTTP.
+
+---
+
+### 4. main.py: registro y dependencias (visión completa)
+
+```python
+# Fragmento conceptual
+from src.database.connection import get_connection
+
+# Repositorios (adaptadores de salida)
+from src.domains.particles.infrastructure.postgres_particle_repository import PostgresParticleRepository
+from src.domains.bloques.infrastructure.postgres_bloque_repository import PostgresBloqueRepository
+# ... characters, celestial, agrupaciones
+
+def get_particle_repository():
+    return PostgresParticleRepository()
+
+def get_bloque_repository():
+    return PostgresBloqueRepository()
+
+# Routers (cada uno usa Depends con sus repos y casos de uso)
+from src.domains.bloques.routes import router as bloques_router
+from src.domains.particles.routes import router as particles_router
+# ...
+
+app.include_router(bloques_router, prefix="/api/v1")
+app.include_router(particles_router, prefix="/api/v1")
+# ...
+```
+
+Cada router declara sus `Depends(get_particle_repository)` etc.; FastAPI inyecta la misma instancia por request. Para tests se puede inyectar un mock del repositorio.
+
+---
+
+### 5. world_creation_engine integrado (todo de una)
+
+En la visión completa, los builders y el terrain_builder **no** llaman a `get_connection()` directamente. Reciben repositorios por constructor o por función:
+
+```python
+# world_creation_engine/creators/entity_creator.py (conceptual)
+class EntityCreator:
+    def __init__(
+        self,
+        particle_repository: IParticleRepository,
+        bloque_repository: IBloqueRepository,
+        character_repository: ICharacterRepository,
+        storage: BaseStorage,
+    ):
+        self._particle_repo = particle_repository
+        self._bloque_repo = bloque_repository
+        ...
+
+# Al crear un árbol: usa self._particle_repo para insertar partículas
+# y self._bloque_repo para leer dimensiones; no importa asyncpg.
+```
+
+Desde `main.py` o desde un endpoint de “crear mundo” se instancian los repositorios concretos (Postgres*) y se pasan al `EntityCreator`. Así el motor de creación queda desacoplado de la BD; en tests se inyectan repos en memoria.
+
+---
+
+### 6. Resumen de la visión “todo de una”
+
+| Capa | Ubicación | Responsabilidad |
+|------|-----------|------------------|
+| **Entrada HTTP** | `domains/<nombre>/routes.py` | Parsear request, llamar caso de uso, traducir excepciones a HTTP, devolver response. |
+| **Casos de uso** | `domains/<nombre>/application/*.py` | Orquestar: validar, llamar a puertos (repos), construir DTOs de respuesta. Sin SQL ni HTTP. |
+| **Puertos de salida** | `domains/<nombre>/application/ports/*.py` | Interfaces (ABC) de repositorios y otros servicios externos. |
+| **Adaptadores de salida** | `domains/<nombre>/infrastructure/*.py` | Implementaciones: PostgresXxxRepository usando `get_connection()` y SQL. |
+| **Dominio** | `domains/<nombre>/domain/*.py` | (Opcional) Entidades, value objects, reglas de negocio puras. |
+| **DTOs** | `domains/<nombre>/schemas.py` | Pydantic para API y para contratos repo ↔ aplicación. |
+| **Conexión BD** | `database/connection.py` | Solo usado por `infrastructure/` y por seeds. |
+| **Storage** | `storage/` | Ya es un puerto (BaseStorage) + adaptador (LocalFileStorage). |
+
+Si se hiciera **todo de una**: todos los dominios seguirían esta estructura; `world_creation_engine` usaría solo puertos inyectados; no habría `get_connection()` ni SQL fuera de `database/` e `infrastructure/`. En la práctica se llega a esta visión **por fases** (primero particles, luego bloques, etc.) como se describe en la sección “Migración propuesta (incremental)”.
+
+---
+
 ## Patrones de diseño a usar
 
 ### 1. Puerto (Port) / Adaptador (Adapter) – Hexagonal
