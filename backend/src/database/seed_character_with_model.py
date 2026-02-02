@@ -24,12 +24,12 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from src.database.connection import get_connection
-from src.database.creators.entity_creator import EntityCreator
-from src.database.templates.bipedos.registry import get_biped_template
-from src.database.builders.biped_builder import BipedBuilder
-from src.models.schemas import Model3D
+from src.world_creation_engine.creators.entity_creator import EntityCreator
+from src.world_creation_engine.templates.bipedos.registry import get_biped_template
+from src.world_creation_engine.builders.biped_builder import BipedBuilder
+from src.domains.characters.schemas import Model3D
 from src.storage.local_file_storage import LocalFileStorage
-from src.database.utils.terrain_utils import get_terrain_height_area
+from src.domains.bloques.terrain_utils import get_terrain_height_area
 
 
 async def main():

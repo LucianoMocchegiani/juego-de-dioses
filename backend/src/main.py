@@ -46,7 +46,7 @@ logging.basicConfig(
 )
 
 # Configurar logger específico para el servicio de monitoreo
-perf_logger = logging.getLogger('src.services.performance_monitor_service')
+perf_logger = logging.getLogger('src.domains.shared.performance_monitor')
 perf_logger.setLevel(logging.INFO)
 
 # Lifespan events
@@ -105,7 +105,7 @@ async def lifespan(app: FastAPI):
         print("Seeds iniciados en segundo plano. La aplicación está lista para recibir peticiones.")
         
         # Iniciar servicio de tiempo celestial en segundo plano (no bloquea)
-        from src.api.routes.celestial import (
+        from src.domains.celestial.routes import (
             start_celestial_service_background_task,
             start_particle_temperature_update_task
         )
@@ -117,7 +117,7 @@ async def lifespan(app: FastAPI):
         print("Background task de temperatura de partículas iniciado.")
         
         # Iniciar monitoreo de rendimiento
-        from src.services.performance_monitor_service import PerformanceMonitorService
+        from src.domains.shared.performance_monitor import PerformanceMonitorService
         performance_monitor = PerformanceMonitorService()
         performance_monitor.start()
         app.state.performance_monitor = performance_monitor  # Guardar referencia
@@ -167,14 +167,18 @@ async def health_check():
         "database": db_health
     }
 
-# API Routes
-from src.api.routes import dimensions, particles, agrupaciones, characters, celestial
+# API Routes (estructura por dominio)
+from src.domains.bloques.routes import router as bloques_router
+from src.domains.particles.routes import router as particles_router
+from src.domains.agrupaciones.routes import router as agrupaciones_router
+from src.domains.characters.routes import router as characters_router
+from src.domains.celestial.routes import router as celestial_router
 
-app.include_router(dimensions.router, prefix="/api/v1")
-app.include_router(particles.router, prefix="/api/v1")
-app.include_router(agrupaciones.router, prefix="/api/v1")
-app.include_router(characters.router, prefix="/api/v1")
-app.include_router(celestial.router, prefix="/api/v1")
+app.include_router(bloques_router, prefix="/api/v1")
+app.include_router(particles_router, prefix="/api/v1")
+app.include_router(agrupaciones_router, prefix="/api/v1")
+app.include_router(characters_router, prefix="/api/v1")
+app.include_router(celestial_router, prefix="/api/v1")
 
 # Servir archivos estáticos de modelos 3D
 static_models_path = Path("static/models")
