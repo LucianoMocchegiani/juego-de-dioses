@@ -12,6 +12,7 @@ Lista de tickets que aún no tienen un Pull Request completado.
 - [ ] **JDG-014** - Sistema de Daño por Partes del Cuerpo (Limb Damage System) ⚠️ POSPUESTO
 - [ ] **JDG-055** - Desplazamiento No Deseado Durante Animaciones (Root Motion)
 - [ ] **JDG-064** - Preparación para Mesh Builder (Partículas y Diseño)
+- [ ] **JDG-066** - Análisis y posible migración del backend a Hexagonal + DDD
 
 ## Tickets Completados (con PR)
 
@@ -76,4 +77,4 @@ Lista de tickets que aún no tienen un Pull Request completado.
 
 - Esta lista se actualiza automáticamente cuando se crea un nuevo ticket o se completa un PR
 - Los tickets se marcan como completados cuando se genera el PR description correspondiente
-- Total: 8 tickets pendientes, 56 tickets completados
+- Total: 9 tickets pendientes, 56 tickets completados
