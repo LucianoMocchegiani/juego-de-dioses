@@ -1,6 +1,6 @@
 # Tickets Pendientes
 
-Lista de tickets que aún no tienen un Pull Request completado.
+Lista de tickets que aún  no tienen un Pull Request completado.
 
 ## Tickets Pendientes
 
