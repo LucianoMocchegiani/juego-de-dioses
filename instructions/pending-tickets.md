@@ -11,6 +11,7 @@ Lista de tickets que aún no tienen un Pull Request completado.
 - [ ] **JDG-053** - Restricción de Movimiento en el Aire al Saltar e Inercia
 - [ ] **JDG-014** - Sistema de Daño por Partes del Cuerpo (Limb Damage System) ⚠️ POSPUESTO
 - [ ] **JDG-055** - Desplazamiento No Deseado Durante Animaciones (Root Motion)
+- [ ] **JDG-064** - Preparación para Mesh Builder (Partículas y Diseño)
 
 ## Tickets Completados (con PR)
 
@@ -69,9 +70,10 @@ Lista de tickets que aún no tienen un Pull Request completado.
 - [x] **JDG-061** - Refactorizar CombatSystem con Helpers Externos
 - [x] **JDG-062** - Refactorizar PhysicsSystem con Helpers Externos
 - [x] **JDG-063** - Reorganización y Consolidación de Documentación del Proyecto
+- [x] **JDG-065** - Migrar Backend a Estructura por Dominio (estilo Nest)
 
 ## Notas
 
 - Esta lista se actualiza automáticamente cuando se crea un nuevo ticket o se completa un PR
 - Los tickets se marcan como completados cuando se genera el PR description correspondiente
-- Total: 3 tickets pendientes, 55 tickets completados
+- Total: 8 tickets pendientes, 56 tickets completados

@@ -9,13 +9,13 @@ import math
 import json
 from dotenv import load_dotenv
 from uuid import UUID
-from src.database.terrain_builder import create_boundary_layer
-from src.database.templates.trees.registry import get_random_tree_template
-from src.database.templates.bipedos.registry import get_biped_template
-from src.database.creators.entity_creator import EntityCreator
-from src.models.schemas import Model3D
+from src.world_creation_engine.terrain_builder import create_boundary_layer
+from src.world_creation_engine.templates.trees.registry import get_random_tree_template
+from src.world_creation_engine.templates.bipedos.registry import get_biped_template
+from src.world_creation_engine.creators.entity_creator import EntityCreator
+from src.domains.characters.schemas import Model3D
 from src.storage.local_file_storage import LocalFileStorage
-from src.database.utils.terrain_utils import get_terrain_height_area
+from src.domains.bloques.terrain_utils import get_terrain_height_area
 
 load_dotenv()
 
