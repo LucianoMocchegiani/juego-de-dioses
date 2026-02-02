@@ -1,226 +1,101 @@
 """
-Endpoints para Personajes (Bípedos)
+Puerta de entrada HTTP para Personajes (Bípedos).
+
+Flujo (Arquitectura Hexagonal):
+  1. routes.py (aquí) → adaptador de entrada: recibe HTTP y delega en casos de uso.
+  2. application/get_character.py (y otros) → caso de uso: orquesta lógica usando puertos.
+  3. application/ports/character_repository.py → puerto (interfaz): contrato que el caso de uso usa.
+  4. infrastructure/postgres_character_repository.py → adaptador de salida: implementa el puerto contra Postgres.
+
+Las routes no acceden a BD ni a infraestructura directa; solo inyectan el adaptador y llaman al caso de uso.
 """
-from fastapi import APIRouter, HTTPException, Path
 from typing import List
 from uuid import UUID
 
-from src.database.connection import get_connection
-from src.world_creation_engine.templates.bipedos.registry import get_biped_template, list_biped_template_ids
-from src.world_creation_engine.creators.entity_creator import EntityCreator
-from src.domains.characters.schemas import CharacterResponse, CharacterCreate, BipedGeometry, Model3D
-from src.domains.shared.schemas import parse_jsonb_field
+from fastapi import APIRouter, Depends, HTTPException, Path
+
+from src.domains.characters.application.list_characters import list_characters
+from src.domains.characters.application.get_character import get_character
+from src.domains.characters.application.get_character_model import get_character_model
+from src.domains.characters.application.ports.character_repository import ICharacterRepository
+from src.domains.characters.application.ports.character_creation_port import ICharacterCreationPort
+from src.domains.characters.infrastructure.postgres_character_repository import PostgresCharacterRepository
+from src.domains.characters.infrastructure.entity_creation_adapter import EntityCreationAdapter
+from src.domains.characters.schemas import CharacterResponse, CharacterCreate
 
 router = APIRouter(prefix="/bloques/{bloque_id}/characters", tags=["characters"])
 
 
-@router.get("/{character_id}", response_model=CharacterResponse)
-async def get_character(
-    bloque_id: UUID = Path(..., description="ID del bloque"),
-    character_id: UUID = Path(..., description="ID del personaje (agrupación)"),
-):
-    async with get_connection() as conn:
-        bloque_exists = await conn.fetchval(
-            "SELECT EXISTS(SELECT 1 FROM juego_dioses.bloques WHERE id = $1)",
-            bloque_id
-        )
-        if not bloque_exists:
-            raise HTTPException(status_code=404, detail="Bloque no encontrado")
-        agrupacion = await conn.fetchrow("""
-            SELECT id, nombre, tipo, especie, geometria_agrupacion, modelo_3d, posicion_x, posicion_y, posicion_z
-            FROM juego_dioses.agrupaciones
-            WHERE id = $1 AND bloque_id = $2
-        """, character_id, bloque_id)
-        if not agrupacion:
-            raise HTTPException(status_code=404, detail="Personaje no encontrado")
-        if agrupacion['tipo'] != 'biped':
-            raise HTTPException(status_code=400, detail="La agrupación no es un personaje (bípedo)")
-        geometria = None
-        if agrupacion['geometria_agrupacion']:
-            geometria_data = parse_jsonb_field(agrupacion['geometria_agrupacion'])
-            if geometria_data:
-                try:
-                    geometria = BipedGeometry(**geometria_data)
-                except Exception:
-                    pass
-        modelo_3d = None
-        if agrupacion['modelo_3d']:
-            modelo_3d_data = parse_jsonb_field(agrupacion['modelo_3d'])
-            if modelo_3d_data:
-                try:
-                    modelo_3d = Model3D(**modelo_3d_data)
-                except Exception:
-                    pass
-        return CharacterResponse(
-            id=str(agrupacion['id']),
-            bloque_id=str(bloque_id),
-            nombre=agrupacion['nombre'],
-            tipo=agrupacion['tipo'],
-            especie=agrupacion['especie'] or '',
-            posicion={
-                'x': agrupacion['posicion_x'] or 0,
-                'y': agrupacion['posicion_y'] or 0,
-                'z': agrupacion['posicion_z'] or 0,
-            },
-            geometria_agrupacion=geometria,
-            modelo_3d=modelo_3d,
-            particulas_count=0,
-        )
+def get_character_repository() -> ICharacterRepository:
+    """Factory para inyección de dependencias: devuelve el adaptador concreto (Postgres)."""
+    return PostgresCharacterRepository()
+
+
+def get_character_creation_port() -> ICharacterCreationPort:
+    """Factory para el puerto de creación: devuelve el adaptador que usa EntityCreator."""
+    return EntityCreationAdapter()
+
+
+def _handle_value_error(e: ValueError) -> None:
+    """Convierte ValueError del caso de uso en HTTP 404 (no encontrado) o 400 (validación)."""
+    if "no encontrado" in str(e).lower() or "no tiene" in str(e).lower():
+        raise HTTPException(status_code=404, detail=str(e))
+    raise HTTPException(status_code=400, detail=str(e))
 
 
 @router.get("", response_model=List[CharacterResponse])
-async def list_characters(bloque_id: UUID = Path(..., description="ID del bloque")):
-    async with get_connection() as conn:
-        bloque_exists = await conn.fetchval(
-            "SELECT EXISTS(SELECT 1 FROM juego_dioses.bloques WHERE id = $1)",
-            bloque_id
-        )
-        if not bloque_exists:
-            raise HTTPException(status_code=404, detail="Bloque no encontrado")
-        agrupaciones = await conn.fetch("""
-            SELECT id, nombre, tipo, especie, geometria_agrupacion, modelo_3d, posicion_x, posicion_y, posicion_z
-            FROM juego_dioses.agrupaciones
-            WHERE bloque_id = $1 AND tipo = 'biped'
-            ORDER BY creado_en DESC
-        """, bloque_id)
-        characters = []
-        for agrupacion in agrupaciones:
-            geometria = None
-            if agrupacion['geometria_agrupacion']:
-                geometria_data = parse_jsonb_field(agrupacion['geometria_agrupacion'])
-                if geometria_data:
-                    try:
-                        geometria = BipedGeometry(**geometria_data)
-                    except Exception:
-                        pass
-            modelo_3d = None
-            if agrupacion['modelo_3d']:
-                modelo_3d_data = parse_jsonb_field(agrupacion['modelo_3d'])
-                if modelo_3d_data:
-                    try:
-                        modelo_3d = Model3D(**modelo_3d_data)
-                    except Exception:
-                        pass
-            characters.append(CharacterResponse(
-                id=str(agrupacion['id']),
-                bloque_id=str(bloque_id),
-                nombre=agrupacion['nombre'],
-                tipo=agrupacion['tipo'],
-                especie=agrupacion['especie'] or '',
-                posicion={
-                    'x': agrupacion['posicion_x'] or 0,
-                    'y': agrupacion['posicion_y'] or 0,
-                    'z': agrupacion['posicion_z'] or 0,
-                },
-                geometria_agrupacion=geometria,
-                modelo_3d=modelo_3d,
-                particulas_count=0,
-            ))
-        return characters
+async def list_characters_route(
+    bloque_id: UUID = Path(..., description="ID del bloque"),
+    repository: ICharacterRepository = Depends(get_character_repository),
+):
+    """GET /bloques/{bloque_id}/characters — Lista todos los personajes (bípedos) del bloque."""
+    try:
+        return await list_characters(repository, bloque_id)
+    except ValueError as e:
+        _handle_value_error(e)
+
+
+@router.get("/{character_id}", response_model=CharacterResponse)
+async def get_character_route(
+    bloque_id: UUID = Path(..., description="ID del bloque"),
+    character_id: UUID = Path(..., description="ID del personaje (agrupación)"),
+    repository: ICharacterRepository = Depends(get_character_repository),
+):
+    """GET /bloques/{bloque_id}/characters/{character_id} — Devuelve un personaje por ID."""
+    try:
+        return await get_character(repository, bloque_id, character_id)
+    except ValueError as e:
+        _handle_value_error(e)
 
 
 @router.get("/{character_id}/model")
-async def get_character_model(
+async def get_character_model_route(
     bloque_id: UUID = Path(..., description="ID del bloque"),
     character_id: UUID = Path(..., description="ID del personaje"),
+    repository: ICharacterRepository = Depends(get_character_repository),
 ):
-    async with get_connection() as conn:
-        bloque_exists = await conn.fetchval(
-            "SELECT EXISTS(SELECT 1 FROM juego_dioses.bloques WHERE id = $1)",
-            bloque_id
-        )
-        if not bloque_exists:
-            raise HTTPException(status_code=404, detail="Bloque no encontrado")
-        agrupacion = await conn.fetchrow("""
-            SELECT modelo_3d
-            FROM juego_dioses.agrupaciones
-            WHERE id = $1 AND bloque_id = $2 AND tipo = 'biped'
-        """, character_id, bloque_id)
-        if not agrupacion:
-            raise HTTPException(status_code=404, detail="Personaje no encontrado")
-        if not agrupacion['modelo_3d']:
-            raise HTTPException(status_code=404, detail="Personaje no tiene modelo 3D")
-        modelo_3d_data = parse_jsonb_field(agrupacion['modelo_3d'])
-        if not modelo_3d_data:
-            raise HTTPException(status_code=404, detail="Modelo 3D no válido")
-        try:
-            modelo_3d = Model3D(**modelo_3d_data)
-        except Exception as e:
-            raise HTTPException(status_code=400, detail=f"Error parseando modelo_3d: {str(e)}")
-        return {"model_url": f"/static/models/{modelo_3d.ruta}", "metadata": modelo_3d.dict()}
+    """GET /bloques/{bloque_id}/characters/{character_id}/model — URL y metadata del modelo 3D del personaje."""
+    try:
+        return await get_character_model(repository, bloque_id, character_id)
+    except ValueError as e:
+        _handle_value_error(e)
 
 
 @router.post("", response_model=CharacterResponse, status_code=201)
 async def create_character(
     character_data: CharacterCreate,
     bloque_id: UUID = Path(..., description="ID del bloque"),
+    creation_port: ICharacterCreationPort = Depends(get_character_creation_port),
 ):
-    async with get_connection() as conn:
-        bloque_exists = await conn.fetchval(
-            "SELECT EXISTS(SELECT 1 FROM juego_dioses.bloques WHERE id = $1)",
-            bloque_id
-        )
-        if not bloque_exists:
-            raise HTTPException(status_code=404, detail="Bloque no encontrado")
-        if character_data.x < 0 or character_data.y < 0:
-            raise HTTPException(status_code=400, detail="Las coordenadas x e y deben ser mayores o iguales a 0")
-        template = get_biped_template(character_data.template_id)
-        if not template:
-            available_templates = list_biped_template_ids()
-            raise HTTPException(
-                status_code=404,
-                detail=f"Template '{character_data.template_id}' no encontrado. Templates disponibles: {', '.join(available_templates)}",
-            )
-        creator = EntityCreator(conn, bloque_id)
-        try:
-            await creator.create_entity(
-                template,
-                character_data.x,
-                character_data.y,
-                character_data.z,
-                create_agrupacion=True,
-            )
-        except ValueError as e:
-            raise HTTPException(status_code=400, detail=str(e))
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Error al crear personaje: {str(e)}")
-        agrupacion = await conn.fetchrow("""
-            SELECT id, nombre, tipo, especie, geometria_agrupacion, modelo_3d, posicion_x, posicion_y, posicion_z
-            FROM juego_dioses.agrupaciones
-            WHERE bloque_id = $1 AND tipo = 'biped'
-            ORDER BY creado_en DESC
-            LIMIT 1
-        """, bloque_id)
-        if not agrupacion:
-            raise HTTPException(status_code=500, detail="Error al crear personaje: agrupación no encontrada")
-        geometria = None
-        if agrupacion['geometria_agrupacion']:
-            geometria_data = parse_jsonb_field(agrupacion['geometria_agrupacion'])
-            if geometria_data:
-                try:
-                    geometria = BipedGeometry(**geometria_data)
-                except Exception:
-                    pass
-        modelo_3d = None
-        if agrupacion['modelo_3d']:
-            modelo_3d_data = parse_jsonb_field(agrupacion['modelo_3d'])
-            if modelo_3d_data:
-                try:
-                    modelo_3d = Model3D(**modelo_3d_data)
-                except Exception:
-                    pass
-        return CharacterResponse(
-            id=str(agrupacion['id']),
-            bloque_id=str(bloque_id),
-            nombre=agrupacion['nombre'],
-            tipo=agrupacion['tipo'],
-            especie=agrupacion['especie'] or '',
-            posicion={
-                'x': agrupacion['posicion_x'] or character_data.x,
-                'y': agrupacion['posicion_y'] or character_data.y,
-                'z': agrupacion['posicion_z'] or character_data.z,
-            },
-            geometria_agrupacion=geometria,
-            modelo_3d=modelo_3d,
-            particulas_count=0,
-        )
+    """POST /bloques/{bloque_id}/characters — Crea un personaje; delega en ICharacterCreationPort (EntityCreationAdapter)."""
+    try:
+        return await creation_port.create_character(character_data, bloque_id)
+    except ValueError as e:
+        msg = str(e)
+        if "no encontrado" in msg.lower() or "bloque no encontrado" in msg.lower():
+            raise HTTPException(status_code=404, detail=msg)
+        raise HTTPException(status_code=400, detail=msg)
+    except RuntimeError as e:
+        raise HTTPException(status_code=500, detail=str(e))
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error al crear personaje: {str(e)}")

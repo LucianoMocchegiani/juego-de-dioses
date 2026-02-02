@@ -6,7 +6,7 @@ Sistema de juego basado en partículas (voxels) donde los jugadores interactúan
 
 ## Arquitectura
 
-- **Backend**: Python 3.11 + FastAPI + Uvicorn
+- **Backend**: Python 3.11 + FastAPI + Uvicorn, organizado por dominios con **Hexagonal + DDD** (puertos, casos de uso, adaptadores de persistencia). Ver [docs/flujo-endpoints-hexagonal-ddd.md](docs/flujo-endpoints-hexagonal-ddd.md).
 - **Base de Datos**: PostgreSQL 16
 - **Cache**: Redis 7
 - **WebSockets**: FastAPI WebSockets (nativo)
@@ -253,6 +253,7 @@ Para ver el roadmap completo y detallado, consulta [docs/roadmap.md](docs/roadma
 ### Documentación Principal
 - [Roadmap](docs/roadmap.md) - Estado del proyecto y funcionalidades planificadas
 - [Arquitectura y Tecnologías](docs/ARQUITECTURA-TECNOLOGIAS.md) - Decisiones técnicas y stack tecnológico
+- [Documentación de docs/](docs/README.md) - Índice de la carpeta docs (arquitectura backend, flujos, endpoints)
 
 ### Documentación por Módulo
 
@@ -283,7 +284,9 @@ Para ver el roadmap completo y detallado, consulta [docs/roadmap.md](docs/roadma
 - [Models](frontend/src/ecs/models/README.md) - Modelos ECS
 
 #### Backend
-- [API por dominio](backend/src/domains/README.md) - Estructura de la API (bloques, particles, characters, celestial, agrupaciones, shared)
+- [Backend (raíz)](backend/README.md) - Estructura general del backend y enlaces
+- [API por dominio (Hexagonal + DDD)](backend/src/domains/README.md) - Estructura de la API (bloques, particles, characters, celestial, agrupaciones, shared)
+- [Flujo de endpoints (Hexagonal)](docs/flujo-endpoints-hexagonal-ddd.md) - Cómo fluye una petición (route → caso de uso → puerto → adaptador)
 - [Motor de creación del mundo](backend/src/world_creation_engine/README.md) - Templates, builders, creators y construcción de terreno
 - [Database](backend/src/database/README.md) - Conexión PostgreSQL y seeds
 - [Config](backend/src/config/README.md) - Configuración del backend

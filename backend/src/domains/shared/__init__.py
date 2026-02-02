@@ -12,6 +12,7 @@ from .schemas import (
 from .performance_monitor import PerformanceMonitorService
 from .world_bloque import WorldBloque
 from .world_bloque_manager import WorldBloqueManager
+from .ports import IBloqueConfigProvider, ITemperatureCalculator
 
 __all__ = [
     "parse_jsonb_field",
@@ -23,4 +24,6 @@ __all__ = [
     "PerformanceMonitorService",
     "WorldBloque",
     "WorldBloqueManager",
+    "IBloqueConfigProvider",
+    "ITemperatureCalculator",
 ]

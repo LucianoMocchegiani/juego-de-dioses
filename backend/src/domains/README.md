@@ -1,24 +1,31 @@
-# API por Dominio
+# API por Dominio (Hexagonal + DDD)
 
-Estructura por dominio: cada recurso tiene su carpeta bajo `domains/` (en `src`) con **schemas** (DTOs) y **routes** (router FastAPI). Los schemas compartidos están en `shared/`. Aquí vive la **lógica de API**: endpoints, respuestas HTTP, servicios que sirven a las rutas.
+Estructura por dominio: cada recurso tiene su carpeta bajo `domains/` con **schemas** (DTOs), **routes** (adaptador HTTP), y donde aplica **application/** (casos de uso) e **infrastructure/** (adaptadores de persistencia). Los schemas compartidos están en **shared/**.
+
+**Regla Hexagonal:** Ningún archivo en `domain/` ni `application/` importa `asyncpg`, `get_connection`, `FastAPI` o `APIRouter`. Solo `infrastructure/` y `routes.py` conocen infra; `routes.py` solo traduce HTTP ↔ casos de uso.
 
 **Separación de responsabilidades:**
-- **`domains/`** = API: endpoints, schemas, respuestas. Servicios por dominio en **`domains/<dominio>/service.py`** (celestial, particles). Lo cross-cutting (PerformanceMonitorService, WorldBloque, WorldBloqueManager) está en **`domains/shared/`**.
-- **`world_creation_engine/`** = motor de creación del mundo (templates, builders, creators). Los dominios y los seeds llaman al engine cuando necesitan crear entidades en el mundo.
+- **`domains/<nombre>/`** = domain/ (opcional), application/ports/ (interfaces), application/ (casos de uso), infrastructure/ (PostgresXxxRepository), schemas.py, routes.py.
+- **`domains/shared/`** = Schemas compartidos (geometría, estilos, parse_jsonb_field), PerformanceMonitorService, WorldBloque, WorldBloqueManager (inyección de IBloqueConfigProvider), puertos IBloqueConfigProvider e ITemperatureCalculator.
+- **`world_creation_engine/`** = Motor de creación del mundo (templates, builders, creators). La ruta create_character usa el puerto ICharacterCreationPort (EntityCreationAdapter usa EntityCreator internamente).
 
-## Estructura
+## Estructura por dominio (Hexagonal + DDD)
 
 ```
 domains/
-├── shared/          # Schemas compartidos (geometría, estilos, parse_jsonb_field)
-├── bloques/          # Bloques (dimensiones/mundos): GET /bloques, /bloques/{id}, /bloques/world/size
-├── particles/        # Partículas: GET /bloques/{id}/particles, /bloques/{id}/particle-types
-├── agrupaciones/     # Agrupaciones: GET /bloques/{id}/agrupaciones, /bloques/{id}/agrupaciones/{aid}
-├── characters/       # Personajes (bípedos): GET/POST /bloques/{id}/characters, .../model
-└── celestial/        # Tiempo celestial: GET /celestial/state, POST /celestial/temperature
+├── shared/          # Sin persistencia propia; schemas y helpers
+├── bloques/          # IBloqueRepository, casos de uso, PostgresBloqueRepository
+├── particles/        # IParticleRepository, casos de uso, PostgresParticleRepository
+├── agrupaciones/     # IAgrupacionRepository, casos de uso, PostgresAgrupacionRepository
+├── characters/       # ICharacterRepository + ICharacterCreationPort; create_character vía EntityCreationAdapter
+└── celestial/        # Casos de uso (state, temperature); tarea background temperatura usa IParticleRepository
 ```
 
-Todos los routers se registran en `main.py` con prefijo `/api/v1`. Las URLs y contratos JSON no cambian respecto a la versión anterior.
+Cada dominio que migró tiene:
+- **application/ports/** — Puerto de salida (ej. `IBloqueRepository`).
+- **application/** — Casos de uso (ej. `get_bloques`, `get_bloque_by_id`).
+- **infrastructure/** — Adaptador (ej. `PostgresBloqueRepository`) que usa `get_connection()` y SQL.
+- **routes.py** — `Depends(get_*_repository)` y llamada a casos de uso; sin SQL ni `get_connection`.
 
 ## Endpoints
 
@@ -32,6 +39,8 @@ Todos los routers se registran en `main.py` con prefijo `/api/v1`. Las URLs y co
 
 ## Imports
 
-- DTOs de un dominio: `from src.domains.<dominio>.schemas import ...`
-- Compartidos: `from src.domains.shared.schemas import parse_jsonb_field, GeometriaVisual, ...`
-- Servicios (lógica de negocio): `from src.domains.<dominio>.service import ...` (p. ej. celestial: CelestialTimeService, calculate_cell_temperature; particles: get_particulas_con_inercia, get_particulas_vecinas)
+- DTOs: `from src.domains.<dominio>.schemas import ...`
+- Compartidos: `from src.domains.shared.schemas import ...`
+- Puertos: `from src.domains.<dominio>.application.ports.<nombre>_repository import I...Repository`
+- Casos de uso: `from src.domains.<dominio>.application.<nombre> import ...`
+- Adaptadores: `from src.domains.<dominio>.infrastructure.postgres_<nombre>_repository import Postgres...Repository`
