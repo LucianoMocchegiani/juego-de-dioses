@@ -8,7 +8,7 @@
  * - Bloqueo de input del juego
  * - Sistema de tabs genérico
  */
-import { cursorManager } from '../utils/cursor-manager.js';
+import { cursorManager } from '../shared/cursor-manager.js';
 
 export class BaseInterface {
     /**

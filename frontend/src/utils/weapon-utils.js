@@ -18,7 +18,7 @@
  * const weaponType = getEquippedWeapon(app.ecs, app.playerId);
  */
 import { ECS_CONSTANTS } from '../config/ecs-constants.js';
-import { WeaponComponent } from '../ecs/components/weapon.js';
+import { WeaponComponent } from '../rendering/ecs/components/weapon.js';
 import { WEAPON_MODELS } from '../config/weapon-models-config.js';
 import { detachWeaponFromCharacter } from './weapon-attachment.js';
 import { debugLogger } from '../debug/logger.js';

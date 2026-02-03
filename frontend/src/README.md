@@ -6,70 +6,38 @@ Este directorio contiene el código fuente del frontend, organizado en una arqui
 
 ```
 src/
-├── main.js                    # Punto de entrada, inicialización mínima
-├── app.js                     # Aplicación principal (orquestación)
+├── main.js                    # Punto de entrada (usa createApp del bootstrap)
+├── app.js                     # Aplicación principal (recibe ports y store)
 │
-├── core/                      # Infraestructura base compartida
-│   ├── scene.js              # Escena base Three.js
-│   ├── camera.js             # Gestión de cámara
-│   ├── controls.js           # Controles de cámara (OrbitControls wrapper)
-│   ├── renderer.js           # Renderizador WebGL
-│   ├── lights.js             # Gestión de luces
-│   ├── helpers.js            # Helpers (grid, axes) con gestión dinámica
-│   ├── geometries/           # Registry de geometrías (compartido)
-│   │   └── registry.js      # Registry de geometrías (box, sphere, etc.)
-│   ├── renderers/            # Renderizadores base
-│   │   └── base-renderer.js  # Clase base abstracta
-│   ├── performance/          # Gestión de rendimiento
-│   │   └── performance-manager.js
-│   └── input/                # Input centralizado
-│       └── input-manager.js
+├── domain/                    # Modelos de dominio (world, particles, character)
+├── application/              # Casos de uso (loadWorld, spawnPlayer, syncCelestial)
+├── ports/                     # Contratos (APIs)
+├── adapters/                  # Implementaciones HTTP (api-client, http-*)
 │
-├── state/                    # Gestión de estado
-│   ├── store.js             # Store centralizado
-│   ├── actions.js           # Acciones para modificar estado
-│   └── selectors.js         # Selectores de estado
+├── driving/                   # Entrada: game loop, input, UI
+│   ├── game/                  # game-bootstrap.js, game-loop.js
+│   ├── input/                 # input-manager.js
+│   └── ui/                    # Paneles (futuro)
 │
-├── api/                      # Cliente API modular
-│   ├── client.js            # Cliente base con configuración
-│   └── endpoints/          # Endpoints por recurso
-│       ├── bloques.js
-│       ├── particles.js
-│       └── agrupaciones.js
+├── rendering/                 # Todo lo 3D
+│   ├── scene/                 # Scene3D, cámara, luces, renderer
+│   ├── loaders/               # ModelLoader, ModelCache, bones-utils
+│   ├── ecs/                   # ECSManager, systems, components, factories
+│   ├── terrain/               # TerrainManager (ports inyectados)
+│   ├── world/                 # CameraController, CollisionDetector, Celestial
+│   ├── optimizations/        # ObjectPool, FrustumCuller, LOD, etc.
+│   ├── geometries/           # GeometryRegistry
+│   ├── renderers/            # BaseRenderer
+│   └── performance/          # PerformanceManager
 │
-├── ecs/                      # Sistema ECS (Entity Component System)
-│   ├── manager.js          # ECSManager - Núcleo del sistema
-│   ├── system.js           # Clase base System
-│   ├── components/         # Componentes (Position, Physics, Render, Input, Animation)
-│   ├── systems/            # Sistemas (Input, Physics, Render, Collision, Animation)
-│   ├── factories/          # Factories para crear entidades (PlayerFactory)
-│   └── models/             # Sistema de carga de modelos 3D (GLTF/GLB)
-│       ├── model-loader.js
-│       ├── model-cache.js
-│       ├── bones-utils.js
-│       └── ...
-│
-├── terrain/                 # Sistema de terreno (JDG-035-2)
-│   ├── manager.js          # TerrainManager
-│   ├── components/         # Componentes de datos
-│   ├── systems/            # Sistemas de procesamiento
-│   ├── renderers/          # Renderizadores
-│   ├── optimizations/      # Optimizaciones (LOD, culling, limiting)
-│   ├── utils/              # Utilidades específicas
-│   └── api/                # Clientes API
-│
-├── world/                   # Servicios de integración del mundo (JDG-035-3)
-│   ├── camera-controller.js # Control de cámara (sigue jugador)
-│   └── collision-detector.js # Colisiones con terreno
-│
-├── utils/                    # Utilidades organizadas
-│   ├── colors.js           # Utilidades de colores
-│   ├── geometry.js         # Utilidades de geometría
-│   ├── math.js             # Utilidades matemáticas
-│   └── helpers.js          # Helpers generales
-│
-├── constants.js             # Constantes
-└── types.js                 # Tipos JSDoc
+├── state/                     # Store, actions, selectors
+├── config/                    # Constantes y configuraciones
+├── shared/                    # Utilidades puras (math, geometry, colors, helpers, config, cursor-manager)
+├── api/                       # Cliente API (usado por bootstrap y PlayerFactory)
+├── utils/                     # weapon-attachment, weapon-utils (resto en shared/)
+├── interfaces/                # Paneles de debug (base-interface, debug-panel, test-interface)
+├── debug/                     # Logger, métricas, inspector
+└── types.js                   # Tipos JSDoc
 ```
 
 ## Flujo de Ejecución
@@ -88,53 +56,36 @@ src/
 
 ## Módulos Principales
 
-### Core (`core/`)
-Infraestructura base compartida: configuración Three.js, registry de geometrías, renderizadores base, gestión de performance, input centralizado.
+### Rendering (`rendering/`)
+Todo lo 3D: escena, loaders, ECS, terreno, mundo, optimizaciones, geometrías, renderers, performance.
 
-**Contenido:**
-- Configuración Three.js (scene, camera, renderer, controls, lights, helpers)
-- `geometries/registry.js`: Registry compartido usado por terrain y otros sistemas
-- `renderers/base-renderer.js`: Clase base abstracta para renderizadores
-- `performance/performance-manager.js`: Métricas globales de rendimiento
-- `input/input-manager.js`: Input centralizado usado por app y ECS
+**Ver:** `rendering/README.md`.
 
-**Ver:** `core/README.md` para documentación completa.
+### Driving (`driving/`)
+Bootstrap (ports, store, createApp), game loop, InputManager, UI.
 
-### Terrain (`terrain/`)
-Sistema completo de terreno: gestión de partículas, viewports, renderizado, optimizaciones.
-
-**Ver:** `terrain/README.md` para documentación completa.
-
-### World (`world/`)
-Servicios que integran múltiples sistemas para el mundo virtual: control de cámara, detección de colisiones.
-
-**Ver:** `world/README.md` para documentación completa.
+### Application (`application/`)
+Casos de uso: loadWorld, spawnPlayer, syncCelestial (orquestan ports y store).
 
 ### State (`state/`)
 Sistema de gestión de estado centralizado (custom store simple).
 
 **Ver:** `state/README.md` para documentación completa.
 
+### Shared (`shared/`)
+Utilidades puras: math, geometry, colors, helpers, config, cursor-manager.
+
+**Ver:** `shared/README.md`.
+
 ### API (`api/`)
-Cliente API modular organizado por recurso.
+Cliente API y endpoints (usado por bootstrap y PlayerFactory hasta migración completa).
 
-**Ver:** `api/README.md` para documentación completa.
-
-### ECS (`ecs/`)
-Sistema ECS (Entity Component System) para gestionar entidades jugables y del mundo.
-
-**Características:**
-- Componentes: Position, Physics, Render, Input, Animation
-- Sistemas: InputSystem, PhysicsSystem, RenderSystem, CollisionSystem, AnimationSystem
-- Factories: PlayerFactory para crear jugadores
-- Models: Sistema de carga de modelos 3D (GLTF/GLB) usado solo por ECS
-
-**Ver:** `ecs/README.md` para documentación completa.
+**Ver:** `api/README.md`.
 
 ### Utils (`utils/`)
-Funciones de utilidad organizadas por tipo.
+weapon-attachment, weapon-utils (el resto en shared/).
 
-**Ver:** `utils/README.md` para documentación completa.
+**Ver:** `utils/README.md`.
 
 ## Convenciones
 
@@ -155,11 +106,11 @@ Funciones de utilidad organizadas por tipo.
 ## Extensibilidad
 
 ### Agregar Nuevo Renderizador
-1. Para terreno: Crear en `terrain/renderers/` (extender `BaseRenderer` de `core/renderers/`)
+1. Para terreno: Crear en `rendering/terrain/renderers/` (extender `BaseRenderer` de `rendering/renderers/`)
 2. Para otros: Crear en el módulo correspondiente (ECS, etc.)
 
 ### Agregar Nueva Geometría
-1. Agregar factory en `core/geometries/registry.js`
+1. Agregar factory en `rendering/geometries/registry.js`
 2. Registrar con `registry.register('tipo', factory)`
 
 ## Mantenimiento de READMEs

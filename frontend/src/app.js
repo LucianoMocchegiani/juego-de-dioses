@@ -1,32 +1,32 @@
 /**
- * Aplicación principal - Orquestación de todos los módulos
+ * Aplicación principal - Orquestación de todos los módulos.
+ * Recibe ports y store inyectados (bootstrap) o los crea si no se pasan.
  */
 import { Store } from './state/store.js';
 import { actions } from './state/actions.js';
 import { selectors } from './state/selectors.js';
-import { PerformanceManager } from './core/performance/performance-manager.js';
-import { ApiClient } from './api/client.js';
-import { BloquesApi, ParticlesApi, CharactersApi, CelestialApi, initCharactersApi } from './api/endpoints/__init__.js';
-import { Scene3D } from './core/scene.js';
-import { GeometryRegistry } from './core/geometries/registry.js';
-import { TerrainManager } from './terrain/manager.js';
+import { loadWorld } from './application/load-world.js';
+import { spawnPlayer } from './application/spawn-player.js';
+import { PerformanceManager } from './rendering/performance/performance-manager.js';
+import { Scene3D } from './rendering/scene/index.js';
+import { GeometryRegistry } from './rendering/geometries/registry.js';
+import { TerrainManager } from './rendering/terrain/manager.js';
 import { DEMO_DIMENSION_NAME } from './config/constants.js';
-import { ECSManager } from './ecs/index.js';
-import { InputSystem, PhysicsSystem, RenderSystem, CollisionSystem, AnimationStateSystem, AnimationMixerSystem, ComboSystem, CombatSystem, WeaponEquipSystem } from './ecs/systems/index.js';
-import { PlayerFactory } from './ecs/factories/player-factory.js';
-import { InputManager } from './core/input/input-manager.js';
-import { CollisionDetector } from './world/collision-detector.js';
-import { CameraController } from './world/camera-controller.js';
-import { CelestialSystem, CelestialRenderer } from './world/__init__.js';
-// Herramientas de debugging inicializadas centralmente en dev-exposure.js
+import { ECSManager } from './rendering/ecs/index.js';
+import { InputSystem, PhysicsSystem, RenderSystem, CollisionSystem, AnimationStateSystem, AnimationMixerSystem, ComboSystem, CombatSystem, WeaponEquipSystem } from './rendering/ecs/systems/index.js';
+import { PlayerFactory } from './rendering/ecs/factories/player-factory.js';
+import { InputManager } from './driving/input/input-manager.js';
+import { CollisionDetector } from './rendering/world/collision-detector.js';
+import { CameraController } from './rendering/world/camera-controller.js';
+import { CelestialSystem, CelestialRenderer } from './rendering/world/__init__.js';
 import { exposeDevelopmentTools, initDevelopmentTools } from './dev-exposure.js';
 import { debugLogger } from './debug/logger.js';
-import { ObjectPool } from './core/optimizations/object-pool.js';
-import { FrustumCuller } from './core/optimizations/frustum-culling.js';
-import { LODManager } from './core/optimizations/lod-manager.js';
-import { FrameScheduler } from './core/optimizations/frame-scheduler.js';
-import { SpatialGrid } from './core/optimizations/spatial-partition.js';
-import { InstancingManager } from './core/optimizations/instancing-manager.js';
+import { ObjectPool } from './rendering/optimizations/object-pool.js';
+import { FrustumCuller } from './rendering/optimizations/frustum-culling.js';
+import { LODManager } from './rendering/optimizations/lod-manager.js';
+import { FrameScheduler } from './rendering/optimizations/frame-scheduler.js';
+import { SpatialGrid } from './rendering/optimizations/spatial-partition.js';
+import { InstancingManager } from './rendering/optimizations/instancing-manager.js';
 import * as THREE from 'three';
 
 /**
@@ -36,75 +36,66 @@ import * as THREE from 'three';
 export class App {
     /**
      * @param {HTMLElement} container - Contenedor HTML para el canvas
+     * @param {Object} [options] - Opciones: { ports, store }. Si no se pasan, se crean con createPortsAndStore().
      */
-    constructor(container) {
+    constructor(container, options = {}) {
         this.container = container;
-        
-        // Inicializar Store
-        this.store = new Store();
-        
+        const { ports, store } = options;
+        if (!ports || !store) {
+            throw new Error('App requiere (container, { ports, store }). Usar createApp(container) desde driving/game/game-bootstrap.js.');
+        }
+        this.ports = ports;
+        this.store = store;
+        this.particlesApi = ports.particlesApi;
+        this.bloquesApi = ports.bloquesApi;
+        this.charactersApi = ports.charactersApi;
+        this.celestialApi = ports.celestialApi;
+
         // Inicializar Performance Manager
         this.performanceManager = new PerformanceManager();
-        
-        // Suscribirse a métricas de performance
-        this.performanceManager.subscribe((metrics) => {
-            // Log en consola (opcional: mostrar en UI)
-            // El notify ya verifica isProfiling, así que siempre loguear aquí
-            // console.log(`Performance: FPS: ${metrics.fps}, Draw Calls: ${metrics.drawCalls || 0}`);
-        });
-        
+        this.performanceManager.subscribe((metrics) => {});
+
         // Inicializar Registry de Geometrías
         this.geometryRegistry = new GeometryRegistry();
-        
+
         // Inicializar Object Pools para optimización de rendimiento
-        // Estos pools reducen garbage collection reutilizando objetos temporales
         this.objectPool = {
             vector3: new ObjectPool(
                 () => new THREE.Vector3(),
                 (v) => v.set(0, 0, 0),
-                50  // Pool inicial de 50 objetos (suficiente para jerarquías complejas)
+                50
             ),
             quaternion: new ObjectPool(
                 () => new THREE.Quaternion(),
                 (q) => q.set(0, 0, 0, 1),
-                25  // Pool inicial de 25 objetos
+                25
             ),
             euler: new ObjectPool(
                 () => new THREE.Euler(),
                 (e) => e.set(0, 0, 0),
-                25  // Pool inicial de 25 objetos
+                25
             ),
             matrix4: new ObjectPool(
                 () => new THREE.Matrix4(),
                 (m) => m.identity(),
-                10  // Pool para Matrix4 (usado en particle-renderer y otros lugares)
+                10
             )
         };
-        
-        // Exponer pools globalmente para fácil acceso desde otros módulos
+
         if (typeof window !== 'undefined') {
-            window.app = this; // Se sobrescribirá después, pero esto asegura que esté disponible
+            window.app = this;
         }
-        
-        // Inicializar API
-        const apiClient = new ApiClient();
-        this.bloquesApi = new BloquesApi(apiClient);
-        this.particlesApi = new ParticlesApi(apiClient);
-        this.charactersApi = new CharactersApi(apiClient);
-        this.celestialApi = new CelestialApi(apiClient);
-        // Inicializar funciones helper de CharactersApi
-        initCharactersApi(apiClient);
-        
+
         // Inicializar escena 3D
         this.scene = new Scene3D(container);
-        
-        // Inicializar TerrainManager (nuevo sistema modular)
+
+        // Inicializar TerrainManager (ports inyectados)
         this.terrain = new TerrainManager(
             this.scene.scene,
             this.particlesApi,
             this.bloquesApi,
             this.geometryRegistry,
-            this.performanceManager // Pasar PerformanceManager para adaptación dinámica
+            this.performanceManager
         );
         
         // Instanced meshes actuales (para compatibilidad temporal)
@@ -251,42 +242,20 @@ export class App {
      */
     async loadDemo() {
         try {
-            // 1. Establecer estado de carga
-            actions.setLoading(this.store, true);
-            actions.setError(this.store, null);
-            
-            // 2. Obtener bloques
-            const dimensions = await this.bloquesApi.getDimensions();
-            
-            // Buscar bloque demo por nombre exacto
-            const demoDimension = dimensions.find(d => 
-                d.nombre && d.nombre === DEMO_DIMENSION_NAME
-            );
-            
-            if (!demoDimension) {
-                throw new Error(`No se encontró el bloque demo: "${DEMO_DIMENSION_NAME}". Bloques disponibles: ${dimensions.map(d => d.nombre).join(', ')}`);
-            }
-            
-            // 3. Establecer bloque en estado
-            actions.setDimension(this.store, demoDimension);
-            
-            // Guardar bloqueId actual para uso en debugging y otras funciones
+            // 1. Caso de uso: cargar mundo (dimensiones y tamaño; actualiza store)
+            const { dimension: demoDimension, worldSize } = await loadWorld(this.ports, this.store);
             this.currentBloqueId = demoDimension.id;
-            
-            // 3.5. Obtener tamaño del mundo completo y inicializar sistema celestial
-            const worldSize = await this.bloquesApi.getWorldSize();
+
+            // 2. Inicializar sistema celestial
             if (!this.celestialSystem) {
                 this.celestialSystem = new CelestialSystem(null, worldSize);
                 this.celestialRenderer = new CelestialRenderer(this.scene.scene, this.celestialSystem);
             } else {
-                // Actualizar centro del mundo si ya existe (las posiciones vienen del backend)
                 this.celestialSystem.updateWorldCenter(worldSize);
             }
-            
-            // Sincronizar estado celestial inicial
             await this.syncCelestialState();
-            
-            // 4. Cargar bloque usando TerrainManager
+
+            // 3. Cargar bloque usando TerrainManager
             const terrainResult = await this.terrain.loadDimension(demoDimension);
             const viewport = terrainResult.viewport;
             const particlesData = { particles: terrainResult.particles };
@@ -390,43 +359,10 @@ export class App {
                 this.ecs.registerSystem(this.weaponEquipSystem);
             }
             
-            // 18. Crear jugador después de cargar dimensión
+            // 18. Caso de uso: spawnear jugador
             if (!this.playerId) {
-                // Primero intentar cargar personaje existente
-                let characterId = null;
-                try {
-                    const characters = await this.charactersApi.listCharacters(demoDimension.id);
-                    if (characters && characters.length > 0) {
-                        // Usar el primer personaje encontrado (el más reciente)
-                        characterId = characters[0].id;
-                        // console.log(`✓ Cargando personaje existente: ${characterId} (de ${characters.length} totales)`);
-                    } else {
-                        // console.log('No hay personajes existentes, se creará uno nuevo');
-                    }
-                } catch (error) {
-                    // console.warn('Error al listar personajes:', error);
-                }
-                
-                // Si no hay personaje existente, crear uno nuevo
-                const startX = 45; // Esquina superior izquierda
-                const startY = 45; // Esquina superior izquierda
-                
-                // IMPORTANTE: Solo crear si NO hay characterId
-                // Si hay characterId, solo cargar, NO crear nuevo
-                this.playerId = await PlayerFactory.createPlayer({
-                    ecs: this.ecs,
-                    scene: this.scene.scene,
-                    x: startX,
-                    y: startY,
-                    z: 1, // Justo arriba de la superficie (hierba en z=0)
-                    cellSize: demoDimension.tamano_celda,
-                    characterId: characterId, // Cargar existente si existe
-                    templateId: characterId ? null : 'humano', // Crear solo si NO hay existente
-                    bloqueId: demoDimension.id
-                });
-                
-                // console.log(`✓ Jugador creado/cargado. Entity ID: ${this.playerId}, Character ID: ${characterId || 'nuevo'}`);
-                
+                this.playerId = await spawnPlayer(this.ports, this.store, this.ecs, this.scene);
+
                 // 9.6. Establecer función para obtener posición del jugador (DESPUÉS de crear el jugador)
                 // Esto permite que las optimizaciones de partículas prioricen alrededor del jugador, no de la cámara
                 if (this.terrain && this.playerId && this.ecs) {
