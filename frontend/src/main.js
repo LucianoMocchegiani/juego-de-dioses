@@ -1,9 +1,10 @@
 /**
- * Punto de entrada principal - Visualizador 3D de partículas
+ * Punto de entrada principal - Visualizador 3D de partículas.
+ * Usa bootstrap para crear ports, store y App inyectados.
  */
-import { App } from './app.js';
+import { createApp } from './driving/game/game-bootstrap.js';
 import { exposeAppOnly } from './dev-exposure.js';
-import { cursorManager } from './utils/cursor-manager.js';
+import { cursorManager } from './shared/cursor-manager.js';
 
 // Elementos del DOM
 const loadingEl = document.getElementById('loading');
@@ -11,9 +12,9 @@ const dimensionInfoEl = document.getElementById('dimension-info');
 const particlesCountEl = document.getElementById('particles-count');
 const statusEl = document.getElementById('status');
 
-// Inicializar aplicación
+// Inicializar aplicación (ports y store inyectados por bootstrap)
 const container = document.getElementById('canvas-container');
-const app = new App(container);
+const app = createApp(container);
 
 // Inicializar gestor de cursor
 cursorManager.init(container);

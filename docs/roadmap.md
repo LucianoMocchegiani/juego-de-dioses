@@ -152,6 +152,7 @@ Este documento contiene el estado del proyecto: lo implementado y las funcionali
 - [ ] **Sistema de inventario** - Gestión de items, objetos y recursos del jugador
 - [ ] **Sistema de construcción/edición del mundo** - Permite a los jugadores modificar el terreno y crear estructuras
 - [ ] **Sistema de NPCs y AI** - Personajes no jugadores con comportamiento autónomo
+- [ ] **Constructor in-game, recetas y piezas mesh (UGC)** – Ver sección "Constructor In-Game, Recetas y Piezas Mesh (UGC)" más abajo
 - [ ] **Sistema de misiones/objetivos** - Quests y objetivos para guiar la progresión del jugador
 - [ ] **Sistema de combate** - Mejoras y expansión del sistema actual (básico ya implementado)
   - [ ] Sistema de física avanzado (JDG-037)
@@ -170,6 +171,18 @@ Este documento contiene el estado del proyecto: lo implementado y las funcionali
 - [ ] **Sistema de sombras dinámicas** - (JDG-043)
 - [ ] **Movimiento espiral Sol/Luna** - Mejoras al modelo Gleason (JDG-044)
 - [ ] **Refactorizar renderParticles()** - Métodos más pequeños (JDG-050)
+
+### Constructor In-Game, Recetas y Piezas Mesh (UGC)
+
+Idea documentada en **Ideas 53** (carpeta Ideas del proyecto: `Juego de Dioses/Ideas/53-Constructor-In-Game-Recetas-Piezas-Mesh.md`). Resumen:
+
+- [ ] **Constructor dentro del juego** - Modo taller/editor in-game para diseñar **recetas** (material + proceso + forma) que producen **piezas** reutilizables (mesh)
+- [ ] **Piezas colocables y apilables** - Objetos (ladrillo, viga, teja, etc.) colocables en el mundo; instancing para rendimiento; snap a grid; categorías: construcción, estatuas, armas, herramientas (ver mesh-builder/)
+- [ ] **Material y proceso** - Material determina procesos permitidos (sustractivo, fundición, forja, moldear+cocer); pérdida coherente (viruta, escoria, etc.) como partículas en el mundo
+- [ ] **Recetas comercializables (futuro)** - Intercambio/venta de recetas entre jugadores; economía a definir
+- [ ] **Límites y balance** - Límites por pieza (triángulos, tamaño, materiales) y por zona (instancias); LOD para objetos custom; ver mesh-builder/limites-y-reglas.md y plan-fases.md
+
+**Referencias:** Ideas 53 (Constructor, Recetas, Piezas Mesh); carpeta mesh-builder/ (alcance por categoría, plan de fases). Relación con partículas, agrupaciones, transiciones y temperatura (ideas 39, 40).
 
 ### Documentación
 

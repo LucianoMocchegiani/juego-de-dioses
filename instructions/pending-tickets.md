@@ -12,6 +12,7 @@ Lista de tickets que aún  no tienen un Pull Request completado.
 - [ ] **JDG-014** - Sistema de Daño por Partes del Cuerpo (Limb Damage System) ⚠️ POSPUESTO
 - [ ] **JDG-055** - Desplazamiento No Deseado Durante Animaciones (Root Motion)
 - [ ] **JDG-064** - Preparación para Mesh Builder (Partículas y Diseño)
+- [ ] **JDG-067** - Refactorización del frontend a la estructura elegida (Hexagonal + ECS por dominios)
 ## Tickets Completados (con PR)
 
 - [x] **JDG-066** - Análisis y posible migración del backend a Hexagonal + DDD
