@@ -1,108 +1,70 @@
-# Frontend - Visualizador 3D
+# Frontend - Visualizador 3D - Cliente (rendering, ECS, adapters, domain)
 
-Frontend simple para visualizar partículas en 3D usando Three.js.
+Frontend está diseñado como cliente estático (servido por nginx / Docker) que renderiza el mundo en 3D usando Three.js y un patrón ECS. Con una arquitectura hexagonal organizado en capas de rendering, adaptadores (adapters), modelos de dominio y contratos (ports).
 
-## Características
+## Responsabilidad
 
-- Visualización 3D de partículas como cubos
-- Colores según tipo de partícula (hierba, madera, hojas, etc.)
-- Controles de cámara (rotar, zoom, mover)
-- Carga automática de la dimensión demo
+- Rendering y escena (Three.js)
+- Sistemas ECS para lógica de entidades y helpers (armas, combate, input)
+- Gestión de dominio puro (modelos en `frontend/src/domain/`)
+- Adapters para comunicación con backend (`frontend/src/adapters/`)
+- Definición de ports/contratos (`frontend/src/ports/`) para invertir dependencias
+- Configuración y optimizaciones (partículas, performance)
 
-## Cómo usar
+## Cómo levantar
 
 ### Requisitos Previos
 
-**IMPORTANTE**: El backend debe estar corriendo primero.
+- Backend corriendo en http://localhost:8000 (recomendado levantar con Docker Compose desde la raíz).
 
-1. Levantar backend con Docker (desde la raíz del proyecto):
-   ```bash
-   docker-compose up -d
-   ```
+### Levantar (recomendado: Docker)
 
-2. Verificar que el backend funciona:
-   ```bash
-   curl http://localhost:8000/health
-   ```
-
-### Levantar Frontend (RECOMENDADO: Docker)
-
-**El frontend corre automáticamente con Docker (nginx)** cuando ejecutas `docker-compose up -d` desde la raíz del proyecto.
-
-**Solo abre en navegador:** **http://localhost:8080**
-
-**Ventajas de usar Docker/nginx:**
-- Todo levantado con un solo comando
-- Más rápido y robusto que servidores simples
-- Configuración lista para producción
-- Proxy automático al backend (no necesitas configurar CORS manualmente)
-
-### Levantar Frontend (Desarrollo Local - Opcional)
-
-Si prefieres servir el frontend localmente (sin Docker):
-
-**IMPORTANTE**: El frontend es **HTML/JavaScript puro**. NO es Python.
-
-**El frontend en sí es:**
-- `index.html` - Archivo HTML
-- `src/main.js` - JavaScript puro
-- `src/api.js` - JavaScript puro
-- `src/scene.js` - JavaScript puro (Three.js)
-
-**Opciones para servir el frontend localmente:**
+Desde la raíz del proyecto:
 
 ```bash
-# Desde la carpeta frontend
-cd frontend
-
-# Opción 1: Node.js
-npx --yes http-server -p 8080
-
-# Opción 2: Python (si tienes Python instalado)
-python -m http.server 8080
-
-# Opción 3: PHP (si tienes PHP instalado)
-php -S localhost:8080
+docker-compose up -d
 ```
 
-**Nota**: 
-- El frontend requiere que el backend esté corriendo en http://localhost:8000
-- Si usas Docker, el frontend ya está configurado para conectarse al backend
+El frontend estará disponible en http://localhost:8080
 
-### Opción 2: Con Docker (opcional)
+### Desarrollo local (opcional)
 
-Puedes agregar un servicio nginx al docker-compose si prefieres.
+Si necesitas servir localmente (sin Docker), usar un servidor estático desde la carpeta `frontend/` es suficiente:
 
-## Estructura
+```bash
+cd frontend
+npx --yes http-server -p 8080
+```
+
+Nota: el frontend usa ES6 modules y espera un servidor HTTP (no funciona con file://).
+
+## Estructura (resumen)
 
 ```
 frontend/
-├── index.html          # HTML principal
+├── index.html
 ├── src/
-│   ├── main.js         # Lógica principal
-│   ├── api.js          # Cliente API
-│   └── scene.js        # Configuración Three.js
+│   ├── rendering/      # escenas, terrain, optimizations, loaders
+│   ├── rendering/ecs/  # sistemas ECS, domains (combat, input, physics, animation)
+│   ├── adapters/       # http adapters y otros adapters concretos
+│   ├── domain/         # modelos puros y lógica de dominio
+│   ├── ports/          # contratos (JSDoc typedefs)
+│   ├── config/         # parámetros de optimización y constantes
+│   └── debug/          # herramientas de debug
 └── README.md
 ```
 
-## Controles
+## Controles rápidos
 
-- **Click izquierdo + Arrastrar**: Rotar cámara
-- **Rueda del mouse**: Zoom in/out
-- **Click derecho + Arrastrar**: Mover cámara
+- Click izquierdo + Arrastrar: Rotar cámara
+- Rueda del mouse: Zoom
+- Click derecho + Arrastrar: Mover cámara
 
-## Colores de Partículas
+## Notas técnicas
 
-- **Hierba**: Verde claro
-- **Madera**: Marrón
-- **Hojas**: Verde oscuro
-- **Tierra**: Beige
-- **Piedra**: Gris
-- **Agua**: Azul
+- El frontend usa módulos ES (import/export). Asegurar que el servidor estático respeta rutas relativas.
+- Las abstracciones importantes están en `frontend/src/ports/` (contracts) y `frontend/src/adapters/` (implementaciones). Documentar cualquier cambio de contrato.
+- Para cambios de bootstrap (creación de ports/adapters), actualizar `driving/game/game-bootstrap.js` o el entrypoint correspondiente.
 
-## Notas
-
-- Requiere que el backend esté corriendo en http://localhost:8000
-- Usa ES6 modules, requiere servidor HTTP (no funciona con file://)
-- Three.js se carga desde CDN (no requiere npm install)
+Si quieres, actualizo también los README internos (`frontend/src/rendering/README.md`, `frontend/src/ports/README.md`, etc.) en la siguiente pasada según el plan JDG-069.
 

@@ -13,4 +13,4 @@ export {
     mapBonesToBodyParts,
     setBoneVisibility
 } from './bones-utils.js';
-export { getVertexGroups } from './vertex-groups-utils.js';
+// NOTE: vertex-groups-utils was removed as deprecated. If needed, restore or move to a dedicated package.

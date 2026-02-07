@@ -1,5 +1,7 @@
 # Rendering
 
+Arquitectura: Hexagonal (ports/adapters) combinada con ECS para entidades dinámicas. El código de rendering depende de contratos (`frontend/src/ports/contracts.js`) y no de implementaciones concretas.
+
 Capa de todo lo 3D: escena, loaders, ECS, terreno, mundo, optimizaciones, geometrías, renderers y performance.
 
 ## Estructura

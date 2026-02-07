@@ -12,8 +12,7 @@ Lista de tickets que aún  no tienen un Pull Request completado.
 - [ ] **JDG-014** - Sistema de Daño por Partes del Cuerpo (Limb Damage System) ⚠️ POSPUESTO
 - [ ] **JDG-055** - Desplazamiento No Deseado Durante Animaciones (Root Motion)
 - [ ] **JDG-064** - Preparación para Mesh Builder (Partículas y Diseño)
-- [ ] **JDG-068** - Completar Hexagonal al 100%: ports formales, domain centralizado e inyección TerrainManager
-- [ ] **JDG-069** - Revisión a fondo post-refactor: verificar que no se rompió nada
+
 ## Tickets Completados (con PR)
 
 - [x] **JDG-067** - Refactorización del frontend a la estructura elegida (Hexagonal + ECS por dominios)
@@ -75,9 +74,11 @@ Lista de tickets que aún  no tienen un Pull Request completado.
 - [x] **JDG-062** - Refactorizar PhysicsSystem con Helpers Externos
 - [x] **JDG-063** - Reorganización y Consolidación de Documentación del Proyecto
 - [x] **JDG-065** - Migrar Backend a Estructura por Dominio (estilo Nest)
+- [x] **JDG-068** - Completar Hexagonal al 100%: ports formales, domain centralizado e inyección TerrainManager
+- [x] **JDG-069** - Revisión a fondo post-refactor: verificar que no se rompió nada
 
 ## Notas
 
 - Esta lista se actualiza automáticamente cuando se crea un nuevo ticket o se completa un PR
 - Los tickets se marcan como completados cuando se genera el PR description correspondiente
-- Total: 9 tickets pendientes, 58 tickets completados
++ Total: 8 tickets pendientes, 60 tickets completados

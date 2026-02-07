@@ -106,7 +106,7 @@ ecs/
 │   ├── model-cache.js      # Cache de modelos
 │   ├── model-utils.js      # Utilidades de carga y transformación
 │   ├── bones-utils.js      # Utilidades para bones/esqueleto
-│   └── vertex-groups-utils.js # Utilidades para vertex groups (deprecado)
+│   └── vertex-groups-utils.js # (ELIMINADO) Utilidades para vertex groups (deprecated — eliminado)
 └── index.js                 # Exportaciones principales
 ```
 
@@ -248,7 +248,7 @@ Procesa input del InputManager y actualiza InputComponent. Se ejecuta primero.
 ### CombatSystem (Priority 1.4)
 Procesa combinaciones de teclas para acciones de combate (ataques pesados, cargados, especiales, parry, dodge, grab).
 
-**Ver:** [../config/input-combinations-config.js](../config/input-combinations-config.js)
+**Ver:** [../config/combat-actions-config.js](../config/combat-actions-config.js)
 
 ### ComboSystem (Priority 1.5)
 Gestiona detección y ejecución de combos (secuencias de ataques consecutivos).

@@ -18,7 +18,7 @@ Este directorio contiene todos los archivos de configuración del juego, central
 - **`combat-actions-config.js`**: Define acciones de combate con propiedades específicas (cooldown, movimiento, i-frames). **Referencia** estados de animación en `animation-config.js` para evitar duplicación.
 - **`combat-constants.js`**: Constantes centralizadas para sistema de combate (thresholds, IDs de acciones, tipos de armas). Evita strings y valores mágicos hardcodeados.
 - **`combo-config.js`**: Define las cadenas de combos y sus timings.
-- **`input-combinations-config.js`**: Define combinaciones de teclas para acciones de combate (ej: Ctrl+Click). (DEPRECATED: siendo reemplazado por `combat-actions-config.js`)
+- **`input-combinations-config.js`**: (ELIMINADO) Históricas combinaciones de teclas; reemplazadas por `combat-actions-config.js`. Archivo eliminado en limpieza.
 - **`weapon-animations-config.js`**: Configuración específica de animaciones por tipo de arma.
 - **`weapon-models-config.js`**: Configuración de modelos 3D de armas (rutas GLB, puntos de attachment, offsets, rotación, escala). Define cómo se adjuntan las armas al personaje usando bones del esqueleto.
 

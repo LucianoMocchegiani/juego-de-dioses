@@ -17,8 +17,7 @@
  * @property {Object} [geometria] - Geometría visual del tipo (JSONB desde BD)
  * @property {string} [geometria.tipo] - Tipo de geometría: "box", "sphere", "cylinder", etc.
  * @property {Object} [geometria.parametros] - Parámetros de la geometría (relativos a tamano_celda)
- * 
- * @deprecated Este tipo se mantiene por compatibilidad. La nueva estructura usa `color` y `geometria` directamente.
+ *
  */
 
 /**
@@ -48,6 +47,5 @@
  * @property {number} tamano_celda - Tamaño de celda en metros
  * @property {number} [profundidad_maxima] - Profundidad máxima en celdas
  * @property {number} [altura_maxima] - Altura máxima en celdas
- * 
- * @deprecated El nombre "Dimension" se mantiene por compatibilidad, pero ahora representa un "Bloque"
+ *
  */

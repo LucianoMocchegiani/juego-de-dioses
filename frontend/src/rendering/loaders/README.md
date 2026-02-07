@@ -8,7 +8,7 @@ Infraestructura de carga de modelos 3D (GLB/GLTF), no "modelos de dominio". Ubic
 - **model-cache.js** – Cache global de modelos cargados (Singleton).
 - **model-utils.js** – `loadModel3D()`: carga desde BD y aplica transformaciones.
 - **bones-utils.js** – Utilidades de esqueleto (findBone, mapBonesToBodyParts, etc.).
-- **vertex-groups-utils.js** – Utilidades de vertex groups (legacy/deprecado).
+- **vertex-groups-utils.js** – (ELIMINADO) Utilidades para vertex groups (deprecated — eliminado en limpieza de documentación).
 
 ## Consumidores
 
