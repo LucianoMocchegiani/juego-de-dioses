@@ -13,7 +13,7 @@ Sistema de juego basado en partículas (voxels) donde los jugadores interactúan
 - **Cálculos**: NumPy + SciPy (para física de partículas)
 - **Grafos**: NetworkX (para algoritmos de conectividad BFS/DFS)
 - **Containerización**: Docker + Docker Compose
-- **Frontend**: Three.js + ECS Pattern (Entity Component System)
+- **Frontend**: Three.js + ECS Pattern (Entity Component System), organizado por dominios con **Hexagonal + DDD** (puertos, casos de uso, adaptadores de persistencia)
 
 Para detalles sobre las decisiones técnicas y por qué se eligieron estas tecnologías, consulta [docs/ARQUITECTURA-TECNOLOGIAS.md](docs/ARQUITECTURA-TECNOLOGIAS.md).
 
@@ -92,6 +92,15 @@ juego_de_dioses/
 │   ├── Dockerfile
 │   ├── requirements.txt
 │   └── .env.example
+├── frontend/             # Frontend (javascript/Three.js)
+│   ├── index.html        # HTML principal (build / static)
+│   ├── src/              # Código fuente del frontend (rendering, ecs, adapters, domain, ports)
+│   │   ├── rendering/    # Rendering y sistema ECS (escenas, terrain, optimizations)
+│   │   ├── adapters/     # Adapters para APIs (http, mock)
+│   │   ├── domain/       # Modelos puros y lógica de dominio
+│   │   ├── ports/        # Contratos (ports) y typedefs (JSDoc)
+│   │   └── config/       # Configuración del frontend
+│   └── README.md
 ├── database/             # Scripts SQL (init, migrations)
 │   └── init/
 │       ├── 01-init-schema.sql
@@ -260,28 +269,28 @@ Para ver el roadmap completo y detallado, consulta [docs/roadmap.md](docs/roadma
 #### Frontend
 - [Frontend General](frontend/README.md) - Información general del frontend
 - [Frontend Source](frontend/src/README.md) - Arquitectura y estructura del frontend
-- [Sistema ECS](frontend/src/ecs/README.md) - Entity Component System
+- [Sistema ECS](frontend/src/rendering/ecs/README.md) - Entity Component System
 - [Configuración](frontend/src/config/README.md) - Archivos de configuración
-- [Core](frontend/src/core/README.md) - Componentes core del frontend
-- [Optimizaciones](frontend/src/core/optimizations/README.md) - Optimizaciones de rendimiento
-- [Terreno](frontend/src/terrain/README.md) - Sistema de terreno y partículas
-- [API Client](frontend/src/api/README.md) - Cliente API
+- [Rendering / Core](frontend/src/rendering/README.md) - Componentes core del frontend (rendering)
+- [Optimizaciones](frontend/src/rendering/optimizations/README.md) - Optimizaciones de rendimiento
+- [Terreno](frontend/src/rendering/terrain/README.md) - Sistema de terreno y partículas
+- [Adapters / API Client](frontend/src/adapters/README.md) - Cliente API y adapters
 - [Debug](frontend/src/debug/README.md) - Herramientas de debugging
 - [Utils](frontend/src/utils/README.md) - Utilidades
-- [World](frontend/src/world/README.md) - Sistema de mundo
+- [World](frontend/src/rendering/world/README.md) - Sistema de mundo
 - [State](frontend/src/state/README.md) - Gestión de estado
 
 #### ECS Helpers
-- [Animation Helpers](frontend/src/ecs/helpers/animation/README.md) - Helpers de animación
-- [Combat Helpers](frontend/src/ecs/helpers/combat/README.md) - Helpers de combate
-- [Collision Helpers](frontend/src/ecs/helpers/collision/README.md) - Helpers de colisiones
-- [Input Helpers](frontend/src/ecs/helpers/input/README.md) - Helpers de input
-- [Physics Helpers](frontend/src/ecs/helpers/physics/README.md) - Helpers de física
-- [Weapon Helpers](frontend/src/ecs/helpers/weapon/README.md) - Helpers de armas
+- [Animation Helpers](frontend/src/rendering/ecs/domains/animation/helpers/README.md) - Helpers de animación
+- [Combat Helpers](frontend/src/rendering/ecs/domains/combat/helpers/README.md) - Helpers de combate
+- [Collision Helpers](frontend/src/rendering/ecs/domains/collision/helpers/README.md) - Helpers de colisiones
+- [Input Helpers](frontend/src/rendering/ecs/domains/input/helpers/README.md) - Helpers de input
+- [Physics Helpers](frontend/src/rendering/ecs/domains/physics/helpers/README.md) - Helpers de física
+- [Weapon Helpers](frontend/src/rendering/ecs/domains/weapon/helpers/README.md) - Helpers de armas
 
 #### ECS Otros
-- [Combos](frontend/src/ecs/combos/README.md) - Sistema de combos
-- [Models](frontend/src/ecs/models/README.md) - Modelos ECS
+- [Combos](frontend/src/rendering/ecs/domains/combat/combos/README.md) - Sistema de combos
+- [Models](frontend/src/rendering/ecs/models/README.md) - Modelos ECS
 
 #### Backend
 - [Backend (raíz)](backend/README.md) - Estructura general del backend y enlaces

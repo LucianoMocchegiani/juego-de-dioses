@@ -39,8 +39,17 @@ proyecto/
 │       └── api/
 │           └── README.md        # Explica módulo API
 └── frontend/
-    └── README.md                # Explica módulo frontend
+    ├── README.md                # Explica módulo frontend (rendering, ECS, adapters, domain, ports)
+    └── src/
+        ├── rendering/           # Scene, terrain, ecs, optimizations (README.md)
+        ├── adapters/            # HTTP / WebSocket adapters (README.md)
+        ├── domain/              # Modelos puros y lógica (README.md)
+        ├── ports/               # Contratos / typedefs (README.md)
+        ├── config/              # Configuración del cliente (README.md)
+        └── debug/               # Herramientas de debugging (README.md)
 ```
+
+Nota: Para módulos que dependen de servicios externos o adapters, el README debe indicar explícitamente si el módulo espera "ports" inyectados y dónde se crea el bootstrap (por ejemplo `frontend/src/driving/game/game-bootstrap.js`). No instancies adapters desde módulos de dominio o rendering; documentar la inyección de dependencias.
 
 ### Contenido Mínimo de un README
 

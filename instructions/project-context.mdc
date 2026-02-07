@@ -19,15 +19,17 @@ MMO voxel-based donde jugadores interactúan con AIs (Dioses) que modifican el m
 
 ### Stack Técnico
 
-**Backend**: Python 3.11 + FastAPI + PostgreSQL 16 + Redis 7 + WebSockets + NumPy/SciPy + NetworkX
-**Frontend**: HTML5 + JS ES6+ + Three.js + ECS + Animaciones (state machine declarativo)
+**Backend**: Python 3.11 + FastAPI + PostgreSQL 16 + Redis 7 + WebSockets + NumPy/SciPy + NetworkX. Arquitectura: Hexagonal + DDD (por dominios, casos de uso, ports/adapters). Código organizado en `backend/src/domains/`, `backend/src/world_creation_engine/`, `backend/src/database/`, `backend/src/config/` y `backend/src/storage/`. Incluye migraciones, seeds y scripts de inicialización.
+**Frontend**: HTML5 + JS (ES6+) + Three.js. Arquitectura: Hexagonal (ports/adapters) + ECS para entidades dinámicas + capa de dominio (models puros). Servido como cliente estático (nginx / docker-compose).
 **Infra**: Docker Compose (postgres, redis, backend:8000, frontend:8080)
 
 ### Directorios
 
 **`juego-de-dioses/`**: Repositorio principal
-- `backend/src/`: Python/FastAPI | `frontend/src/`: JS/Three.js/ECS
-- `database/init/`: SQL | `instructions/`: Reglas (.mdc), tickets, planes, PRs
+- `backend/src/`: Python/FastAPI
+- `frontend/src/`: Cliente JS (rendering, ECS, adapters, domain, ports)
+- `database/init/`: SQL
+- `instructions/`: Reglas (.mdc), tickets, planes, PRs
 
 **`Juego de Dioses/`**: Diseño y recursos
 - `Ideas/`: Conceptos | `arquitectura/`, `desarrollo/`: Docs técnicos
