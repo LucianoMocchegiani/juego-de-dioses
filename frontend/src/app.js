@@ -89,7 +89,9 @@ export class App {
         // Inicializar escena 3D
         this.scene = new Scene3D(container);
 
-        // Inicializar TerrainManager (ports inyectados)
+        // Inicializar TerrainManager (ports inyectados).
+        // NOTE: los ports (particlesApi, bloquesApi) provienen de createPortsAndStore()
+        //       en `frontend/src/driving/game/game-bootstrap.js` y se inyectan en App.
         this.terrain = new TerrainManager(
             this.scene.scene,
             this.particlesApi,

@@ -2,6 +2,9 @@
  * Adapter HTTP: World/Blocs API (port worldApi)
  */
 
+/**
+ * @implements {import('../../ports/contracts.js').BloquesPort}
+ */
 export class HttpBloquesApi {
     constructor(client) {
         this.client = client;

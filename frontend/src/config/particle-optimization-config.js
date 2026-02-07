@@ -45,6 +45,12 @@ export const DENSITY_DISTANCES = {
 };
 
 /**
+ * Límite total de celdas permitidas para cálculo de Viewport (por defecto)
+ * Usado por `Viewport` cuando se necesita un tope global de celdas.
+ */
+export const VIEWPORT_MAX_CELLS = 1000000;
+
+/**
  * Distancia por defecto para limitación simple (método antiguo, no usado actualmente)
  */
 export const DEFAULT_NEAR_DISTANCE = 20;

@@ -2,6 +2,9 @@
  * Adapter HTTP: Characters API (port charactersApi)
  */
 
+/**
+ * @implements {import('../../ports/contracts.js').CharactersPort}
+ */
 export class HttpCharactersApi {
     constructor(client) {
         this.client = client;
