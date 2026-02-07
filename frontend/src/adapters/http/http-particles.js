@@ -2,6 +2,9 @@
  * Adapter HTTP: Particles API (port particlesApi)
  */
 
+/**
+ * @implements {import('../../ports/contracts.js').ParticlesPort}
+ */
 export class HttpParticlesApi {
     constructor(client) {
         this.client = client;

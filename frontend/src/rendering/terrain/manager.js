@@ -25,12 +25,31 @@ import {
  */
 
 export class TerrainManager {
+    // Nota: `particlesApi` y `bloquesApi` son ports inyectados desde el bootstrap.
+    //       Los adapters concretos (ej. HttpParticlesApi) deben crearse en
+    //       `driving/game/game-bootstrap.js` (createPortsAndStore) y pasarse a App,
+    //       que a su vez inyecta estos ports en TerrainManager.
+    //       TerrainManager NO debe instanciar adapters directamente.
     /**
+     * Tipos/contratos esperados (documentación del port)
+     * @typedef {Object} ParticlesPort
+     * @property {function(string, Object): Promise<{particles: Array}>} getParticles
+     * @property {function(string, Object): Promise<Object>} getParticleTypes
+     *
+     * @typedef {Object} BloquesPort
+     * @property {function(): Promise<Array>} getDimensions
+     * @property {function(string): Promise<Object>} getDimension
+     *
+     * Constructor
      * @param {THREE.Scene} scene - Escena Three.js
-     * @param {Object} particlesApi - Cliente API para partículas
-     * @param {Object} bloquesApi - Cliente API para bloques
+     * @param {ParticlesPort} particlesApi - Port de partículas (inyectado). Debe implementar getParticles/getParticleTypes.
+     * @param {BloquesPort} bloquesApi - Port de bloques/dimensiones (inyectado).
      * @param {GeometryRegistry} geometryRegistry - Registry de geometrías
      * @param {PerformanceManager} performanceManager - Performance Manager (opcional)
+     *
+     * Nota: Los adapters concretos (implementaciones HTTP) deben crearse en el bootstrap
+     * (driving/game/game-bootstrap.js -> createPortsAndStore) y **inyectarse** en App.
+     * TerrainManager no debería instanciar adapters directamente.
      */
     constructor(scene, particlesApi, bloquesApi, geometryRegistry, performanceManager = null) {
         this.scene = scene;

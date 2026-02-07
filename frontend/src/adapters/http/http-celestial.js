@@ -2,6 +2,9 @@
  * Adapter HTTP: Celestial API (port celestialApi)
  */
 
+/**
+ * @implements {import('../../ports/contracts.js').CelestialPort}
+ */
 export class HttpCelestialApi {
     constructor(client) {
         this.client = client;

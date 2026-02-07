@@ -73,6 +73,22 @@ await terrain.updateParticle(particleId, newParticleData);
 await terrain.updateParticles([id1, id2], [data1, null]); // data1 = actualizar, null = eliminar
 ```
 
+## Inyección de Ports
+
+TerrainManager recibe los clientes de API (ports) inyectados por constructor. Los adapters concretos (implementaciones HTTP) se crean en el bootstrap del juego y se inyectan en `App` mediante `createPortsAndStore()` en:
+
+```
+frontend/src/driving/game/game-bootstrap.js
+```
+
+Flujo típico:
+
+1. `createPortsAndStore()` crea `ApiClient` y los adapters HTTP (`HttpParticlesApi`, `HttpBloquesApi`, etc.) y devuelve `{ ports, store }`.
+2. `App` recibe `ports` y asigna `this.particlesApi = ports.particlesApi; this.bloquesApi = ports.bloquesApi;`.
+3. `App` instancia `new TerrainManager(scene, this.particlesApi, this.bloquesApi, geometryRegistry, performanceManager)`.
+
+Importante: TerrainManager depende del contrato del port (métodos como `getParticles`, `getParticleTypes`) y no debe instanciar adapters directamente.
+
 ## Estado de la Migración
 
 ✅ Fase 1: Estructura base creada

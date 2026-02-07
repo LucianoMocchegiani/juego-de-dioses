@@ -2,6 +2,9 @@
  * Adapter HTTP: Agrupaciones API (port agrupacionesApi)
  */
 
+/**
+ * @implements {import('../../ports/contracts.js').AgrupacionesPort}
+ */
 export class HttpAgrupacionesApi {
     constructor(client) {
         this.client = client;

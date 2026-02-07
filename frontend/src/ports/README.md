@@ -11,3 +11,16 @@ Contratos (interfaces) para todo lo externo: API, WebSockets, storage. El resto 
 Las implementaciones HTTP viven en `adapters/http/`. App y casos de uso reciben un objeto `ports` con estas APIs inyectado (creado en bootstrap).
 
 Ver: `docs/frontend-estructura-elegida.md`.
+
+## Contratos formales (JSDoc)
+
+Se han agregado typedefs formales para los ports en:
+
+```
+frontend/src/ports/contracts.js
+```
+
+Estos typedefs documentan la forma esperada de los ports (métodos y retornos)
+que los adapters deben implementar (ej. `HttpParticlesApi`, `HttpBloquesApi`, etc.).
+Usar estos contratos como referencia al implementar adapters o al inyectar ports
+en `createPortsAndStore()` (bootstrap).
