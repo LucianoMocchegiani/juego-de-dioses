@@ -3,7 +3,6 @@
  */
 import * as THREE from 'three';
 import { BaseRenderer } from '../../renderers/base-renderer.js';
-import { FrustumCache } from '../utils/culling.js';
 import { sortParticlesByDepth } from '../utils/sorting.js';
 import { LODManager } from '../optimizations/lod-manager.js';
 import { ParticleLimiter } from '../optimizations/particle-limiter.js';
@@ -20,6 +19,11 @@ import {
     HIDDEN_PARTICLE_POSITION,
     WATER_OPTIMIZATION_OPTIONS
 } from '../../../config/particle-optimization-config.js';
+import { getVisibleWithCache } from '../../optimizations/particles-pipeline/culling.js';
+import { applyLOD } from '../../optimizations/particles-pipeline/lod.js';
+import { applyAdaptiveLimit, applyDensityLimit } from '../../optimizations/particles-pipeline/limiter.js';
+import { buildParticleGroups } from '../../optimizations/particles-pipeline/grouper.js';
+import { createInstancedMeshes } from '../../optimizations/particles-pipeline/instancer.js';
 
 /**
  * @typedef {import('../../../types.js').Particle} Particle
@@ -191,23 +195,19 @@ export class ParticleRenderer extends BaseRenderer {
         // NOTA: Frustum culling está deshabilitado por defecto para partículas de terreno
         // porque las partículas deben renderizarse alrededor del jugador, no de la cámara
         let particlesToRender = particles;
-        
+
         if (this.enableFrustumCulling && camera) {
-            // Lazy-load frustumCache solo si está habilitado
-            if (!this._frustumCache) {
-                this._frustumCache = new FrustumCache();
-            }
+            // Delegar a helper modular para mantener renderParticles como orquestador
+            // y reutilizar/gestionar FrustumCache de forma centralizada.
+            const result = getVisibleWithCache(this._frustumCache, particles, camera, cellSize);
+            this._frustumCache = result.frustumCache;
             const particlesBeforeFrustum = particlesToRender.length;
-            particlesToRender = this._frustumCache.getVisible(
-                particles,
-                camera,
-                cellSize
-            );
+            particlesToRender = result.visible;
             debugLogger.info('ParticleRenderer', 'Frustum culling aplicado', {
                 antes: particlesBeforeFrustum,
                 despues: particlesToRender.length,
                 filtradas: particlesBeforeFrustum - particlesToRender.length,
-                porcentajeFiltrado: particlesBeforeFrustum > 0 
+                porcentajeFiltrado: particlesBeforeFrustum > 0
                     ? ((particlesBeforeFrustum - particlesToRender.length) / particlesBeforeFrustum * 100).toFixed(1) + '%'
                     : '0%'
             });
@@ -220,7 +220,7 @@ export class ParticleRenderer extends BaseRenderer {
             // Usar posición del jugador para LOD si está disponible, sino usar cámara
             const { position: lodReferencePosition, source: lodSourceRaw } = this._getReferencePosition(playerPosition, camera);
             const lodSource = lodSourceRaw === 'player' ? 'jugador' : lodSourceRaw === 'camera' ? 'cámara' : 'none';
-            
+
             if (lodReferencePosition && particlesToRender.length > 0) {
                 debugLogger.info('ParticleRenderer', 'Aplicando LOD', {
                     antes: particlesBeforeLOD,
@@ -231,13 +231,10 @@ export class ParticleRenderer extends BaseRenderer {
                         z: lodReferencePosition.z?.toFixed(2)
                     }
                 });
-                
-                particlesToRender = this.lodManager.applyLOD(
-                    particlesToRender,
-                    lodReferencePosition,
-                    cellSize
-                );
-                
+
+                // Delegar a helper modular para LOD
+                particlesToRender = applyLOD(particlesToRender, this.lodManager, lodReferencePosition, cellSize);
+
                 debugLogger.info('ParticleRenderer', 'LOD aplicado', {
                     antes: particlesBeforeLOD,
                     despues: particlesToRender.length,
@@ -254,22 +251,17 @@ export class ParticleRenderer extends BaseRenderer {
         }
         
         // 2.5. Ajustar límite dinámicamente según FPS si está habilitado
-        if (this.enableAdaptiveLimiting && this.adaptiveLimiter) {
-            const adaptiveLimit = this.adaptiveLimiter.getCurrentLimit();
-            const previousLimit = this.particleLimiter.maxParticles;
-            this.particleLimiter.setMaxParticles(adaptiveLimit);
-            
-            // Log solo cuando cambia el límite (para no saturar)
-            if (adaptiveLimit !== previousLimit) {
-                const fps = this.adaptiveLimiter.performanceManager?.getMetrics()?.fps || 0;
+        if (this.enableAdaptiveLimiting) {
+            const result = applyAdaptiveLimit(this.adaptiveLimiter, this.particleLimiter);
+            if (result.changed) {
                 debugLogger.info('ParticleRenderer', 'Límite adaptativo aplicado', {
-                    fps: fps,
-                    limiteAdaptivo: adaptiveLimit,
-                    limiteAnterior: previousLimit
+                    fps: result.fps,
+                    limiteAdaptivo: result.current,
+                    limiteAnterior: result.previous
                 });
+            } else if (!this.adaptiveLimiter || !this.particleLimiter) {
+                debugLogger.warn('ParticleRenderer', 'Adaptación dinámica habilitada pero AdaptiveLimiter o ParticleLimiter no están disponibles');
             }
-        } else if (this.enableAdaptiveLimiting) {
-            debugLogger.warn('ParticleRenderer', 'Adaptación dinámica habilitada pero AdaptiveLimiter no está disponible');
         }
         
         // 2.6. Aplicar limitación agresiva de partículas con densidad reducida si está habilitado
@@ -305,15 +297,16 @@ export class ParticleRenderer extends BaseRenderer {
                         particlesAntesLimit: particlesBeforeLimit
                     });
                 } else {
-                    particlesToRender = this.particleLimiter.limitParticlesWithDensity(
+                    particlesToRender = applyDensityLimit(
                         particlesToRender,
+                        this.particleLimiter,
                         referencePosition, // Usar posición del jugador (no cámara)
                         cellSize,
-                        this.densityDistances.near,  // nearDistance (metros) - todas las partículas dentro de esta distancia se renderizan al 100%
-                        this.densityDistances.far,    // farDistance (metros) - partículas lejanas se reducen
+                        this.densityDistances.near,  // nearDistance (metros)
+                        this.densityDistances.far,    // farDistance (metros)
                         WATER_OPTIMIZATION_OPTIONS
                     );
-                    
+
                     debugLogger.info('ParticleRenderer', 'Limitación por densidad aplicada', {
                         particlesBefore: particlesBeforeLimit,
                         particlesAfter: particlesToRender.length,
@@ -342,153 +335,25 @@ export class ParticleRenderer extends BaseRenderer {
         // 3. Ordenar partículas por profundidad (celda_z) de mayor a menor
         const sortedParticles = sortParticlesByDepth(particlesToRender);
         
-        // Agrupar partículas por geometría+material para instanced rendering
-        const particlesByGeometry = new Map();
-        
-        sortedParticles.forEach((particle) => {
-            const tipoEstilos = tiposEstilos.get(particle.tipo);
-            const agrupacionGeom = agrupacionesGeometria?.get(particle.agrupacion_id);
-            
-            // Obtener estilo
-            const estilo = this.getStyle(particle, tipoEstilos);
-            const opacity = estilo.opacity !== undefined ? estilo.opacity : 1.0;
-            
-            // Saltar partículas invisibles
-            if (opacity === 0.0) {
-                return;
-            }
-            
-            // Obtener tipo y parámetros de geometría para la clave
-            let geometryType = 'box';
-            let geometryParams = {};
-            
-            if (particle.agrupacion_id && agrupacionGeom) {
-                const parteEntidad = particle.propiedades?.parte_entidad;
-                if (parteEntidad && agrupacionGeom.partes && agrupacionGeom.partes[parteEntidad]) {
-                    const parteDef = agrupacionGeom.partes[parteEntidad];
-                    if (parteDef.geometria) {
-                        geometryType = parteDef.geometria.tipo;
-                        geometryParams = parteDef.geometria.parametros || {};
-                    }
-                }
-            } else if (tipoEstilos?.geometria) {
-                // Nueva estructura: geometria directa
-                geometryType = tipoEstilos.geometria.tipo;
-                geometryParams = tipoEstilos.geometria.parametros || {};
-            } else if (tipoEstilos?.visual?.geometria) {
-                // Estructura antigua: visual.geometria (compatibilidad)
-                geometryType = tipoEstilos.visual.geometria.tipo;
-                geometryParams = tipoEstilos.visual.geometria.parametros || {};
-            }
-            
-            // Obtener nivel LOD de la partícula (si fue aplicado)
-            const lodLevel = particle._lodLevel || 'high';
-            
-            // Obtener geometría con LOD desde cache
-            const geometry = this.geometryCacheLOD.getGeometry(
-                geometryType,
-                geometryParams,
-                lodLevel,
-                cellSize
-            );
-            
-            // Crear clave única para geometría+material+LOD
-            const geometryKey = this.getGeometryKey(geometryType, geometryParams, estilo, lodLevel);
-            
-            if (!particlesByGeometry.has(geometryKey)) {
-                particlesByGeometry.set(geometryKey, {
-                    geometry: geometry,
-                    estilo: estilo,
-                    particles: []
-                });
-            }
-            
-            particlesByGeometry.get(geometryKey).particles.push(particle);
+        // Agrupar partículas por geometría+material usando helper modular
+        const { groupsToRender } = buildParticleGroups(sortedParticles, tiposEstilos, agrupacionesGeometria, {
+            getStyle: this.getStyle.bind(this),
+            geometryCacheLOD: this.geometryCacheLOD,
+            getGeometryKey: this.getGeometryKey.bind(this),
+            cellSize
         });
-        
-        // Separar grupos opacos de transparentes
-        const opaqueGroups = [];
-        const transparentGroups = [];
-        
-        particlesByGeometry.forEach((group, geometryKey) => {
-            const opacity = group.estilo.opacity !== undefined ? group.estilo.opacity : 1.0;
-            const isTransparent = group.estilo.isError || opacity < 1.0;
-            
-            // Calcular profundidad promedio del grupo (para ordenamiento)
-            const avgDepth = group.particles.reduce((sum, p) => sum + p.celda_z, 0) / group.particles.length;
-            
-            const groupData = { group, geometryKey, avgDepth };
-            
-            if (isTransparent) {
-                transparentGroups.push(groupData);
-            } else {
-                opaqueGroups.push(groupData);
-            }
-        });
-        
-        // Ordenar grupos opacos por profundidad (más profundos primero)
-        opaqueGroups.sort((a, b) => b.avgDepth - a.avgDepth);
-        
-        // OPTIMIZACIÓN: Ordenar grupos transparentes solo si hay muchos (evitar costo innecesario)
-        // Para pocos grupos transparentes, el ordenamiento no es crítico
-        if (transparentGroups.length > 1) {
-            // Ordenar grupos transparentes por profundidad (más profundos primero)
-            // Esto es necesario para renderizado correcto de transparencias
-            transparentGroups.sort((a, b) => b.avgDepth - a.avgDepth);
-        }
         
         // Limpiar índice anterior
         this.particleIndex.clear();
         
-        // Crear instanced meshes para cada grupo
-        const instancedMeshes = new Map();
-        
-        // Renderizar primero grupos opacos, luego transparentes
-        const groupsToRender = [...opaqueGroups, ...transparentGroups];
-        
-        groupsToRender.forEach(({ group, geometryKey }) => {
-            const count = group.particles.length;
-            
-            // Obtener material desde pool (reutilizar materiales)
-            const material = this.getMaterial(group.estilo);
-            
-            // Dividir en múltiples instanced meshes si es necesario
-            const numMeshes = Math.ceil(count / MAX_INSTANCES_PER_MESH);
-            
-            for (let meshIndex = 0; meshIndex < numMeshes; meshIndex++) {
-                const start = meshIndex * MAX_INSTANCES_PER_MESH;
-                const end = Math.min(start + MAX_INSTANCES_PER_MESH, count);
-                const particlesChunk = group.particles.slice(start, end);
-                
-                // Crear instanced mesh para este chunk
-                const instancedMesh = new THREE.InstancedMesh(
-                    group.geometry,
-                    material,
-                    particlesChunk.length
-                );
-                
-                // Configurar posiciones de instancias y construir índice
-                const matrix = new THREE.Matrix4();
-                const meshKey = numMeshes > 1 ? `${geometryKey}_${meshIndex}` : geometryKey;
-                
-                particlesChunk.forEach((particle, chunkIndex) => {
-                    const pos = this._calculateParticlePosition(particle, cellSize);
-                    matrix.setPosition(pos.x, pos.y, pos.z);
-                    instancedMesh.setMatrixAt(chunkIndex, matrix);
-                    
-                    // Guardar en índice: particleId -> {meshKey, instanceIndex}
-                    this.particleIndex.set(particle.id, {
-                        meshKey: meshKey,
-                        instanceIndex: chunkIndex
-                    });
-                });
-                
-                instancedMesh.instanceMatrix.needsUpdate = true;
-                
-                // Guardar referencia con índice único
-                instancedMeshes.set(meshKey, instancedMesh);
-                scene.add(instancedMesh);
-            }
+        // Crear instanced meshes usando helper modular
+        const instancedMeshes = createInstancedMeshes(groupsToRender, {
+            MAX_INSTANCES_PER_MESH,
+            getMaterial: this.getMaterial.bind(this),
+            calculateParticlePosition: this._calculateParticlePosition.bind(this),
+            particleIndex: this.particleIndex,
+            scene,
+            cellSize
         });
         
         // Throttling ahora manejado directamente en debugLogger

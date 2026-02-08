@@ -7,7 +7,6 @@ Lista de tickets que aún  no tienen un Pull Request completado.
 - [ ] **JDG-037** - Sistema de Física Avanzado
 - [ ] **JDG-043** - Sistema de Sombras Dinámicas
 - [ ] **JDG-044** - Implementar Movimiento en Espiral del Sol y Luna (Modelo de Gleason)
-- [ ] **JDG-050** - Refactorizar renderParticles() en Métodos Más Pequeños
 - [ ] **JDG-053** - Restricción de Movimiento en el Aire al Saltar e Inercia
 - [ ] **JDG-014** - Sistema de Daño por Partes del Cuerpo (Limb Damage System) ⚠️ POSPUESTO
 - [ ] **JDG-055** - Desplazamiento No Deseado Durante Animaciones (Root Motion)
@@ -76,7 +75,7 @@ Lista de tickets que aún  no tienen un Pull Request completado.
 - [x] **JDG-065** - Migrar Backend a Estructura por Dominio (estilo Nest)
 - [x] **JDG-068** - Completar Hexagonal al 100%: ports formales, domain centralizado e inyección TerrainManager
 - [x] **JDG-069** - Revisión a fondo post-refactor: verificar que no se rompió nada
-
+- [x] **JDG-050** - Refactorizar renderParticles() en Métodos Más Pequeños
 ## Notas
 
 - Esta lista se actualiza automáticamente cuando se crea un nuevo ticket o se completa un PR
